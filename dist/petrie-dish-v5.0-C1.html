@@ -2265,6 +2265,13 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
                     (Math.random() - 0.5) * 800
                 );
             }
+            
+            // Upload initial particles to GPU if available
+            if (USE_WEBGPU && gpuPhysicsEngine) {
+                gpuPhysicsEngine.uploadParticles(activeParticles);
+                // Force parameter refresh
+                lastSimParams.count = 0;
+            }
         }
 
         function spawnParticles(count) {
@@ -2279,6 +2286,10 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
             // Upload to GPU if available
             if (USE_WEBGPU && gpuPhysicsEngine) {
                 gpuPhysicsEngine.uploadParticles(activeParticles);
+                
+                // BUGFIX: Force parameter refresh after spawn
+                // Dirty flags need to detect the count change
+                lastSimParams.count = 0; // Force update on next frame
             }
         }
 
@@ -4033,8 +4044,11 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
                 const boundaryMode = settings.boundaryMode === 'toroidal' ? 0 : 
                                    settings.boundaryMode === 'bounce' ? 1 : 2;
                 
+                // BUGFIX: Check if count changed (affects both sim and integration params)
+                const countChanged = lastSimParams.count !== count;
+                
                 // Check if simulation parameters changed
-                if (lastSimParams.count !== count ||
+                if (countChanged ||
                     lastSimParams.interactionRange !== INTERACTION_RANGE ||
                     lastSimParams.interactionStrength !== INTERACTION_STRENGTH ||
                     lastSimParams.worldSize !== WORLD_SIZE ||
@@ -4056,8 +4070,9 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
                     lastSimParams.boundaryMode = boundaryMode;
                 }
                 
-                // Check if integration parameters changed
-                if (lastIntegrationParams.velocityDamping !== VELOCITY_DAMPING ||
+                // Check if integration parameters changed (count affects this too!)
+                if (countChanged ||
+                    lastIntegrationParams.velocityDamping !== VELOCITY_DAMPING ||
                     lastIntegrationParams.maxSpeed !== MAX_SPEED ||
                     lastIntegrationParams.worldMin !== WORLD_MIN ||
                     lastIntegrationParams.worldMax !== WORLD_MAX) {
