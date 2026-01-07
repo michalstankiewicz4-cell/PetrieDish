@@ -4001,6 +4001,22 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
 
         let gpuSyncCounter = 0;
         
+        // OPTIMIZATION: Track last uploaded parameters to avoid redundant updates
+        let lastSimParams = {
+            count: 0,
+            interactionRange: 0,
+            interactionStrength: 0,
+            worldSize: 0,
+            boundaryMode: -1
+        };
+        
+        let lastIntegrationParams = {
+            velocityDamping: 0,
+            maxSpeed: 0,
+            worldMin: 0,
+            worldMax: 0
+        };
+        
         async function animate() {
             updateFPS();
             updateStatsCache(); // System statistics
@@ -4013,32 +4029,66 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
                 // GPU PHYSICS PATH
                 const count = activeParticles.length;
                 
-                // Update parameters
+                // OPTIMIZATION: Only update parameters when they change
                 const boundaryMode = settings.boundaryMode === 'toroidal' ? 0 : 
                                    settings.boundaryMode === 'bounce' ? 1 : 2;
                 
-                gpuPhysicsEngine.updateSimParams(
-                    count, 
-                    INTERACTION_RANGE, 
-                    INTERACTION_STRENGTH, 
-                    WORLD_SIZE, 
-                    boundaryMode
-                );
+                // Check if simulation parameters changed
+                if (lastSimParams.count !== count ||
+                    lastSimParams.interactionRange !== INTERACTION_RANGE ||
+                    lastSimParams.interactionStrength !== INTERACTION_STRENGTH ||
+                    lastSimParams.worldSize !== WORLD_SIZE ||
+                    lastSimParams.boundaryMode !== boundaryMode) {
+                    
+                    gpuPhysicsEngine.updateSimParams(
+                        count, 
+                        INTERACTION_RANGE, 
+                        INTERACTION_STRENGTH, 
+                        WORLD_SIZE, 
+                        boundaryMode
+                    );
+                    
+                    // Update cache
+                    lastSimParams.count = count;
+                    lastSimParams.interactionRange = INTERACTION_RANGE;
+                    lastSimParams.interactionStrength = INTERACTION_STRENGTH;
+                    lastSimParams.worldSize = WORLD_SIZE;
+                    lastSimParams.boundaryMode = boundaryMode;
+                }
                 
-                gpuPhysicsEngine.updateIntegrationParams(
-                    count,
-                    VELOCITY_DAMPING,
-                    MAX_SPEED,
-                    WORLD_MIN,
-                    WORLD_MAX,
-                    boundaryMode
-                );
+                // Check if integration parameters changed
+                if (lastIntegrationParams.velocityDamping !== VELOCITY_DAMPING ||
+                    lastIntegrationParams.maxSpeed !== MAX_SPEED ||
+                    lastIntegrationParams.worldMin !== WORLD_MIN ||
+                    lastIntegrationParams.worldMax !== WORLD_MAX) {
+                    
+                    gpuPhysicsEngine.updateIntegrationParams(
+                        count,
+                        VELOCITY_DAMPING,
+                        MAX_SPEED,
+                        WORLD_MIN,
+                        WORLD_MAX,
+                        boundaryMode
+                    );
+                    
+                    // Update cache
+                    lastIntegrationParams.velocityDamping = VELOCITY_DAMPING;
+                    lastIntegrationParams.maxSpeed = MAX_SPEED;
+                    lastIntegrationParams.worldMin = WORLD_MIN;
+                    lastIntegrationParams.worldMax = WORLD_MAX;
+                }
                 
                 // Compute on GPU
                 gpuPhysicsEngine.computePhysicsStep(count);
                 
-                // Sync back to CPU for rendering (MUST wait for this!)
-                await gpuPhysicsEngine.downloadParticles(activeParticles);
+                // OPTIMIZATION: Only download when CPU needs data
+                // GPU rendering reads directly from GPU buffers (zero-copy)
+                // Only download for WebGL fallback rendering
+                if (!settings.useGPURender) {
+                    // WebGL rendering needs CPU data
+                    await gpuPhysicsEngine.downloadParticles(activeParticles);
+                }
+                // else: GPU rendering - no download needed! (zero-copy)
             }
             
             physicsTime = performance.now() - physicsStart;
