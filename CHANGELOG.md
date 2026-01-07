@@ -5,7 +5,37 @@ All notable changes to Petrie Dish will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v5.0-C1] - 2025-01-07 (CURRENT STABLE)
+## [v5.1-C2] - 2025-01-07 (IN PROGRESS)
+
+### 🧹 Removed
+- **Legacy CPU physics code** (-152 lines)
+  - Removed `Particle.update()` method (CPU particle integration)
+  - Removed `applyParticleInteractions()` function (CPU collision detection)
+  - Removed `applyForcesBetween()` function (CPU force calculation)
+  - Removed `SpatialHash` class (CPU optimization no longer needed)
+  - Removed CPU fallback path in `animate()` loop
+  - Impact: Cleaner codebase, single physics implementation (GPU-only)
+
+### ✨ Added
+- **WebGPU Required error screen** with helpful messaging
+  - Clear requirements: Chrome 113+, Edge 113+, Opera 99+
+  - User-friendly error display instead of silent fallback
+  - Better developer experience with explicit requirements
+
+### 🔧 Changed
+- **Physics engine now requires WebGPU** (no CPU fallback)
+  - Simplifies codebase and maintenance
+  - Ensures consistent GPU performance
+  - Firefox/Safari users see clear error message until WebGPU support
+
+### 📊 Code Quality
+- File size: 4399 → 4247 lines (-3.5%)
+- Complexity: Single physics implementation instead of dual paths
+- Maintenance: No more CPU/GPU synchronization issues
+
+---
+
+## [v5.0-C1] - 2025-01-07 (STABLE)
 
 ### ✨ Added
 - **WebGPU compute shaders** for GPU-accelerated physics calculations

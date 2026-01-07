@@ -1936,7 +1936,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
             invertCamera: false,
             zoomToMouse: false,
             boundaryMode: 'toroidal', // 'toroidal', 'bounce', 'void'
-            useSpatialHash: true, // Spatial hash optimization (5.5x faster!)
             useGPUPhysics: true, // GPU compute physics (10-100x faster!)
             useGPURender: true // GPU rendering - Zero-copy! (2-3x faster!)
         };
@@ -2219,54 +2218,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
                 // Initial velocity (will be affected by mass in update)
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = (Math.random() - 0.5) * 2;
-            }
-
-            update() {
-                if (!this.active) return;
-                
-                // VELOCITY DAMPING - friction/drag (prevents infinite acceleration)
-                this.vx *= VELOCITY_DAMPING;
-                this.vy *= VELOCITY_DAMPING;
-                
-                // MAX SPEED LIMIT - prevent runaway velocities
-                const speedSq = this.vx * this.vx + this.vy * this.vy;
-                if (speedSq > MAX_SPEED * MAX_SPEED) {
-                    const speed = Math.sqrt(speedSq);
-                    const scale = MAX_SPEED / speed;
-                    this.vx *= scale;
-                    this.vy *= scale;
-                }
-                
-                // Velocity is affected by mass (heavier = slower)
-                const speedFactor = 2 / this.mass; // Inverse of mass
-                this.x += this.vx * speedFactor;
-                this.y += this.vy * speedFactor;
-                
-                // Boundary handling based on settings.boundaryMode
-                if (settings.boundaryMode === 'toroidal') {
-                    // Toroidal (wrap around) - default
-                    if (this.x < WORLD_MIN) this.x = WORLD_MAX;
-                    if (this.x > WORLD_MAX) this.x = WORLD_MIN;
-                    if (this.y < WORLD_MIN) this.y = WORLD_MAX;
-                    if (this.y > WORLD_MAX) this.y = WORLD_MIN;
-                    
-                } else if (settings.boundaryMode === 'bounce') {
-                    // Bounce off walls
-                    if (this.x < WORLD_MIN || this.x > WORLD_MAX) this.vx *= -1;
-                    if (this.y < WORLD_MIN || this.y > WORLD_MAX) this.vy *= -1;
-                    this.x = Math.max(WORLD_MIN, Math.min(WORLD_MAX, this.x));
-                    this.y = Math.max(WORLD_MIN, Math.min(WORLD_MAX, this.y));
-                    
-                } else if (settings.boundaryMode === 'void') {
-                    // Void - particles disappear when out of bounds
-                    if (this.x < WORLD_MIN || this.x > WORLD_MAX ||
-                        this.y < WORLD_MIN || this.y > WORLD_MAX) {
-                        // Move far off-screen before deactivating (prevents edge artifacts)
-                        this.x = WORLD_MAX + 10000;
-                        this.y = WORLD_MAX + 10000;
-                        this.deactivate();
-                    }
-                }
             }
 
             deactivate() {
@@ -4058,63 +4009,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
         // ═══════════════════════════════════════════════════════════════
 
         // ═══════════════════════════════════════════════════════════════
-        //   SPATIAL HASH - PERFORMANCE OPTIMIZATION
-        // ═══════════════════════════════════════════════════════════════
-
-        class SpatialHash {
-            constructor(cellSize) {
-                this.cellSize = cellSize;
-                this.cells = new Map();
-            }
-
-            // Get cell key for position
-            getKey(x, y) {
-                const cellX = Math.floor(x / this.cellSize);
-                const cellY = Math.floor(y / this.cellSize);
-                return `${cellX},${cellY}`;
-            }
-
-            // Clear all cells
-            clear() {
-                this.cells.clear();
-            }
-
-            // Insert particle into spatial hash
-            insert(particle) {
-                const key = this.getKey(particle.x, particle.y);
-                if (!this.cells.has(key)) {
-                    this.cells.set(key, []);
-                }
-                this.cells.get(key).push(particle);
-            }
-
-            // Query nearby particles within range
-            query(x, y, range) {
-                const nearby = [];
-                
-                // Check cells in range
-                const cellRadius = Math.ceil(range / this.cellSize);
-                const centerCellX = Math.floor(x / this.cellSize);
-                const centerCellY = Math.floor(y / this.cellSize);
-
-                for (let dx = -cellRadius; dx <= cellRadius; dx++) {
-                    for (let dy = -cellRadius; dy <= cellRadius; dy++) {
-                        const cellX = centerCellX + dx;
-                        const cellY = centerCellY + dy;
-                        const key = `${cellX},${cellY}`;
-                        
-                        const cell = this.cells.get(key);
-                        if (cell) {
-                            nearby.push(...cell);
-                        }
-                    }
-                }
-                
-                return nearby;
-            }
-        }
-
-        // ═══════════════════════════════════════════════════════════════
         //   PARTICLE INTERACTIONS
         // ═══════════════════════════════════════════════════════════════
 
@@ -4124,101 +4018,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
         // Velocity control (adjustable!)
         let VELOCITY_DAMPING = 0.98; // Friction/drag (0.90-0.99)
         let MAX_SPEED = 5.0; // Maximum velocity magnitude (1-20)
-
-        // Create spatial hash with cell size = interaction range
-        const spatialHash = new SpatialHash(INTERACTION_RANGE);
-
-        function applyParticleInteractions() {
-            if (settings.useSpatialHash) {
-                // O(n) instead of O(n²)
-                spatialHash.clear();
-                
-                // Insert all active particles into spatial hash
-                for (let i = 0; i < activeParticles.length; i++) {
-                    if (activeParticles[i].active) {
-                        spatialHash.insert(activeParticles[i]);
-                    }
-                }
-                
-                // Apply forces using spatial hash (much faster!)
-                for (let i = 0; i < activeParticles.length; i++) {
-                    const p1 = activeParticles[i];
-                    if (!p1.active) continue;
-                    
-                    // Query nearby particles using spatial hash
-                    const nearby = spatialHash.query(p1.x, p1.y, INTERACTION_RANGE);
-                    
-                    for (let j = 0; j < nearby.length; j++) {
-                        const p2 = nearby[j];
-                        if (p2 === p1) continue; // Skip self
-                        if (!p2.active) continue;
-                        
-                        // Only process each pair once: p1.id < p2.id
-                        // This is MUCH faster than string-based Set!
-                        if (p1.id >= p2.id) continue;
-                        
-                        applyForcesBetween(p1, p2);
-                    }
-                }
-            } else {
-                // BRUTE FORCE: O(n²) - for comparison
-                for (let i = 0; i < activeParticles.length; i++) {
-                    const p1 = activeParticles[i];
-                    if (!p1.active) continue;
-                    
-                    for (let j = i + 1; j < activeParticles.length; j++) {
-                        const p2 = activeParticles[j];
-                        if (!p2.active) continue;
-                        
-                        applyForcesBetween(p1, p2);
-                    }
-                }
-            }
-        }
-        
-        // Helper function to apply forces between two particles
-        function applyForcesBetween(p1, p2) {
-            let dx = p2.x - p1.x;
-            let dy = p2.y - p1.y;
-            
-            // TOROIDAL DISTANCE: account for wrap-around
-            if (settings.boundaryMode === 'toroidal') {
-                // If distance is more than half world size, use shorter path through wrap
-                if (Math.abs(dx) > WORLD_SIZE / 2) {
-                    dx = dx > 0 ? dx - WORLD_SIZE : dx + WORLD_SIZE;
-                }
-                if (Math.abs(dy) > WORLD_SIZE / 2) {
-                    dy = dy > 0 ? dy - WORLD_SIZE : dy + WORLD_SIZE;
-                }
-            }
-            
-            const distSq = dx * dx + dy * dy;
-            
-            if (distSq < INTERACTION_RANGE * INTERACTION_RANGE && distSq > 0) {
-                const dist = Math.sqrt(distSq);
-                
-                // Get interaction strength from matrix
-                const force1to2 = INTERACTION_MATRIX[p1.colorIndex][p2.colorIndex];
-                const force2to1 = INTERACTION_MATRIX[p2.colorIndex][p1.colorIndex];
-                
-                // Normalize direction
-                const nx = dx / dist;
-                const ny = dy / dist;
-                
-                // Apply force (attraction/repulsion)
-                // Base force inversely proportional to distance (1/r law)
-                const strength = INTERACTION_STRENGTH / dist;
-                
-                // Apply force with matrix strength and mass scaling
-                // p1 affected by p2
-                p1.vx += nx * force1to2 * strength / p1.mass;
-                p1.vy += ny * force1to2 * strength / p1.mass;
-                
-                // p2 affected by p1
-                p2.vx -= nx * force2to1 * strength / p2.mass;
-                p2.vy -= ny * force2to1 * strength / p2.mass;
-            }
-        }
 
         let gpuSyncCounter = 0;
         
@@ -4260,16 +4059,6 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
                 
                 // Sync back to CPU for rendering (MUST wait for this!)
                 await gpuPhysicsEngine.downloadParticles(activeParticles);
-                
-            } else {
-                // CPU PHYSICS PATH (FALLBACK)
-                // Apply interactions between particles
-                applyParticleInteractions();
-                
-                // Update particle positions
-                for (let i = 0; i < activeParticles.length; i++) {
-                    activeParticles[i].update();
-                }
             }
             
             physicsTime = performance.now() - physicsStart;
@@ -4349,6 +4138,67 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
         }
 
         // ═══════════════════════════════════════════════════════════════
+        //   WEBGPU REQUIRED ERROR SCREEN
+        // ═══════════════════════════════════════════════════════════════
+        
+        function showWebGPURequiredScreen(errorDetails = '') {
+            // Clear canvases
+            const gl = glCanvas.getContext('2d');
+            const uictx = uiCanvas.getContext('2d');
+            
+            if (gl) {
+                gl.fillStyle = '#0a0a14';
+                gl.fillRect(0, 0, glCanvas.width, glCanvas.height);
+            }
+            
+            if (!uictx) return;
+            
+            uictx.fillStyle = '#0a0a14';
+            uictx.fillRect(0, 0, uiCanvas.width, uiCanvas.height);
+            
+            const centerX = uiCanvas.width / 2;
+            const centerY = uiCanvas.height / 2;
+            
+            // Title
+            uictx.font = 'bold 32px "Courier New", monospace';
+            uictx.fillStyle = '#ff4444';
+            uictx.textAlign = 'center';
+            uictx.fillText('⚠️ WebGPU Required', centerX, centerY - 120);
+            
+            // Main message
+            uictx.font = '18px "Courier New", monospace';
+            uictx.fillStyle = '#ffffff';
+            uictx.fillText('Petrie Dish v5.1-C2 requires WebGPU for GPU-accelerated physics.', centerX, centerY - 60);
+            uictx.fillText('CPU fallback has been removed for cleaner codebase.', centerX, centerY - 30);
+            
+            // Requirements
+            uictx.font = 'bold 16px "Courier New", monospace';
+            uictx.fillStyle = '#44ff44';
+            uictx.fillText('Supported Browsers:', centerX, centerY + 20);
+            
+            uictx.font = '16px "Courier New", monospace';
+            uictx.fillStyle = '#cccccc';
+            uictx.fillText('• Chrome 113+ (recommended)', centerX, centerY + 50);
+            uictx.fillText('• Edge 113+', centerX, centerY + 75);
+            uictx.fillText('• Opera 99+', centerX, centerY + 100);
+            
+            // Error details if provided
+            if (errorDetails) {
+                uictx.font = '14px "Courier New", monospace';
+                uictx.fillStyle = '#ff8844';
+                uictx.fillText('Error: ' + errorDetails, centerX, centerY + 140);
+            }
+            
+            // Footer
+            uictx.font = '14px "Courier New", monospace';
+            uictx.fillStyle = '#888888';
+            uictx.fillText('Please use a supported browser to run this simulation.', centerX, centerY + 180);
+            
+            console.error('❌ WebGPU not available - simulation cannot run');
+            console.log('💡 Please use Chrome 113+, Edge 113+, or Opera 99+');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         //   ASYNC MAIN - INITIALIZE WEBGPU THEN START
         // ═══════════════════════════════════════════════════════════════
 
@@ -4356,37 +4206,36 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
             // Try to initialize WebGPU
             const webgpuAvailable = await initWebGPU();
             
-            if (webgpuAvailable) {
-                // Create GPU Physics Engine
-                try {
-                    gpuPhysicsEngine = new GPUPhysicsEngine(gpuDevice, 100000);
-                    const initialized = await gpuPhysicsEngine.initialize();
-                    
-                    if (initialized) {
-                        // Upload initial particles to GPU
-                        gpuPhysicsEngine.uploadParticles(activeParticles);
-                        gpuPhysicsEngine.uploadInteractionMatrix(INTERACTION_MATRIX);
-                        gpuPhysicsEngine.uploadColorPalette(COLOR_PALETTE);
-                        console.log('✅ GPU Physics Engine ready - 10-100x speedup available!');
-                        console.log('✅ GPU Rendering ready - Zero-Copy rendering!');
-                    } else {
-                        console.warn('⚠️ Failed to initialize GPU Physics - falling back to CPU');
-                        USE_WEBGPU = false;
-                        settings.useGPUPhysics = false;
-                    }
-                } catch (error) {
-                    console.error('❌ GPU Physics initialization failed:', error);
-                    USE_WEBGPU = false;
-                    settings.useGPUPhysics = false;
-                    gpuPhysicsEngine = null;
-                }
-            } else {
-                console.log('💡 Running in CPU mode - GPU compute not available');
-                settings.useGPUPhysics = false;
+            if (!webgpuAvailable) {
+                // Show WebGPU Required error screen
+                showWebGPURequiredScreen();
+                return;
             }
-
-            // Start animation loop
-            animate();
+            
+            // Create GPU Physics Engine
+            try {
+                gpuPhysicsEngine = new GPUPhysicsEngine(gpuDevice, 100000);
+                const initialized = await gpuPhysicsEngine.initialize();
+                
+                if (!initialized) {
+                    showWebGPURequiredScreen('GPU Physics Engine initialization failed');
+                    return;
+                }
+                
+                // Upload initial particles to GPU
+                gpuPhysicsEngine.uploadParticles(activeParticles);
+                gpuPhysicsEngine.uploadInteractionMatrix(INTERACTION_MATRIX);
+                gpuPhysicsEngine.uploadColorPalette(COLOR_PALETTE);
+                console.log('✅ GPU Physics Engine ready - 10-100x speedup available!');
+                console.log('✅ GPU Rendering ready - Zero-Copy rendering!');
+                
+                // Start animation loop
+                animate();
+                
+            } catch (error) {
+                console.error('❌ GPU Physics initialization failed:', error);
+                showWebGPURequiredScreen('GPU initialization error: ' + error.message);
+            }
         }
 
         // Start the app!

@@ -33,13 +33,12 @@
 **Planned Fix:** v5.2 - Comprehensive fallback testing
 
 ### Legacy Code Pollution
-**Issue:** CPU physics code still present alongside GPU code  
-**Impact:** 
-- Code confusion (two physics implementations)
-- Maintenance burden
-- Increased file size (~500 lines)
-**Status:** **SCHEDULED FOR REMOVAL in v5.1-C2**  
-**Timeline:** 2025-01-20
+**Issue:** ~~CPU physics code still present alongside GPU code~~ **✅ FIXED in v5.1-C2**  
+**Resolution:** All legacy CPU physics code removed (-152 lines)
+- Removed: `Particle.update()`, `applyParticleInteractions()`, `applyForcesBetween()`, `SpatialHash` class
+- Added: WebGPU Required error screen for unsupported browsers
+- Impact: Single GPU implementation, cleaner codebase, easier maintenance
+**Status:** ✅ **RESOLVED in v5.1-C2**
 
 ---
 

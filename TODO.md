@@ -5,13 +5,14 @@
 **Status:** Not started
 
 ### Code Cleanup
-- [ ] **Remove legacy CPU physics code** (~500 lines)
-  - [ ] Delete `updateParticles()` CPU function
-  - [ ] Remove CPU collision detection
-  - [ ] Clean up particle update loops
-  - [ ] Audit codebase for remaining CPU physics references
-  - Impact: Cleaner codebase, easier maintenance
-  - See: `KNOWN_ISSUES.md` - Legacy Code Pollution
+- [x] **Remove legacy CPU physics code** (~150 lines) ✅ DONE 2025-01-07
+  - [x] Delete Particle.update() CPU method
+  - [x] Remove CPU collision detection (applyParticleInteractions, applyForcesBetween)
+  - [x] Remove SpatialHash class (CPU optimization)
+  - [x] Remove CPU fallback path in animate()
+  - [x] Add WebGPU Required error screen
+  - Impact: Cleaner codebase (-152 lines), easier maintenance
+  - Result: GPU-only physics, clear error messaging
 
 ### GPU Optimization
 - [ ] **Optimize GPU compute shader dispatch**
