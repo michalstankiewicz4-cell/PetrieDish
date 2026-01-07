@@ -1,0 +1,42 @@
+name: Auto-Update TODO.md from Issues
+
+on:
+  issues:
+    types: [opened, closed, reopened, edited, labeled, unlabeled]
+  workflow_dispatch:  # Manual trigger
+
+permissions:
+  contents: write
+  issues: read
+
+jobs:
+  update-todo:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests
+      
+      - name: Generate TODO.md from Issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: python .github/scripts/generate-todo.py
+      
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add TODO.md
+          git diff --quiet && git diff --staged --quiet || (git commit -m "docs: Auto-update TODO.md from Issues [skip ci]" && git push)
