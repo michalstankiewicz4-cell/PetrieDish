@@ -1,0 +1,57 @@
+# ═══════════════════════════════════════════════════════════
+#   PETRIE DISH - .gitignore
+# ═══════════════════════════════════════════════════════════
+
+# Editor backups
+*~
+*.bak
+*.swp
+*.swo
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+npm-debug.log*
+
+# Experimental files (not ready for commit)
+experiments/wip-*
+experiments/temp-*
+
+# Personal notes (jeśli ktoś trzyma lokalne notatki)
+*-personal.md
+*-notes.txt
+
+# Build artifacts (jeśli kiedyś będzie build process)
+dist/
+build/
+out/
+
+# Dependencies (jeśli kiedyś będzie npm)
+node_modules/
+package-lock.json
+
+# Screenshots/videos (mogą być duże)
+screenshots/
+videos/
+*.mp4
+*.gif
+*.webm
+
+# Backup files z edytorów
+*.html.bak
+*.html~
+
+# Temporary performance profiles
+*.cpuprofile
+*.heapprofile
