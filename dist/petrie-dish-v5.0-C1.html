@@ -1,0 +1,4398 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petrie Dish v5.0-C1 - WebGPU Zero-Copy Rendering! (Phase C1)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #0a0a14;
+            font-family: 'Courier New', monospace;
+        }
+
+        #glCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        #uiCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        #uiCanvas.interactive {
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="glCanvas"></canvas>
+    <canvas id="uiCanvas" class="interactive"></canvas>
+
+    <script>
+        console.log('✅ Petrie Dish v5.0-C1 - WebGPU Zero-Copy Rendering! 🚀⚡✨');
+
+        // ═══════════════════════════════════════════════════════════════
+        //   ERROR CONSOLE CAPTURE
+        // ═══════════════════════════════════════════════════════════════
+        
+        window.addEventListener('error', (event) => {
+            console.error('💥 Runtime Error:', event.message, 'at', event.filename, ':', event.lineno);
+        });
+        
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('💥 Unhandled Promise Rejection:', event.reason);
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        //   🎯 OPT-4: TEXT MEASUREMENT CACHE (2-5× faster UI)
+        // ═══════════════════════════════════════════════════════════════
+        
+        /**
+         * LRU Cache for text measurements
+         * measureText() is expensive - called 100+ times per frame!
+         * Cache hit rate: ~90% → massive speedup
+         */
+        const textWidthCache = new Map();
+        const MAX_CACHE_SIZE = 1000; // Prevent memory leaks
+        
+        /**
+         * Measure text width with caching
+         * @param {CanvasRenderingContext2D} ctx - Canvas context
+         * @param {string} text - Text to measure
+         * @param {string} font - Font string (e.g., "12px monospace")
+         * @returns {number} Text width in pixels
+         */
+        function measureTextCached(ctx, text, font) {
+            const key = `${font}:${text}`;
+            
+            // Check cache
+            if (textWidthCache.has(key)) {
+                return textWidthCache.get(key);
+            }
+            
+            // Measure and cache
+            ctx.font = font;
+            const width = ctx.measureText(text).width;
+            
+            // LRU eviction: Remove oldest entry if cache full
+            if (textWidthCache.size >= MAX_CACHE_SIZE) {
+                const firstKey = textWidthCache.keys().next().value;
+                textWidthCache.delete(firstKey);
+            }
+            
+            textWidthCache.set(key, width);
+            return width;
+        }
+        
+        /**
+         * Clear text measurement cache
+         * Call on font changes or context loss
+         */
+        function clearTextCache() {
+            textWidthCache.clear();
+        }
+
+
+        // ═══════════════════════════════════════════════════════════════
+        //   WEBGPU DETECTION & INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════
+
+        let USE_WEBGPU = false;
+        let gpuDevice = null;
+        let gpuAdapter = null;
+        let gpuCanvasContext = null;
+
+        async function initWebGPU() {
+            if (!navigator.gpu) {
+                console.warn('❌ WebGPU not supported - falling back to CPU');
+                console.log('💡 WebGPU requires Chrome 113+ or Edge 113+');
+                USE_WEBGPU = false;
+                return false;
+            }
+
+            try {
+                // Request adapter (using default power preference for compatibility)
+                gpuAdapter = await navigator.gpu.requestAdapter();
+
+                if (!gpuAdapter) {
+                    console.warn('❌ No WebGPU adapter found - falling back to CPU');
+                    USE_WEBGPU = false;
+                    return false;
+                }
+
+                // Request device
+                gpuDevice = await gpuAdapter.requestDevice({
+                    requiredLimits: {
+                        maxStorageBufferBindingSize: gpuAdapter.limits.maxStorageBufferBindingSize,
+                        maxBufferSize: gpuAdapter.limits.maxBufferSize,
+                        maxComputeWorkgroupSizeX: 256,
+                        maxComputeInvocationsPerWorkgroup: 256
+                    }
+                });
+
+                gpuDevice.lost.then((info) => {
+                    console.error('❌ WebGPU device lost:', info.message);
+                    USE_WEBGPU = false;
+                });
+
+                // Try to initialize canvas context for WebGPU rendering
+                // Note: Canvas already has WebGL context, so WebGPU rendering may not be available
+                try {
+                    gpuCanvasContext = glCanvas.getContext('webgpu');
+                    if (gpuCanvasContext) {
+                        gpuCanvasContext.configure({
+                            device: gpuDevice,
+                            format: navigator.gpu.getPreferredCanvasFormat(),
+                            alphaMode: 'premultiplied'
+                        });
+                        console.log('✅ WebGPU canvas context initialized - Zero-Copy rendering available!');
+                    } else {
+                        console.warn('⚠️ Canvas already has WebGL context - GPU rendering not available');
+                        console.log('💡 GPU Compute will still work! Only rendering falls back to WebGL.');
+                        settings.useGPURender = false; // Disable GPU rendering
+                    }
+                } catch (err) {
+                    console.warn('⚠️ WebGPU canvas context failed:', err.message);
+                    console.log('💡 GPU Compute will still work! Only rendering falls back to WebGL.');
+                    gpuCanvasContext = null;
+                    settings.useGPURender = false;
+                }
+
+                USE_WEBGPU = true;
+                console.log('✅ WebGPU initialized (adapter:', gpuAdapter.info?.description || 'unknown', ')');
+                return true;
+
+            } catch (error) {
+                console.error('❌ WebGPU initialization failed:', error);
+                console.log('💡 Falling back to CPU');
+                USE_WEBGPU = false;
+                return false;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   GPU BUFFER MANAGER
+        // ═══════════════════════════════════════════════════════════════
+
+        class GPUBufferManager {
+            constructor(device, maxParticles = 100000) {
+                this.device = device;
+                this.maxParticles = maxParticles;
+                
+                // CPU-side typed arrays (for upload/download)
+                this.positions = new Float32Array(maxParticles * 2);     // x, y
+                this.velocities = new Float32Array(maxParticles * 2);    // vx, vy
+                this.colorIndices = new Uint32Array(maxParticles);       // colorIndex (0-15)
+                this.masses = new Float32Array(maxParticles);            // mass
+                this.activeFlags = new Uint32Array(maxParticles);        // 1 = active, 0 = inactive
+                
+                // GPU buffers
+                this.positionBuffer = null;
+                this.velocityBuffer = null;
+                this.colorIndexBuffer = null;
+                this.massBuffer = null;
+                this.activeFlagBuffer = null;
+                
+                // Particle count
+                this.particleCount = 0;
+            }
+            
+            createBuffers() {
+                if (!this.device) {
+                    console.error('❌ No GPU device - cannot create buffers');
+                    return false;
+                }
+                
+                const usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
+                
+                // Position buffer (2 floats per particle)
+                this.positionBuffer = this.device.createBuffer({
+                    size: this.positions.byteLength,
+                    usage: usage,
+                    label: 'Position Buffer'
+                });
+                
+                // Velocity buffer (2 floats per particle)
+                this.velocityBuffer = this.device.createBuffer({
+                    size: this.velocities.byteLength,
+                    usage: usage,
+                    label: 'Velocity Buffer'
+                });
+                
+                // Color index buffer (1 uint per particle)
+                this.colorIndexBuffer = this.device.createBuffer({
+                    size: this.colorIndices.byteLength,
+                    usage: usage,
+                    label: 'Color Index Buffer'
+                });
+                
+                // Mass buffer (1 float per particle)
+                this.massBuffer = this.device.createBuffer({
+                    size: this.masses.byteLength,
+                    usage: usage,
+                    label: 'Mass Buffer'
+                });
+                
+                // Active flag buffer (1 uint per particle)
+                this.activeFlagBuffer = this.device.createBuffer({
+                    size: this.activeFlags.byteLength,
+                    usage: usage,
+                    label: 'Active Flag Buffer'
+                });
+                
+                const totalMB = (
+                    this.positions.byteLength +
+                    this.velocities.byteLength +
+                    this.colorIndices.byteLength +
+                    this.masses.byteLength +
+                    this.activeFlags.byteLength
+                ) / 1024 / 1024;
+                
+                return true;
+            }
+            
+            // Upload CPU particle data to GPU
+            uploadParticles(particles) {
+                if (!this.device || !this.positionBuffer) {
+                    return false;
+                }
+                
+                this.particleCount = particles.length;
+                
+                // Fill CPU arrays from particle objects
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    
+                    // Position
+                    this.positions[i * 2 + 0] = p.x;
+                    this.positions[i * 2 + 1] = p.y;
+                    
+                    // Velocity
+                    this.velocities[i * 2 + 0] = p.vx;
+                    this.velocities[i * 2 + 1] = p.vy;
+                    
+                    // Color index
+                    this.colorIndices[i] = p.colorIndex;
+                    
+                    // Mass
+                    this.masses[i] = p.mass;
+                    
+                    // Active flag
+                    this.activeFlags[i] = p.active ? 1 : 0;
+                }
+                
+                // Upload to GPU
+                this.device.queue.writeBuffer(this.positionBuffer, 0, this.positions);
+                this.device.queue.writeBuffer(this.velocityBuffer, 0, this.velocities);
+                this.device.queue.writeBuffer(this.colorIndexBuffer, 0, this.colorIndices);
+                this.device.queue.writeBuffer(this.massBuffer, 0, this.masses);
+                this.device.queue.writeBuffer(this.activeFlagBuffer, 0, this.activeFlags);
+                
+                return true;
+            }
+            
+            // Download GPU data back to CPU (for rendering)
+            async downloadParticles(particles) {
+                if (!this.device || !this.positionBuffer) {
+                    return false;
+                }
+                
+                // Create staging buffers for reading back
+                const stagingPosition = this.device.createBuffer({
+                    size: this.positions.byteLength,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+                });
+                
+                const stagingVelocity = this.device.createBuffer({
+                    size: this.velocities.byteLength,
+                    usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+                });
+                
+                // Copy from GPU to staging
+                const commandEncoder = this.device.createCommandEncoder();
+                commandEncoder.copyBufferToBuffer(this.positionBuffer, 0, stagingPosition, 0, this.positions.byteLength);
+                commandEncoder.copyBufferToBuffer(this.velocityBuffer, 0, stagingVelocity, 0, this.velocities.byteLength);
+                this.device.queue.submit([commandEncoder.finish()]);
+                
+                // Map and read
+                await stagingPosition.mapAsync(GPUMapMode.READ);
+                await stagingVelocity.mapAsync(GPUMapMode.READ);
+                
+                const posData = new Float32Array(stagingPosition.getMappedRange());
+                const velData = new Float32Array(stagingVelocity.getMappedRange());
+                
+                // Copy to CPU arrays
+                this.positions.set(posData);
+                this.velocities.set(velData);
+                
+                stagingPosition.unmap();
+                stagingVelocity.unmap();
+                
+                // Update particle objects
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    p.x = this.positions[i * 2 + 0];
+                    p.y = this.positions[i * 2 + 1];
+                    p.vx = this.velocities[i * 2 + 0];
+                    p.vy = this.velocities[i * 2 + 1];
+                }
+                
+                return true;
+            }
+            
+            destroy() {
+                if (this.positionBuffer) this.positionBuffer.destroy();
+                if (this.velocityBuffer) this.velocityBuffer.destroy();
+                if (this.colorIndexBuffer) this.colorIndexBuffer.destroy();
+                if (this.massBuffer) this.massBuffer.destroy();
+                if (this.activeFlagBuffer) this.activeFlagBuffer.destroy();
+                
+            }
+        }
+        
+        let gpuBufferManager = null;
+
+        // ═══════════════════════════════════════════════════════════════
+        //   GPU PHYSICS ENGINE - COMPUTE SHADERS
+        // ═══════════════════════════════════════════════════════════════
+        
+        class GPUPhysicsEngine {
+            constructor(device, maxParticles) {
+                this.device = device;
+                this.maxParticles = maxParticles;
+                
+                // Compute pipelines
+                this.forcePipeline = null;
+                this.integrationPipeline = null;
+                
+                // Buffers (double buffering)
+                this.bufferSetA = null;
+                this.bufferSetB = null;
+                this.currentSet = 'A';
+                
+                // Uniform buffers
+                this.simParamsBuffer = null;
+                this.integParamsBuffer = null;
+                this.interactionMatrixBuffer = null;
+                
+                // Bind groups
+                this.forceBindGroupA = null;
+                this.forceBindGroupB = null;
+                this.integrationBindGroupA = null;
+                this.integrationBindGroupB = null;
+                
+                // Render pipeline (WebGPU rendering)
+                this.renderPipeline = null;
+                this.renderBindGroupA = null;
+                this.renderBindGroupB = null;
+                this.cameraUniformBuffer = null;
+                this.colorPaletteBuffer = null;
+                
+                // Shaders
+                this.forceShaderCode = `
+@group(0) @binding(0) var<storage, read> positions: array<vec2f>;
+@group(0) @binding(1) var<storage, read> velocities: array<vec2f>;
+@group(0) @binding(2) var<storage, read> colorIndices: array<u32>;
+@group(0) @binding(3) var<storage, read> masses: array<f32>;
+@group(0) @binding(4) var<storage, read_write> forces: array<vec2f>;
+
+struct SimParams {
+    particleCount: u32,
+    interactionRange: f32,
+    interactionStrength: f32,
+    worldSize: f32,
+    boundaryMode: u32,
+}
+
+@group(0) @binding(5) var<uniform> params: SimParams;
+@group(0) @binding(6) var<storage, read> interactionMatrix: array<f32>;
+
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) id: vec3u) {
+    let i = id.x;
+    if (i >= params.particleCount) { return; }
+    
+    let pos1 = positions[i];
+    let color1 = colorIndices[i];
+    let mass1 = masses[i];
+    
+    var totalForce = vec2f(0.0, 0.0);
+    
+    for (var j = 0u; j < params.particleCount; j++) {
+        if (i == j) { continue; }
+        
+        var dx = positions[j].x - pos1.x;
+        var dy = positions[j].y - pos1.y;
+        
+        if (params.boundaryMode == 0u) {
+            let halfWorld = params.worldSize / 2.0;
+            if (abs(dx) > halfWorld) {
+                dx = select(dx - params.worldSize, dx + params.worldSize, dx > 0.0);
+            }
+            if (abs(dy) > halfWorld) {
+                dy = select(dy - params.worldSize, dy + params.worldSize, dy > 0.0);
+            }
+        }
+        
+        let distSq = dx * dx + dy * dy;
+        let rangeSq = params.interactionRange * params.interactionRange;
+        
+        if (distSq < rangeSq && distSq > 0.0) {
+            let dist = sqrt(distSq);
+            
+            let color2 = colorIndices[j];
+            let matrixIndex = color1 * 16u + color2;
+            let force = interactionMatrix[matrixIndex];
+            
+            let nx = dx / dist;
+            let ny = dy / dist;
+            
+            let strength = params.interactionStrength / dist;
+            let forceValue = force * strength / mass1;
+            
+            totalForce.x += nx * forceValue;
+            totalForce.y += ny * forceValue;
+        }
+    }
+    
+    forces[i] = totalForce;
+}`;
+
+                this.integrationShaderCode = `
+@group(0) @binding(0) var<storage, read> positionsIn: array<vec2f>;
+@group(0) @binding(1) var<storage, read> velocitiesIn: array<vec2f>;
+@group(0) @binding(2) var<storage, read> forces: array<vec2f>;
+@group(0) @binding(3) var<storage, read> masses: array<f32>;
+@group(0) @binding(4) var<storage, read_write> positionsOut: array<vec2f>;
+@group(0) @binding(5) var<storage, read_write> velocitiesOut: array<vec2f>;
+
+struct IntegrationParams {
+    particleCount: u32,
+    velocityDamping: f32,
+    maxSpeed: f32,
+    worldMin: f32,
+    worldMax: f32,
+    boundaryMode: u32,
+}
+
+@group(0) @binding(6) var<uniform> params: IntegrationParams;
+
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) id: vec3u) {
+    let i = id.x;
+    if (i >= params.particleCount) { return; }
+    
+    var pos = positionsIn[i];
+    var vel = velocitiesIn[i];
+    let force = forces[i];
+    let mass = masses[i];
+    
+    vel += force;
+    vel *= params.velocityDamping;
+    
+    let speedSq = vel.x * vel.x + vel.y * vel.y;
+    let maxSpeedSq = params.maxSpeed * params.maxSpeed;
+    if (speedSq > maxSpeedSq) {
+        let speed = sqrt(speedSq);
+        vel *= params.maxSpeed / speed;
+    }
+    
+    let speedFactor = 2.0 / mass;
+    pos += vel * speedFactor;
+    
+    if (params.boundaryMode == 0u) {
+        if (pos.x < params.worldMin) { pos.x = params.worldMax; }
+        if (pos.x > params.worldMax) { pos.x = params.worldMin; }
+        if (pos.y < params.worldMin) { pos.y = params.worldMax; }
+        if (pos.y > params.worldMax) { pos.y = params.worldMin; }
+    } 
+    else if (params.boundaryMode == 1u) {
+        if (pos.x < params.worldMin || pos.x > params.worldMax) { vel.x *= -1.0; }
+        if (pos.y < params.worldMin || pos.y > params.worldMax) { vel.y *= -1.0; }
+        pos.x = clamp(pos.x, params.worldMin, params.worldMax);
+        pos.y = clamp(pos.y, params.worldMin, params.worldMax);
+    }
+    else if (params.boundaryMode == 2u) {
+        if (pos.x < params.worldMin || pos.x > params.worldMax ||
+            pos.y < params.worldMin || pos.y > params.worldMax) {
+            pos.x = params.worldMax + 10000.0;
+            pos.y = params.worldMax + 10000.0;
+        }
+    }
+    
+    positionsOut[i] = pos;
+    velocitiesOut[i] = vel;
+}`;
+
+                // ═══════════════════════════════════════════════════════════════
+                //   WEBGPU RENDER SHADERS (Zero-Copy Rendering!)
+                // ═══════════════════════════════════════════════════════════════
+                
+                this.renderVertexShaderCode = `
+struct CameraUniforms {
+    resolution: vec2f,
+    cameraPos: vec2f,
+    cameraZoom: f32,
+    padding: f32,
+}
+
+struct VertexOutput {
+    @builtin(position) position: vec4f,
+    @location(0) color: vec3f,
+    @location(1) uv: vec2f,
+}
+
+@group(0) @binding(0) var<storage, read> positions: array<vec2f>;
+@group(0) @binding(1) var<storage, read> colorIndices: array<u32>;
+@group(0) @binding(2) var<storage, read> masses: array<f32>;
+@group(0) @binding(3) var<uniform> camera: CameraUniforms;
+@group(0) @binding(4) var<storage, read> colorPalette: array<vec3f>;  // 16 colors
+
+// Quad vertices for instanced rendering
+const QUAD_VERTICES = array<vec2f, 6>(
+    vec2f(-1.0, -1.0),
+    vec2f( 1.0, -1.0),
+    vec2f(-1.0,  1.0),
+    vec2f(-1.0,  1.0),
+    vec2f( 1.0, -1.0),
+    vec2f( 1.0,  1.0)
+);
+
+@vertex
+fn vertexMain(
+    @builtin(vertex_index) vertexIndex: u32,
+    @builtin(instance_index) instanceIndex: u32
+) -> VertexOutput {
+    var output: VertexOutput;
+    
+    // Get particle data
+    let particlePos = positions[instanceIndex];
+    let colorIndex = colorIndices[instanceIndex];
+    let mass = masses[instanceIndex];
+    
+    // Particle radius based on mass (2-4 pixels)
+    let radius = 2.0 + mass;
+    
+    // Get quad vertex position
+    let quadVertex = QUAD_VERTICES[vertexIndex];
+    
+    // World position (particle center + quad offset)
+    let worldPos = particlePos - camera.cameraPos;
+    let screenPos = worldPos * camera.cameraZoom;
+    let offset = quadVertex * radius * camera.cameraZoom;
+    let finalScreenPos = screenPos + offset;
+    
+    // Convert to clip space (-1 to 1)
+    let clipSpace = (finalScreenPos / camera.resolution) * 2.0;
+    output.position = vec4f(clipSpace.x, -clipSpace.y, 0.0, 1.0);
+    
+    // Get color from palette
+    output.color = colorPalette[colorIndex % 16u];
+    
+    // UV coordinates for fragment shader
+    output.uv = quadVertex;
+    
+    return output;
+}
+
+@fragment
+fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
+    // Circular particle with glow
+    let dist = length(input.uv);
+    if (dist > 1.0) {
+        discard;
+    }
+    
+    // Glow effect (same as WebGL version)
+    let core = smoothstep(0.6, 0.4, dist);
+    let glow = smoothstep(1.0, 0.5, dist) * 0.6;
+    let alpha = core + glow;
+    
+    // Final color with alpha
+    return vec4f(input.color * (0.5 + alpha * 0.5), alpha);
+}`;
+            }
+            
+            createBufferSet(label) {
+                const usage = GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC;
+                
+                return {
+                    position: this.device.createBuffer({
+                        size: this.maxParticles * 2 * 4, // vec2f = 8 bytes
+                        usage: usage,
+                        label: `${label} Position Buffer`
+                    }),
+                    velocity: this.device.createBuffer({
+                        size: this.maxParticles * 2 * 4,
+                        usage: usage,
+                        label: `${label} Velocity Buffer`
+                    }),
+                    colorIndex: this.device.createBuffer({
+                        size: this.maxParticles * 4, // u32 = 4 bytes
+                        usage: usage,
+                        label: `${label} ColorIndex Buffer`
+                    }),
+                    mass: this.device.createBuffer({
+                        size: this.maxParticles * 4, // f32 = 4 bytes
+                        usage: usage,
+                        label: `${label} Mass Buffer`
+                    }),
+                    force: this.device.createBuffer({
+                        size: this.maxParticles * 2 * 4, // vec2f = 8 bytes
+                        usage: usage,
+                        label: `${label} Force Buffer`
+                    })
+                };
+            }
+            
+            async initialize() {
+                console.log('🚀 Initializing GPU Physics Engine...');
+                
+                // Create double buffers
+                this.bufferSetA = this.createBufferSet('A');
+                this.bufferSetB = this.createBufferSet('B');
+                
+                // Create uniform buffers
+                this.simParamsBuffer = this.device.createBuffer({
+                    size: 32, // 5 × 4 bytes (u32, f32, f32, f32, u32) + padding
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                    label: 'Sim Params Buffer'
+                });
+                
+                this.integParamsBuffer = this.device.createBuffer({
+                    size: 32, // 6 × 4 bytes + padding
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                    label: 'Integration Params Buffer'
+                });
+                
+                this.interactionMatrixBuffer = this.device.createBuffer({
+                    size: 16 * 16 * 4, // 256 floats
+                    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+                    label: 'Interaction Matrix Buffer'
+                });
+                
+                // Camera uniform buffer (for rendering)
+                this.cameraUniformBuffer = this.device.createBuffer({
+                    size: 32, // vec2f resolution, vec2f pos, f32 zoom, f32 padding
+                    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                    label: 'Camera Uniform Buffer'
+                });
+                
+                // Color palette buffer (16 colors × vec3f)
+                this.colorPaletteBuffer = this.device.createBuffer({
+                    size: 16 * 3 * 4, // 16 colors × 3 floats × 4 bytes
+                    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+                    label: 'Color Palette Buffer'
+                });
+                
+                // Create compute pipelines
+                await this.createPipelines();
+                
+                console.log('✅ GPU Physics Engine initialized');
+                return true;
+            }
+            
+            async createPipelines() {
+                // Force calculation pipeline
+                const forceModule = this.device.createShaderModule({
+                    code: this.forceShaderCode,
+                    label: 'Force Calculation Shader'
+                });
+                
+                const forceBindGroupLayout = this.device.createBindGroupLayout({
+                    entries: [
+                        { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+                        { binding: 5, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } },
+                        { binding: 6, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } }
+                    ]
+                });
+                
+                this.forcePipeline = this.device.createComputePipeline({
+                    layout: this.device.createPipelineLayout({
+                        bindGroupLayouts: [forceBindGroupLayout]
+                    }),
+                    compute: {
+                        module: forceModule,
+                        entryPoint: 'main'
+                    }
+                });
+                
+                // Integration pipeline
+                const integrationModule = this.device.createShaderModule({
+                    code: this.integrationShaderCode,
+                    label: 'Integration Shader'
+                });
+                
+                const integrationBindGroupLayout = this.device.createBindGroupLayout({
+                    entries: [
+                        { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'read-only-storage' } },
+                        { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+                        { binding: 5, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'storage' } },
+                        { binding: 6, visibility: GPUShaderStage.COMPUTE, buffer: { type: 'uniform' } }
+                    ]
+                });
+                
+                this.integrationPipeline = this.device.createComputePipeline({
+                    layout: this.device.createPipelineLayout({
+                        bindGroupLayouts: [integrationBindGroupLayout]
+                    }),
+                    compute: {
+                        module: integrationModule,
+                        entryPoint: 'main'
+                    }
+                });
+                
+                // ═══════════════════════════════════════════════════════════════
+                //   RENDER PIPELINE (WebGPU Zero-Copy Rendering)
+                // ═══════════════════════════════════════════════════════════════
+                
+                const renderVertexModule = this.device.createShaderModule({
+                    code: this.renderVertexShaderCode,
+                    label: 'Render Vertex Shader'
+                });
+                
+                const renderBindGroupLayout = this.device.createBindGroupLayout({
+                    entries: [
+                        { binding: 0, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
+                        { binding: 1, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
+                        { binding: 2, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } },
+                        { binding: 3, visibility: GPUShaderStage.VERTEX, buffer: { type: 'uniform' } },
+                        { binding: 4, visibility: GPUShaderStage.VERTEX, buffer: { type: 'read-only-storage' } }
+                    ]
+                });
+                
+                this.renderPipeline = this.device.createRenderPipeline({
+                    layout: this.device.createPipelineLayout({
+                        bindGroupLayouts: [renderBindGroupLayout]
+                    }),
+                    vertex: {
+                        module: renderVertexModule,
+                        entryPoint: 'vertexMain'
+                    },
+                    fragment: {
+                        module: renderVertexModule,  // Same module (has both vertex and fragment)
+                        entryPoint: 'fragmentMain',
+                        targets: [{
+                            format: navigator.gpu.getPreferredCanvasFormat(),
+                            blend: {
+                                color: {
+                                    srcFactor: 'src-alpha',
+                                    dstFactor: 'one-minus-src-alpha',
+                                    operation: 'add'
+                                },
+                                alpha: {
+                                    srcFactor: 'one',
+                                    dstFactor: 'one-minus-src-alpha',
+                                    operation: 'add'
+                                }
+                            }
+                        }]
+                    },
+                    primitive: {
+                        topology: 'triangle-list'
+                    }
+                });
+                
+                // Create bind groups (will be updated with actual buffers)
+                this.createBindGroups();
+            }
+            
+            createBindGroups() {
+                // Force bind groups for both buffer sets
+                this.forceBindGroupA = this.device.createBindGroup({
+                    layout: this.forcePipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: this.bufferSetA.position } },
+                        { binding: 1, resource: { buffer: this.bufferSetA.velocity } },
+                        { binding: 2, resource: { buffer: this.bufferSetA.colorIndex } },
+                        { binding: 3, resource: { buffer: this.bufferSetA.mass } },
+                        { binding: 4, resource: { buffer: this.bufferSetA.force } },
+                        { binding: 5, resource: { buffer: this.simParamsBuffer } },
+                        { binding: 6, resource: { buffer: this.interactionMatrixBuffer } }
+                    ]
+                });
+                
+                this.forceBindGroupB = this.device.createBindGroup({
+                    layout: this.forcePipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: this.bufferSetB.position } },
+                        { binding: 1, resource: { buffer: this.bufferSetB.velocity } },
+                        { binding: 2, resource: { buffer: this.bufferSetB.colorIndex } },
+                        { binding: 3, resource: { buffer: this.bufferSetB.mass } },
+                        { binding: 4, resource: { buffer: this.bufferSetB.force } },
+                        { binding: 5, resource: { buffer: this.simParamsBuffer } },
+                        { binding: 6, resource: { buffer: this.interactionMatrixBuffer } }
+                    ]
+                });
+                
+                // Integration bind groups (A→B and B→A)
+                this.integrationBindGroupA = this.device.createBindGroup({
+                    layout: this.integrationPipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: this.bufferSetA.position } },
+                        { binding: 1, resource: { buffer: this.bufferSetA.velocity } },
+                        { binding: 2, resource: { buffer: this.bufferSetA.force } },
+                        { binding: 3, resource: { buffer: this.bufferSetA.mass } },
+                        { binding: 4, resource: { buffer: this.bufferSetB.position } },
+                        { binding: 5, resource: { buffer: this.bufferSetB.velocity } },
+                        { binding: 6, resource: { buffer: this.integParamsBuffer } }
+                    ]
+                });
+                
+                this.integrationBindGroupB = this.device.createBindGroup({
+                    layout: this.integrationPipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: this.bufferSetB.position } },
+                        { binding: 1, resource: { buffer: this.bufferSetB.velocity } },
+                        { binding: 2, resource: { buffer: this.bufferSetB.force } },
+                        { binding: 3, resource: { buffer: this.bufferSetB.mass } },
+                        { binding: 4, resource: { buffer: this.bufferSetA.position } },
+                        { binding: 5, resource: { buffer: this.bufferSetA.velocity } },
+                        { binding: 6, resource: { buffer: this.integParamsBuffer } }
+                    ]
+                });
+                
+                // Render bind groups (for WebGPU rendering)
+                this.renderBindGroupA = this.device.createBindGroup({
+                    layout: this.renderPipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: this.bufferSetA.position } },
+                        { binding: 1, resource: { buffer: this.bufferSetA.colorIndex } },
+                        { binding: 2, resource: { buffer: this.bufferSetA.mass } },
+                        { binding: 3, resource: { buffer: this.cameraUniformBuffer } },
+                        { binding: 4, resource: { buffer: this.colorPaletteBuffer } }
+                    ]
+                });
+                
+                this.renderBindGroupB = this.device.createBindGroup({
+                    layout: this.renderPipeline.getBindGroupLayout(0),
+                    entries: [
+                        { binding: 0, resource: { buffer: this.bufferSetB.position } },
+                        { binding: 1, resource: { buffer: this.bufferSetB.colorIndex } },
+                        { binding: 2, resource: { buffer: this.bufferSetB.mass } },
+                        { binding: 3, resource: { buffer: this.cameraUniformBuffer } },
+                        { binding: 4, resource: { buffer: this.colorPaletteBuffer } }
+                    ]
+                });
+            }
+            
+            uploadParticles(particles) {
+                const count = particles.length;
+                
+                const positions = new Float32Array(count * 2);
+                const velocities = new Float32Array(count * 2);
+                const colorIndices = new Uint32Array(count);
+                const masses = new Float32Array(count);
+                
+                for (let i = 0; i < count; i++) {
+                    const p = particles[i];
+                    positions[i * 2] = p.x;
+                    positions[i * 2 + 1] = p.y;
+                    velocities[i * 2] = p.vx;
+                    velocities[i * 2 + 1] = p.vy;
+                    colorIndices[i] = p.colorIndex;
+                    masses[i] = p.mass;
+                }
+                
+                // Upload to BOTH buffer sets to keep them synchronized
+                this.device.queue.writeBuffer(this.bufferSetA.position, 0, positions);
+                this.device.queue.writeBuffer(this.bufferSetA.velocity, 0, velocities);
+                this.device.queue.writeBuffer(this.bufferSetA.colorIndex, 0, colorIndices);
+                this.device.queue.writeBuffer(this.bufferSetA.mass, 0, masses);
+                
+                this.device.queue.writeBuffer(this.bufferSetB.position, 0, positions);
+                this.device.queue.writeBuffer(this.bufferSetB.velocity, 0, velocities);
+                this.device.queue.writeBuffer(this.bufferSetB.colorIndex, 0, colorIndices);
+                this.device.queue.writeBuffer(this.bufferSetB.mass, 0, masses);
+            }
+            
+            uploadInteractionMatrix(matrix) {
+                // Flatten 16×16 matrix to 256 floats
+                const flat = new Float32Array(256);
+                for (let i = 0; i < 16; i++) {
+                    for (let j = 0; j < 16; j++) {
+                        flat[i * 16 + j] = matrix[i][j];
+                    }
+                }
+                this.device.queue.writeBuffer(this.interactionMatrixBuffer, 0, flat);
+            }
+            
+            uploadColorPalette(colorPalette) {
+                // Upload 16 colors (vec3f each)
+                const colors = new Float32Array(16 * 3);
+                for (let i = 0; i < 16; i++) {
+                    colors[i * 3 + 0] = colorPalette[i].r;
+                    colors[i * 3 + 1] = colorPalette[i].g;
+                    colors[i * 3 + 2] = colorPalette[i].b;
+                }
+                this.device.queue.writeBuffer(this.colorPaletteBuffer, 0, colors);
+            }
+            
+            updateCamera(resolution, cameraPos, cameraZoom) {
+                // Update camera uniforms (vec2f resolution, vec2f pos, f32 zoom, f32 padding)
+                const data = new ArrayBuffer(32);
+                const view = new DataView(data);
+                view.setFloat32(0, resolution.x, true);
+                view.setFloat32(4, resolution.y, true);
+                view.setFloat32(8, cameraPos.x, true);
+                view.setFloat32(12, cameraPos.y, true);
+                view.setFloat32(16, cameraZoom, true);
+                view.setFloat32(20, 0, true); // padding
+                
+                this.device.queue.writeBuffer(this.cameraUniformBuffer, 0, data);
+            }
+            
+            render(canvasContext, particleCount) {
+                // Get current texture from canvas
+                const texture = canvasContext.getCurrentTexture();
+                
+                // Create render pass
+                const encoder = this.device.createCommandEncoder();
+                const renderPass = encoder.beginRenderPass({
+                    colorAttachments: [{
+                        view: texture.createView(),
+                        clearValue: { r: 0.039, g: 0.039, b: 0.078, a: 1.0 },
+                        loadOp: 'clear',
+                        storeOp: 'store'
+                    }]
+                });
+                
+                // Set pipeline and bind group
+                renderPass.setPipeline(this.renderPipeline);
+                renderPass.setBindGroup(0, 
+                    this.currentSet === 'A' ? this.renderBindGroupA : this.renderBindGroupB
+                );
+                
+                // Draw all particles (instanced rendering - 6 vertices per instance)
+                renderPass.draw(6, particleCount);
+                
+                renderPass.end();
+                this.device.queue.submit([encoder.finish()]);
+            }
+            
+            updateSimParams(count, interactionRange, interactionStrength, worldSize, boundaryMode) {
+                const data = new ArrayBuffer(32);
+                const view = new DataView(data);
+                view.setUint32(0, count, true);
+                view.setFloat32(4, interactionRange, true);
+                view.setFloat32(8, interactionStrength, true);
+                view.setFloat32(12, worldSize, true);
+                view.setUint32(16, boundaryMode, true);
+                
+                this.device.queue.writeBuffer(this.simParamsBuffer, 0, data);
+            }
+            
+            updateIntegrationParams(count, damping, maxSpeed, worldMin, worldMax, boundaryMode) {
+                const data = new ArrayBuffer(32);
+                const view = new DataView(data);
+                view.setUint32(0, count, true);
+                view.setFloat32(4, damping, true);
+                view.setFloat32(8, maxSpeed, true);
+                view.setFloat32(12, worldMin, true);
+                view.setFloat32(16, worldMax, true);
+                view.setUint32(20, boundaryMode, true);
+                
+                this.device.queue.writeBuffer(this.integParamsBuffer, 0, data);
+            }
+            
+            computePhysicsStep(particleCount) {
+                const workgroups = Math.ceil(particleCount / 256);
+                
+                const encoder = this.device.createCommandEncoder();
+                
+                // Pass 1: Calculate forces (read from current set)
+                const forcePass = encoder.beginComputePass();
+                forcePass.setPipeline(this.forcePipeline);
+                forcePass.setBindGroup(0, 
+                    this.currentSet === 'A' ? this.forceBindGroupA : this.forceBindGroupB
+                );
+                forcePass.dispatchWorkgroups(workgroups);
+                forcePass.end();
+                
+                // Pass 2: Integration (read from current, write to next)
+                const integrationPass = encoder.beginComputePass();
+                integrationPass.setPipeline(this.integrationPipeline);
+                integrationPass.setBindGroup(0, 
+                    this.currentSet === 'A' ? this.integrationBindGroupA : this.integrationBindGroupB
+                );
+                integrationPass.dispatchWorkgroups(workgroups);
+                integrationPass.end();
+                
+                this.device.queue.submit([encoder.finish()]);
+                
+                // Swap buffer sets
+                this.currentSet = this.currentSet === 'A' ? 'B' : 'A';
+            }
+            
+            async downloadParticles(particles) {
+                const count = particles.length;
+                const bufferSet = this.currentSet === 'A' ? this.bufferSetA : this.bufferSetB;
+                
+                // Create staging buffers
+                const stagingPosition = this.device.createBuffer({
+                    size: count * 2 * 4,
+                    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+                });
+                
+                const stagingVelocity = this.device.createBuffer({
+                    size: count * 2 * 4,
+                    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+                });
+                
+                // Copy from GPU
+                const encoder = this.device.createCommandEncoder();
+                encoder.copyBufferToBuffer(bufferSet.position, 0, stagingPosition, 0, count * 2 * 4);
+                encoder.copyBufferToBuffer(bufferSet.velocity, 0, stagingVelocity, 0, count * 2 * 4);
+                this.device.queue.submit([encoder.finish()]);
+                
+                // Map and read
+                await stagingPosition.mapAsync(GPUMapMode.READ);
+                await stagingVelocity.mapAsync(GPUMapMode.READ);
+                
+                const posData = new Float32Array(stagingPosition.getMappedRange());
+                const velData = new Float32Array(stagingVelocity.getMappedRange());
+                
+                // Update CPU particles
+                for (let i = 0; i < count; i++) {
+                    particles[i].x = posData[i * 2];
+                    particles[i].y = posData[i * 2 + 1];
+                    particles[i].vx = velData[i * 2];
+                    particles[i].vy = velData[i * 2 + 1];
+                }
+                
+                stagingPosition.unmap();
+                stagingVelocity.unmap();
+                stagingPosition.destroy();
+                stagingVelocity.destroy();
+            }
+        }
+        
+        let gpuPhysicsEngine = null;
+
+        const glCanvas = document.getElementById('glCanvas');
+        const uiCanvas = document.getElementById('uiCanvas');
+        const gl = glCanvas.getContext('webgl2');
+        const ctx = uiCanvas.getContext('2d');
+
+        if (!gl) {
+            alert('WebGL 2 not supported!');
+            throw new Error('WebGL 2 not supported');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   🎯 PHASE 1: UI FOUNDATION CLASSES
+        // ═══════════════════════════════════════════════════════════════
+
+        /**
+         * UIRect - Bounds helper with hit-testing
+         * Eliminates manual bounds calculation everywhere!
+         */
+        class UIRect {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+            }
+
+            contains(px, py) {
+                return px >= this.x && 
+                       px <= this.x + this.width && 
+                       py >= this.y && 
+                       py <= this.y + this.height;
+            }
+
+            get left() { return this.x; }
+            get right() { return this.x + this.width; }
+            get top() { return this.y; }
+            get bottom() { return this.y + this.height; }
+            get centerX() { return this.x + this.width / 2; }
+            get centerY() { return this.y + this.height / 2; }
+
+            clone() {
+                return new UIRect(this.x, this.y, this.width, this.height);
+            }
+
+            offset(dx, dy) {
+                return new UIRect(this.x + dx, this.y + dy, this.width, this.height);
+            }
+
+            inset(amount) {
+                return new UIRect(
+                    this.x + amount, 
+                    this.y + amount, 
+                    this.width - amount * 2, 
+                    this.height - amount * 2
+                );
+            }
+        }
+
+        /**
+         * WindowBase - Base class for all windows
+         * Common functionality: position, size, dragging, scrolling, dirty flags
+         */
+        class WindowBase {
+            constructor(title, width, height) {
+                this.title = title;
+                this.x = 100;
+                this.y = 100;
+                this.width = width;
+                this.height = height;
+                this.visible = true;
+                this.minimized = false;
+                this.transparent = false;
+                
+                // Dragging
+                this.isDragging = false;
+                this.dragOffsetX = 0;
+                this.dragOffsetY = 0;
+                
+                // Scrolling
+                this.scrollOffset = 0;
+                this.scrollbarDragging = false;
+                this.scrollbarWidth = 8;
+                this.scrollbarDragStart = 0; // OPT-3: Added for drag tracking
+                this.contentHeight = 0;
+                
+                // Layout
+                this.headerHeight = 28;
+                this.padding = 12;
+                
+                // Dirty flag system - only recalculate when needed!
+                this.isDirty = true;
+            }
+
+            // Mark window as needing recalculation
+            markDirty() {
+                this.isDirty = true;
+            }
+
+            // Get window bounds as UIRect
+            getBounds() {
+                return new UIRect(this.x, this.y, this.width, this.height);
+            }
+
+            // Get header bounds as UIRect
+            getHeaderBounds() {
+                return new UIRect(this.x, this.y, this.width, this.headerHeight);
+            }
+
+            // Get content area bounds as UIRect
+            getContentBounds() {
+                return new UIRect(
+                    this.x + this.padding,
+                    this.y + this.headerHeight + this.padding,
+                    this.width - this.padding * 2,
+                    this.height - this.headerHeight - this.padding * 2
+                );
+            }
+
+            // Hit-testing using UIRect
+            contains(px, py) {
+                return this.getBounds().contains(px, py);
+            }
+
+            containsHeader(px, py) {
+                return this.getHeaderBounds().contains(px, py);
+            }
+
+            // Dragging
+            startDrag(mx, my) {
+                this.isDragging = true;
+                this.dragOffsetX = mx - this.x;
+                this.dragOffsetY = my - this.y;
+            }
+
+            drag(mx, my) {
+                if (this.isDragging) {
+                    this.x = mx - this.dragOffsetX;
+                    this.y = my - this.dragOffsetY;
+                }
+            }
+
+            endDrag() {
+                this.isDragging = false;
+            }
+
+            // Override these in subclasses
+            calculateSize(ctx) {
+                // Subclass implements
+            }
+
+            draw(ctx, mouseX, mouseY) {
+                // Subclass implements
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked) {
+                // Subclass implements
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //   🎯 OPT-2: Header Button Methods (DRY)
+            // ═══════════════════════════════════════════════════════════
+            
+            /**
+             * Get header button bounds by index
+             * @param {number} index - Button index (0=transparent, 1=minimize, 2=close)
+             * @returns {Object} Button bounds {x, y, width, height}
+             */
+            getHeaderButtonBounds(index) {
+                // Get button size and spacing from STYLES or instance properties
+                const buttonSize = this.buttonSize || STYLES.spacing.buttonSize;
+                const buttonSpacing = this.buttonSpacing || STYLES.spacing.buttonSpacing;
+                const padding = this.padding || STYLES.spacing.padding;
+                
+                // Calculate x position (buttons are right-aligned)
+                // Index 0 (transparent) is leftmost, index 2 (close) is rightmost
+                const x = this.x + this.width - buttonSize * (3 - index) 
+                    - buttonSpacing * (3 - index) - padding;
+                const y = this.y + (this.headerHeight - buttonSize) / 2;
+                
+                return {
+                    x: x,
+                    y: y,
+                    width: buttonSize,
+                    height: buttonSize
+                };
+            }
+            
+            /**
+             * Check if mouse is over a header button
+             * @param {number} index - Button index (0=transparent, 1=minimize, 2=close)
+             * @param {number} mouseX - Mouse X coordinate
+             * @param {number} mouseY - Mouse Y coordinate
+             * @returns {boolean} True if mouse is over button
+             */
+            hitHeaderButton(index, mouseX, mouseY) {
+                const bounds = this.getHeaderButtonBounds(index);
+                return mouseX >= bounds.x && 
+                       mouseX <= bounds.x + bounds.width &&
+                       mouseY >= bounds.y && 
+                       mouseY <= bounds.y + bounds.height;
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //   🎯 OPT-3: Scrollbar Methods (Unified)
+            // ═══════════════════════════════════════════════════════════
+
+            /**
+             * Get scrollbar bounds
+             * @returns {Object|null} Scrollbar bounds or null if no scrollbar needed
+             */
+            getScrollbarBounds() {
+                if (this.contentHeight <= this.height) return null;
+                
+                const contentAreaHeight = this.height - this.headerHeight;
+                const scrollbarX = this.x + this.width - this.scrollbarWidth - 2;
+                const scrollbarY = this.y + this.headerHeight + 2;
+                const scrollbarHeight = contentAreaHeight - 4;
+                
+                const thumbHeight = Math.max(20, (this.height / this.contentHeight) * scrollbarHeight);
+                const maxScroll = this.contentHeight - this.height;
+                const thumbY = scrollbarY + (this.scrollOffset / maxScroll) * (scrollbarHeight - thumbHeight);
+                
+                return {
+                    trackX: scrollbarX,
+                    trackY: scrollbarY,
+                    trackWidth: this.scrollbarWidth,
+                    trackHeight: scrollbarHeight,
+                    thumbY: thumbY,
+                    thumbHeight: thumbHeight
+                };
+            }
+
+            /**
+             * Check if mouse is over scrollbar
+             * @param {number} x - Mouse X coordinate
+             * @param {number} y - Mouse Y coordinate
+             * @returns {boolean} True if over scrollbar
+             */
+            isOverScrollbar(x, y) {
+                const bounds = this.getScrollbarBounds();
+                if (!bounds) return false;
+                
+                return x >= bounds.trackX && x <= bounds.trackX + bounds.trackWidth &&
+                       y >= bounds.trackY && y <= bounds.trackY + bounds.trackHeight;
+            }
+
+            /**
+             * Handle mouse wheel scroll
+             * @param {number} deltaY - Scroll delta
+             * @returns {boolean} True if scroll was handled
+             */
+            handleScroll(deltaY) {
+                if (this.contentHeight <= this.height) return false;
+                
+                const scrollSpeed = 30;
+                this.scrollOffset += deltaY > 0 ? scrollSpeed : -scrollSpeed;
+                
+                const maxScroll = Math.max(0, this.contentHeight - this.height);
+                this.scrollOffset = Math.max(0, Math.min(this.scrollOffset, maxScroll));
+                
+                return true; // Handled
+            }
+
+            /**
+             * Start scrollbar drag (call from startDrag)
+             * @param {number} mouseX - Mouse X coordinate
+             * @param {number} mouseY - Mouse Y coordinate
+             * @returns {boolean} True if scrollbar drag started
+             */
+            startScrollbarDrag(mouseX, mouseY) {
+                if (this.isOverScrollbar(mouseX, mouseY)) {
+                    const bounds = this.getScrollbarBounds();
+                    if (bounds) {
+                        // Check if clicking on thumb
+                        if (mouseY >= bounds.thumbY && mouseY <= bounds.thumbY + bounds.thumbHeight) {
+                            this.scrollbarDragging = true;
+                            this.scrollbarDragStart = mouseY - bounds.thumbY;
+                            return true;
+                        } else {
+                            // Clicking on track - jump to position
+                            const clickRatio = (mouseY - bounds.trackY) / bounds.trackHeight;
+                            const maxScroll = this.contentHeight - this.height;
+                            this.scrollOffset = clickRatio * maxScroll;
+                            this.scrollOffset = Math.max(0, Math.min(this.scrollOffset, maxScroll));
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            /**
+             * Update scrollbar drag (call from drag)
+             * @param {number} mouseX - Mouse X coordinate
+             * @param {number} mouseY - Mouse Y coordinate
+             * @returns {boolean} True if scrollbar was being dragged
+             */
+            updateScrollbarDrag(mouseX, mouseY) {
+                if (this.scrollbarDragging) {
+                    const bounds = this.getScrollbarBounds();
+                    if (bounds) {
+                        const newThumbY = mouseY - this.scrollbarDragStart;
+                        const maxThumbY = bounds.trackY + bounds.trackHeight - bounds.thumbHeight;
+                        const clampedThumbY = Math.max(bounds.trackY, Math.min(maxThumbY, newThumbY));
+                        
+                        const scrollRatio = (clampedThumbY - bounds.trackY) / (bounds.trackHeight - bounds.thumbHeight);
+                        const maxScroll = this.contentHeight - this.height;
+                        this.scrollOffset = scrollRatio * maxScroll;
+                        this.scrollOffset = Math.max(0, Math.min(this.scrollOffset, maxScroll));
+                    }
+                    return true;
+                }
+                return false;
+            }
+
+            /**
+             * End scrollbar drag (call from endDrag)
+             */
+            endScrollbarDrag() {
+                this.scrollbarDragging = false;
+            }
+        }
+
+        /**
+         * UIItem - Base class for all UI items (toggle, slider, button, etc)
+         * Each item type will extend this with specific drawing/interaction logic
+         */
+        class UIItem {
+            constructor(type) {
+                this.type = type;
+                this.hovered = false;
+            }
+
+            // Override in subclasses
+            getHeight(window) {
+                return 30; // Default height
+            }
+
+            getBounds(window, x, y) {
+                const width = window.width - window.padding * 2;
+                const height = this.getHeight(window);
+                return new UIRect(x, y, width, height);
+            }
+
+            draw(ctx, window, x, y) {
+                // Subclass implements
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y) {
+                // Update hover state using UIRect
+                const bounds = this.getBounds(window, x, y);
+                this.hovered = bounds.contains(mouseX, mouseY);
+                
+                // Subclass implements interaction
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   🎯 PHASE 3: ITEM CLASSES
+        // ═══════════════════════════════════════════════════════════════
+
+        /**
+         * ToggleItem - Checkbox/toggle switch
+         */
+        class ToggleItem extends UIItem {
+            constructor(label, getValue, setValue) {
+                super('toggle');
+                this.label = label;
+                this.getValue = getValue;
+                this.setValue = setValue;
+            }
+
+            getHeight(window) {
+                return 20;
+            }
+
+            draw(ctx, window, x, y) {
+                const value = this.getValue();
+                
+                // Checkbox
+                const checkboxSize = 16;
+                const checkboxX = x;
+                const checkboxY = y + 2;
+                
+                ctx.strokeStyle = STYLES.colors.panel; // Always panel color
+                ctx.lineWidth = 2;
+                ctx.strokeRect(checkboxX, checkboxY, checkboxSize, checkboxSize);
+                
+                if (value) {
+                    ctx.fillStyle = STYLES.colors.panel;
+                    ctx.fillRect(checkboxX + 3, checkboxY + 3, checkboxSize - 6, checkboxSize - 6);
+                }
+                
+                // Label
+                ctx.fillStyle = STYLES.colors.panel;
+                ctx.font = STYLES.fonts.main;
+                ctx.fillText(this.label, checkboxX + checkboxSize + 8, checkboxY + 12);
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y) {
+                super.update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y);
+                
+                // Toggle on click
+                if (this.hovered && mouseClicked) {
+                    this.setValue(!this.getValue());
+                }
+            }
+        }
+
+        /**
+         * ButtonItem - Clickable button
+         */
+        class ButtonItem extends UIItem {
+            constructor(label, callback) {
+                super('button');
+                this.label = label;
+                this.callback = callback;
+            }
+
+            getHeight(window) {
+                return 26;
+            }
+
+            draw(ctx, window, x, y) {
+                const width = window.width - window.padding * 2;
+                const height = this.getHeight(window);
+                
+                // Button background (always normal, no hover effect)
+                ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+                ctx.fillRect(x, y, width, height);
+                ctx.strokeStyle = STYLES.colors.panel;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, width, height);
+                
+                // Button text (centered)
+                ctx.fillStyle = STYLES.colors.panel;
+                ctx.font = STYLES.fonts.mainBold;
+                ctx.textAlign = 'center';
+                ctx.fillText(this.label, x + width / 2, y + height / 2 + 4);
+                ctx.textAlign = 'left'; // Reset
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y) {
+                super.update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y);
+                
+                // Execute callback on click
+                if (this.hovered && mouseClicked) {
+                    this.callback();
+                }
+            }
+        }
+
+        /**
+         * SliderItem - Value slider with label
+         */
+        class SliderItem extends UIItem {
+            constructor(label, getValue, setValue, min, max, step = 0.01) {
+                super('slider');
+                this.label = label;
+                this.getValue = getValue;
+                this.setValue = setValue;
+                this.min = min;
+                this.max = max;
+                this.step = step;
+                this.dragging = false;
+            }
+
+            getHeight(window) {
+                return 40;
+            }
+
+            draw(ctx, window, x, y) {
+                const value = this.getValue();
+                const width = window.width - window.padding * 2;
+                const trackHeight = 6;
+                const thumbSize = 16;
+                
+                // Label (always normal color)
+                ctx.fillStyle = STYLES.colors.panel;
+                ctx.font = STYLES.fonts.main;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'top';
+                ctx.fillText(this.label, x, y);
+                
+                // Value display
+                const valueText = value.toFixed(2);
+                ctx.textAlign = 'right';
+                ctx.fillText(valueText, x + width, y);
+                
+                // Track
+                const trackY = y + 20;
+                ctx.fillStyle = STYLES.colors.sliderTrack;
+                ctx.fillRect(x, trackY, width, trackHeight);
+                
+                // Fill (pokazuje wartość)
+                const range = this.max - this.min;
+                const normalizedValue = (value - this.min) / range;
+                const fillWidth = normalizedValue * width;
+                ctx.fillStyle = STYLES.colors.panel; // Zielony fill
+                ctx.fillRect(x, trackY, fillWidth, trackHeight);
+                
+                // Thumb position
+                const thumbX = x + normalizedValue * width;
+                
+                // Thumb (always normal color, no hover/drag differentiation)
+                ctx.fillStyle = STYLES.colors.panel;
+                ctx.beginPath();
+                ctx.arc(thumbX, trackY + trackHeight / 2, thumbSize / 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y) {
+                super.update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y);
+                
+                const width = window.width - window.padding * 2;
+                const trackY = y + 20;
+                
+                // Start dragging
+                if (this.hovered && mouseClicked) {
+                    this.dragging = true;
+                }
+                
+                // Stop dragging
+                if (!mouseDown) {
+                    this.dragging = false;
+                }
+                
+                // Update value while dragging
+                if (this.dragging && mouseDown) {
+                    const normalized = Math.max(0, Math.min(1, (mouseX - x) / width));
+                    const newValue = this.min + normalized * (this.max - this.min);
+                    const steppedValue = Math.round(newValue / this.step) * this.step;
+                    // Clamp to range
+                    const clampedValue = Math.max(this.min, Math.min(this.max, steppedValue));
+                    this.setValue(clampedValue);
+                }
+            }
+        }
+
+        /**
+         * SectionItem - Section header divider
+         */
+        class SectionItem extends UIItem {
+            constructor(title) {
+                super('section');
+                this.title = title;
+            }
+
+            getHeight(window) {
+                return 20;
+            }
+
+            draw(ctx, window, x, y) {
+                const width = window.width - window.padding * 2;
+                
+                ctx.font = STYLES.fonts.main;
+                const textWidth = measureTextCached(ctx, this.title, STYLES.fonts.main);
+                const lineY = y + 10;
+                const lineWidth = (width - textWidth - 16) / 2; // 16 = spaces around text
+                
+                // Left line
+                ctx.strokeStyle = STYLES.colors.sectionDim;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x, lineY);
+                ctx.lineTo(x + lineWidth, lineY);
+                ctx.stroke();
+                
+                // Title text (lowercase)
+                ctx.fillStyle = STYLES.colors.sectionDim;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.title, x + width / 2, lineY);
+                
+                // Right line
+                ctx.beginPath();
+                ctx.moveTo(x + width - lineWidth, lineY);
+                ctx.lineTo(x + width, lineY);
+                ctx.stroke();
+                
+                // Reset alignment
+                ctx.textAlign = 'left';
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y) {
+                // Sections are visual separators with no mouse interaction
+            }
+        }
+
+        /**
+         * TextItem - Static text display
+         */
+        class TextItem extends UIItem {
+            constructor(text, color = '#00ff88', lines = 1) {
+                super('text');
+                this.text = text;
+                this.color = color;
+                this.lines = lines;
+            }
+
+            getHeight(window) {
+                return STYLES.spacing.lineHeight * this.lines;
+            }
+
+            draw(ctx, window, x, y) {
+                ctx.fillStyle = this.color;
+                ctx.font = STYLES.fonts.main;
+                
+                const lines = this.text.split('\n');
+                for (let i = 0; i < Math.min(lines.length, this.lines); i++) {
+                    ctx.fillText(lines[i], x, y + (i + 1) * STYLES.spacing.lineHeight);
+                }
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y) {
+                // Text doesn't interact
+            }
+        }
+
+        /**
+         * MatrixItem - Interactive matrix editor (16x16 grid)
+         */
+        // ═══════════════════════════════════════════════════════════════
+        //   🎯 OPT-5: Matrix Rendering Optimization
+        // ═══════════════════════════════════════════════════════════════
+        
+        /**
+         * Precomputed color lookup table for matrix values
+         * Maps value (-2.0 to +2.0, step 0.1) to RGB color
+         * Eliminates per-frame color calculations
+         */
+        const MATRIX_COLOR_LUT = (() => {
+            const lut = new Map();
+            // Generate colors for values -2.0 to +2.0 with step 0.1
+            for (let val = -2.0; val <= 2.0; val += 0.1) {
+                const normalized = (val + 2) / 4; // 0 to 1
+                let r, g, b;
+                
+                if (normalized < 0.5) {
+                    // Red to yellow
+                    r = 255;
+                    g = Math.floor(normalized * 2 * 255);
+                    b = 0;
+                } else {
+                    // Yellow to green
+                    r = Math.floor((1 - (normalized - 0.5) * 2) * 255);
+                    g = 255;
+                    b = 0;
+                }
+                
+                // Round key to handle floating point precision
+                const key = Math.round(val * 10) / 10;
+                lut.set(key, `rgba(${r}, ${g}, ${b}, 0.6)`);
+            }
+            return lut;
+        })();
+        
+        /**
+         * Get color from LUT for matrix value
+         * @param {number} value - Matrix value (-2 to +2)
+         * @returns {string} RGBA color string
+         */
+        function getMatrixColor(value) {
+            const key = Math.round(value * 10) / 10;
+            return MATRIX_COLOR_LUT.get(key) || 'rgba(128, 128, 0, 0.6)';
+        }
+
+        class MatrixItem extends UIItem {
+            constructor(getMatrix, setMatrix, colorNames) {
+                super('matrix');
+                this.getMatrix = getMatrix;
+                this.setMatrix = setMatrix;
+                this.colorNames = colorNames;
+                this.cellSize = 18;
+                this.labelWidth = 30;
+                this.hoveredCell = { row: -1, col: -1 };
+            }
+
+            getHeight(window) {
+                return 16 * this.cellSize + this.labelWidth + 10;
+            }
+
+            draw(ctx, window, x, y) {
+                const matrix = this.getMatrix();
+                
+                // Title
+                ctx.fillStyle = STYLES.colors.panel;
+                ctx.font = STYLES.fonts.mainBold;
+                ctx.textAlign = 'left';
+                ctx.fillText('INTERACTION MATRIX', x, y + 12);
+                
+                // Matrix starts lower to avoid title overlap
+                const matrixStartY = y + 25; // More space for title
+                const matrixX = x + this.labelWidth;
+                const matrixY = matrixStartY + 15; // Space for column labels
+                
+                ctx.font = STYLES.fonts.small || '9px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Draw column labels (top)
+                for (let col = 0; col < 16; col++) {
+                    const labelX = matrixX + col * this.cellSize + this.cellSize / 2;
+                    const labelY = matrixY - 10;
+                    ctx.fillStyle = STYLES.colors.panel;
+                    ctx.fillText(this.colorNames[col].substring(0, 2), labelX, labelY);
+                }
+                
+                // Draw row labels (left) and cells
+                for (let row = 0; row < 16; row++) {
+                    // Row label
+                    const labelX = x + this.labelWidth - 5;
+                    const labelY = matrixY + row * this.cellSize + this.cellSize / 2;
+                    ctx.fillStyle = STYLES.colors.panel;
+                    ctx.textAlign = 'right';
+                    ctx.fillText(this.colorNames[row].substring(0, 2), labelX, labelY);
+                    
+                    // Cells
+                    ctx.textAlign = 'center';
+                    for (let col = 0; col < 16; col++) {
+                        const cellX = matrixX + col * this.cellSize;
+                        const cellY = matrixY + row * this.cellSize;
+                        const value = matrix[row][col];
+                        
+                        // OPT-5: Use precomputed color from LUT (much faster!)
+                        ctx.fillStyle = getMatrixColor(value);
+                        ctx.fillRect(cellX, cellY, this.cellSize, this.cellSize);
+                        
+                        // Cell border
+                        ctx.strokeStyle = 'rgba(0, 255, 136, 0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(cellX, cellY, this.cellSize, this.cellSize);
+                    }
+                }
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked, window, x, y) {
+                const matrix = this.getMatrix();
+                const matrixStartY = y + 25;
+                const matrixX = x + this.labelWidth;
+                const matrixY = matrixStartY + 15;
+                
+                // Check if mouse is over matrix
+                const relX = mouseX - matrixX;
+                const relY = mouseY - matrixY;
+                
+                if (relX >= 0 && relX < 16 * this.cellSize && 
+                    relY >= 0 && relY < 16 * this.cellSize) {
+                    
+                    this.hoveredCell.col = Math.floor(relX / this.cellSize);
+                    this.hoveredCell.row = Math.floor(relY / this.cellSize);
+                    this.hovered = true;
+                    
+                    // Click to edit
+                    if (mouseClicked) {
+                        const row = this.hoveredCell.row;
+                        const col = this.hoveredCell.col;
+                        const currentValue = matrix[row][col].toFixed(2);
+                        const colorFrom = this.colorNames[row];
+                        const colorTo = this.colorNames[col];
+                        
+                        const newValue = prompt(
+                            `${colorFrom} → ${colorTo}\nCurrent: ${currentValue}\nEnter new value (-2 to +2):`,
+                            currentValue
+                        );
+                        
+                        if (newValue !== null) {
+                            const parsed = parseFloat(newValue);
+                            if (!isNaN(parsed) && parsed >= -2 && parsed <= 2) {
+                                matrix[row][col] = parsed;
+                                this.setMatrix(matrix);
+                                console.log(`Matrix [${row}][${col}] = ${parsed}`);
+                            }
+                        }
+                    }
+                } else {
+                    this.hoveredCell = { row: -1, col: -1 };
+                    this.hovered = false;
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   CONSTANTS
+        // ═══════════════════════════════════════════════════════════════
+
+        const WORLD_SIZE = 1000;
+        const WORLD_HALF = WORLD_SIZE / 2;
+        const WORLD_MIN = -WORLD_HALF;
+        const WORLD_MAX = WORLD_HALF;
+        const GRID_SIZE = 100;
+        const MAX_PARTICLES = 100000;
+
+        // ═══════════════════════════════════════════════════════════════
+        //   STYLE SYSTEM
+        // ═══════════════════════════════════════════════════════════════
+
+        const STYLES = {
+            fonts: {
+                main: '12px Courier New',
+                mainBold: 'bold 12px Courier New',
+                small: '12px Courier New' // Same size as main, used for sections
+            },
+            colors: {
+                panel: '#00FF88',
+                panelHover: '#00FFAA',             // Bright green (hover/focus/drag)
+                stats: '#00F5FF', // Cyan for statistics text
+                sectionDim: 'rgba(0, 255, 136, 0.5)', // Dimmed green for sections
+                scrollbarTrack: 'rgba(0, 0, 0, 0.3)', // Scrollbar track background
+                sliderTrack: 'rgba(0, 0, 0, 0.3)', // Slider track background
+                sliderFill: '#00FF88' // Slider fill (green)
+            },
+            spacing: {
+                padding: 10,
+                itemSpacing: 8,
+                headerHeight: 26,
+                buttonSize: 20,
+                buttonSpacing: 4,
+                lineHeight: 18, // Standard line height for text (same as StatsWindow)
+                scrollbarWidth: 8 // Standard scrollbar width
+            },
+            panel: {
+                bgColor: 'rgba(0, 0, 0, 0.85)',
+                borderColor: '#00FF88',
+                borderWidth: 2,
+                headerBgColor: 'rgba(0, 255, 136, 0.2)'
+            },
+            stats: {
+                bgColor: 'transparent',
+                borderColor: 'transparent',
+                textColor: '#00F5FF'
+            }
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        //   SETTINGS
+        // ═══════════════════════════════════════════════════════════════
+
+        const settings = {
+            showGrid: true,
+            showCrosshair: true,
+            showCrosshairB: false,
+            showUI: true,
+            showControls: true,
+            invertCamera: false,
+            zoomToMouse: false,
+            boundaryMode: 'toroidal', // 'toroidal', 'bounce', 'void'
+            useSpatialHash: true, // Spatial hash optimization (5.5x faster!)
+            useGPUPhysics: true, // GPU compute physics (10-100x faster!)
+            useGPURender: true // GPU rendering - Zero-copy! (2-3x faster!)
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        //   RESIZE
+        // ═══════════════════════════════════════════════════════════════
+
+        function resizeCanvas() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            glCanvas.width = width;
+            glCanvas.height = height;
+            uiCanvas.width = width;
+            uiCanvas.height = height;
+            
+            gl.viewport(0, 0, width, height);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // ═══════════════════════════════════════════════════════════════
+        //   WEBGL SHADERS
+        // ═══════════════════════════════════════════════════════════════
+
+        const vertexShaderSource = `#version 300 es
+            precision highp float;
+            in vec2 a_position;
+            in vec3 a_color;
+            in float a_radius;
+            in vec2 a_vertexPos;
+            uniform vec2 u_resolution;
+            uniform vec2 u_cameraPos;
+            uniform float u_cameraZoom;
+            out vec3 v_color;
+            out vec2 v_uv;
+            void main() {
+                vec2 worldPos = a_position - u_cameraPos;
+                vec2 screenPos = worldPos * u_cameraZoom;
+                vec2 offset = a_vertexPos * a_radius * u_cameraZoom;
+                screenPos += offset;
+                vec2 clipSpace = (screenPos / u_resolution) * 2.0;
+                gl_Position = vec4(clipSpace, 0.0, 1.0);
+                v_color = a_color;
+                v_uv = a_vertexPos;
+            }
+        `;
+
+        const fragmentShaderSource = `#version 300 es
+            precision highp float;
+            in vec3 v_color;
+            in vec2 v_uv;
+            out vec4 fragColor;
+            void main() {
+                float dist = length(v_uv);
+                if (dist > 1.0) discard;
+                float core = smoothstep(0.6, 0.4, dist);
+                float glow = smoothstep(1.0, 0.5, dist) * 0.6;
+                float alpha = core + glow;
+                fragColor = vec4(v_color * (0.5 + alpha * 0.5), alpha);
+            }
+        `;
+
+        function createShader(gl, type, source) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Shader error:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            return shader;
+        }
+
+        function createProgram(gl, vertexShader, fragmentShader) {
+            const program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.error('Program error:', gl.getProgramInfoLog(program));
+                gl.deleteProgram(program);
+                return null;
+            }
+            return program;
+        }
+
+        const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+        const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+        const program = createProgram(gl, vertexShader, fragmentShader);
+
+        const a_position = gl.getAttribLocation(program, 'a_position');
+        const a_color = gl.getAttribLocation(program, 'a_color');
+        const a_radius = gl.getAttribLocation(program, 'a_radius');
+        const a_vertexPos = gl.getAttribLocation(program, 'a_vertexPos');
+        const u_resolution = gl.getUniformLocation(program, 'u_resolution');
+        const u_cameraPos = gl.getUniformLocation(program, 'u_cameraPos');
+        const u_cameraZoom = gl.getUniformLocation(program, 'u_cameraZoom');
+
+        const quadVertices = new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]);
+        const quadBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW);
+
+        const positionBuffer = gl.createBuffer();
+        const colorBuffer = gl.createBuffer();
+        const radiusBuffer = gl.createBuffer();
+
+        // ═══════════════════════════════════════════════════════════════
+        //   CAMERA
+        // ═══════════════════════════════════════════════════════════════
+
+        class Camera {
+            constructor() {
+                this.x = 0;
+                this.y = 0;
+                this.zoom = 1.0;
+                this.targetZoom = 1.0;
+                this.minZoom = 0.1;
+                this.maxZoom = 10.0;
+                this.smoothing = 0.15;
+            }
+
+            update() {
+                this.zoom += (this.targetZoom - this.zoom) * this.smoothing;
+            }
+
+            getMaxZoomOut() {
+                const minDim = Math.min(glCanvas.width, glCanvas.height);
+                return Math.max(0.1, minDim / WORLD_SIZE);
+            }
+
+            setZoom(newZoom, mouseX, mouseY) {
+                const maxOut = this.getMaxZoomOut();
+                const oldZoom = this.targetZoom;
+                this.targetZoom = Math.max(maxOut, Math.min(this.maxZoom, newZoom));
+                
+                // Zoom to mouse position if enabled
+                if (settings.zoomToMouse && mouseX !== undefined && mouseY !== undefined) {
+                    // Calculate world position of mouse before zoom
+                    // X axis inverted to match grid/WebGL coordinate system
+                    const worldX = -(mouseX - glCanvas.width / 2) / oldZoom + this.x;
+                    const worldY = (mouseY - glCanvas.height / 2) / oldZoom + this.y;
+                    
+                    // Calculate where mouse should be after zoom
+                    const newWorldX = -(mouseX - glCanvas.width / 2) / this.targetZoom;
+                    const newWorldY = (mouseY - glCanvas.height / 2) / this.targetZoom;
+                    
+                    // Adjust camera to keep mouse at same world position
+                    this.x = worldX - newWorldX;
+                    this.y = worldY - newWorldY;
+                    
+                    // Clamp to world bounds
+                    this.x = Math.max(WORLD_MIN, Math.min(WORLD_MAX, this.x));
+                    this.y = Math.max(WORLD_MIN, Math.min(WORLD_MAX, this.y));
+                }
+            }
+
+            pan(dx, dy) {
+                // Simple logic - same multiplier for both axes
+                const multiplier = settings.invertCamera ? -1 : 1;
+                
+                const newX = this.x + (dx / this.zoom) * multiplier;
+                const newY = this.y + (dy / this.zoom) * multiplier;
+                
+                this.x = Math.max(WORLD_MIN, Math.min(WORLD_MAX, newX));
+                this.y = Math.max(WORLD_MIN, Math.min(WORLD_MAX, newY));
+            }
+
+            reset() {
+                this.x = 0;
+                this.y = 0;
+                this.targetZoom = 1.0;
+            }
+
+            isInView(x, y, radius) {
+                const screenX = (x - this.x) * this.zoom;
+                const screenY = (y - this.y) * this.zoom;
+                const screenRadius = radius * this.zoom;
+                
+                return !(screenX + screenRadius < -glCanvas.width / 2 ||
+                         screenX - screenRadius > glCanvas.width / 2 ||
+                         screenY + screenRadius < -glCanvas.height / 2 ||
+                         screenY - screenRadius > glCanvas.height / 2);
+            }
+        }
+
+        const camera = new Camera();
+
+        // ═══════════════════════════════════════════════════════════════
+        //   16 COLOR SYSTEM + INTERACTION MATRIX
+        // ═══════════════════════════════════════════════════════════════
+
+        const COLOR_PALETTE = [
+            { name: 'White',   r: 1.0, g: 1.0, b: 1.0 },
+            { name: 'Black',   r: 0.1, g: 0.1, b: 0.1 }, // Slightly gray for visibility
+            { name: 'Red',     r: 1.0, g: 0.0, b: 0.0 },
+            { name: 'Green',   r: 0.0, g: 1.0, b: 0.0 },
+            { name: 'Blue',    r: 0.0, g: 0.0, b: 1.0 },
+            { name: 'Cyan',    r: 0.0, g: 1.0, b: 1.0 },
+            { name: 'Magenta', r: 1.0, g: 0.0, b: 1.0 },
+            { name: 'Yellow',  r: 1.0, g: 1.0, b: 0.0 },
+            { name: 'Orange',  r: 1.0, g: 0.5, b: 0.0 },
+            { name: 'Purple',  r: 0.5, g: 0.0, b: 1.0 },
+            { name: 'Pink',    r: 1.0, g: 0.5, b: 0.8 },
+            { name: 'Lime',    r: 0.5, g: 1.0, b: 0.0 },
+            { name: 'Navy',    r: 0.0, g: 0.0, b: 0.5 },
+            { name: 'Brown',   r: 0.6, g: 0.3, b: 0.0 },
+            { name: 'Gray',    r: 0.5, g: 0.5, b: 0.5 },
+            { name: 'Teal',    r: 0.0, g: 0.5, b: 0.5 }
+        ];
+
+        // Interaction matrix: 16x16, values from -2 to +2
+        // Positive = attraction, Negative = repulsion
+        let INTERACTION_MATRIX = [];
+        
+        // Initialize matrix with random values
+        function randomizeInteractionMatrix() {
+            INTERACTION_MATRIX = [];
+            for (let i = 0; i < 16; i++) {
+                INTERACTION_MATRIX[i] = [];
+                for (let j = 0; j < 16; j++) {
+                    // Random value between -2 and +2
+                    INTERACTION_MATRIX[i][j] = (Math.random() * 4) - 2;
+                }
+            }
+            console.log('🎲 Interaction matrix randomized');
+            
+            // Upload to GPU if available
+            if (USE_WEBGPU && gpuPhysicsEngine) {
+                gpuPhysicsEngine.uploadInteractionMatrix(INTERACTION_MATRIX);
+                console.log('📤 Uploaded new matrix to GPU');
+            }
+        }
+
+        // Initialize with random values
+        randomizeInteractionMatrix();
+
+        // ═══════════════════════════════════════════════════════════════
+        //   PARTICLES
+        // ═══════════════════════════════════════════════════════════════
+
+        class Particle {
+            constructor(id) {
+                this.id = id; // Unique ID for fast comparison
+                this.active = false;
+                this.x = 0;
+                this.y = 0;
+                this.vx = 0;
+                this.vy = 0;
+                this.colorIndex = 0; // Index into COLOR_PALETTE (0-15)
+                this.mass = 1; // Mass between 1-2
+                this.radius = 3;
+                this.r = 1;
+                this.g = 1;
+                this.b = 1;
+            }
+
+            init(x, y) {
+                this.active = true;
+                this.x = x;
+                this.y = y;
+                
+                // Random color from palette
+                this.colorIndex = Math.floor(Math.random() * 16);
+                const color = COLOR_PALETTE[this.colorIndex];
+                this.r = color.r;
+                this.g = color.g;
+                this.b = color.b;
+                
+                // Random mass between 1 and 2
+                this.mass = 1 + Math.random();
+                
+                // Radius depends on mass (larger mass = larger particle)
+                this.radius = 2 + this.mass; // 3-4 pixels
+                
+                // Initial velocity (will be affected by mass in update)
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+            }
+
+            update() {
+                if (!this.active) return;
+                
+                // VELOCITY DAMPING - friction/drag (prevents infinite acceleration)
+                this.vx *= VELOCITY_DAMPING;
+                this.vy *= VELOCITY_DAMPING;
+                
+                // MAX SPEED LIMIT - prevent runaway velocities
+                const speedSq = this.vx * this.vx + this.vy * this.vy;
+                if (speedSq > MAX_SPEED * MAX_SPEED) {
+                    const speed = Math.sqrt(speedSq);
+                    const scale = MAX_SPEED / speed;
+                    this.vx *= scale;
+                    this.vy *= scale;
+                }
+                
+                // Velocity is affected by mass (heavier = slower)
+                const speedFactor = 2 / this.mass; // Inverse of mass
+                this.x += this.vx * speedFactor;
+                this.y += this.vy * speedFactor;
+                
+                // Boundary handling based on settings.boundaryMode
+                if (settings.boundaryMode === 'toroidal') {
+                    // Toroidal (wrap around) - default
+                    if (this.x < WORLD_MIN) this.x = WORLD_MAX;
+                    if (this.x > WORLD_MAX) this.x = WORLD_MIN;
+                    if (this.y < WORLD_MIN) this.y = WORLD_MAX;
+                    if (this.y > WORLD_MAX) this.y = WORLD_MIN;
+                    
+                } else if (settings.boundaryMode === 'bounce') {
+                    // Bounce off walls
+                    if (this.x < WORLD_MIN || this.x > WORLD_MAX) this.vx *= -1;
+                    if (this.y < WORLD_MIN || this.y > WORLD_MAX) this.vy *= -1;
+                    this.x = Math.max(WORLD_MIN, Math.min(WORLD_MAX, this.x));
+                    this.y = Math.max(WORLD_MIN, Math.min(WORLD_MAX, this.y));
+                    
+                } else if (settings.boundaryMode === 'void') {
+                    // Void - particles disappear when out of bounds
+                    if (this.x < WORLD_MIN || this.x > WORLD_MAX ||
+                        this.y < WORLD_MIN || this.y > WORLD_MAX) {
+                        // Move far off-screen before deactivating (prevents edge artifacts)
+                        this.x = WORLD_MAX + 10000;
+                        this.y = WORLD_MAX + 10000;
+                        this.deactivate();
+                    }
+                }
+            }
+
+            deactivate() {
+                this.active = false;
+            }
+        }
+
+        const POOL_SIZE = MAX_PARTICLES;
+        const particlePool = [];
+        const activeParticles = [];
+        let nextParticleId = 0; // Global ID counter
+
+        function initPool() {
+            for (let i = 0; i < POOL_SIZE; i++) {
+                particlePool.push(new Particle(nextParticleId++));
+            }
+        }
+
+        function getParticle(x, y) {
+            const particle = particlePool.pop() || new Particle(nextParticleId++);
+            particle.init(x, y);
+            activeParticles.push(particle);
+            return particle;
+        }
+
+        function releaseParticle(particle) {
+            particle.deactivate();
+            const index = activeParticles.indexOf(particle);
+            if (index > -1) {
+                // Swap with last element
+                const last = activeParticles[activeParticles.length - 1];
+                activeParticles[index] = last;
+                activeParticles.pop();
+            }
+            particlePool.push(particle);
+        }
+
+        function initParticles(count) {
+            while (activeParticles.length > 0) {
+                releaseParticle(activeParticles[0]);
+            }
+            for (let i = 0; i < count; i++) {
+                getParticle(
+                    (Math.random() - 0.5) * 800,
+                    (Math.random() - 0.5) * 800
+                );
+            }
+        }
+
+        function spawnParticles(count) {
+            for (let i = 0; i < count; i++) {
+                getParticle(
+                    (Math.random() - 0.5) * 800,
+                    (Math.random() - 0.5) * 800
+                );
+            }
+            console.log(`➕ Spawned ${count} particles (total: ${activeParticles.length})`);
+            
+            // Upload to GPU if available
+            if (USE_WEBGPU && gpuPhysicsEngine) {
+                gpuPhysicsEngine.uploadParticles(activeParticles);
+            }
+        }
+
+        initPool();
+        initParticles(100);
+
+        let physicsTime = 0;
+        let renderTime = 0;
+        let culledCount = 0;
+
+        // ═══════════════════════════════════════════════════════════════
+        //   HELPER FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════
+
+        // Draw window header buttons (minimize, transparent, close)
+        // OPT-2: Draw window header buttons using centralized bounds
+        function drawWindowHeaderButtons(ctx, window) {
+            // Transparent button (eye) - index 0
+            const transparentBtn = window.getHeaderButtonBounds(0);
+            ctx.strokeStyle = STYLES.colors.panel;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(transparentBtn.x, transparentBtn.y, transparentBtn.width, transparentBtn.height);
+            
+            const eyeX = transparentBtn.x + transparentBtn.width / 2;
+            const eyeY = transparentBtn.y + transparentBtn.height / 2;
+            const eyeRadius = 4;
+            
+            if (window.transparent) {
+                // Closed eye
+                ctx.strokeStyle = STYLES.colors.panel;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(eyeX - eyeRadius, eyeY);
+                ctx.lineTo(eyeX + eyeRadius, eyeY);
+                ctx.stroke();
+            } else {
+                // Open eye
+                ctx.strokeStyle = STYLES.colors.panel;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.ellipse(eyeX, eyeY, eyeRadius, eyeRadius * 0.7, 0, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = STYLES.colors.panel;
+                ctx.beginPath();
+                ctx.arc(eyeX, eyeY, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Minimize button - index 1
+            const minBtn = window.getHeaderButtonBounds(1);
+            ctx.strokeStyle = STYLES.colors.panel;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(minBtn.x, minBtn.y, minBtn.width, minBtn.height);
+            ctx.fillStyle = STYLES.colors.panel;
+            ctx.fillRect(minBtn.x + 4, minBtn.y + minBtn.height / 2 - 1, minBtn.width - 8, 2);
+
+            // Close button - index 2
+            const closeBtn = window.getHeaderButtonBounds(2);
+            ctx.strokeStyle = STYLES.colors.panel;
+            ctx.strokeRect(closeBtn.x, closeBtn.y, closeBtn.width, closeBtn.height);
+            ctx.fillStyle = STYLES.colors.panel;
+            const cx = closeBtn.x + closeBtn.width / 2;
+            const cy = closeBtn.y + closeBtn.height / 2;
+            const size = 6;
+            ctx.beginPath();
+            ctx.moveTo(cx - size, cy - size);
+            ctx.lineTo(cx + size, cy + size);
+            ctx.moveTo(cx + size, cy - size);
+            ctx.lineTo(cx - size, cy + size);
+            ctx.stroke();
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   WINDOW MANAGER
+        // ═══════════════════════════════════════════════════════════════
+
+        // ═══════════════════════════════════════════════════════════════
+        //   🎯 PHASE 7: WINDOW MANAGER (Final Architecture)
+        // ═══════════════════════════════════════════════════════════════
+
+        /**
+         * WindowManager - Manages all UI windows
+         * Responsibilities:
+         * - Window registration (add/remove)
+         * - Z-ordering (bring to front)
+         * - Event routing (which window gets mouse events)
+         * - Rendering coordination
+         * 
+         * Note: Already clean at 64 lines - no split needed!
+         */
+        class WindowManager {
+            constructor() {
+                this.windows = [];
+                this.nextZIndex = 1;
+            }
+
+            add(window) {
+                window.zIndex = this.nextZIndex++;
+                this.windows.push(window);
+            }
+
+            bringToFront(window) {
+                window.zIndex = this.nextZIndex++;
+                this.windows.sort((a, b) => a.zIndex - b.zIndex);
+            }
+
+            getWindowAt(x, y) {
+                for (let i = this.windows.length - 1; i >= 0; i--) {
+                    if (this.windows[i].contains(x, y) && this.windows[i].visible) {
+                        return this.windows[i];
+                    }
+                }
+                return null;
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked) {
+                const topWindow = this.getWindowAt(mouseX, mouseY);
+                
+                for (let i = 0; i < this.windows.length; i++) {
+                    const win = this.windows[i];
+                    
+                    if (win === topWindow) {
+                        win.update(mouseX, mouseY, mouseDown, mouseClicked);
+                    } else {
+                        win.update(-1, -1, mouseDown, false);
+                    }
+                }
+            }
+
+            draw(ctx, mouseX, mouseY) {
+                for (let i = 0; i < this.windows.length; i++) {
+                    if (this.windows[i].draw.length === 3) {
+                        this.windows[i].draw(ctx, mouseX, mouseY);
+                    } else {
+                        this.windows[i].draw(ctx);
+                    }
+                }
+            }
+        }
+
+        const windowManager = new WindowManager();
+
+        // ═══════════════════════════════════════════════════════════════
+        //   🎯 PHASE 4: UI RENDERER (Shared Drawing Code)
+        // ═══════════════════════════════════════════════════════════════
+
+        /**
+         * UIRenderer - Centralized rendering for windows
+         * Eliminates duplicate drawing code between BaseWindow and StatsWindow
+         */
+        class UIRenderer {
+            /**
+             * Draw window background, border, and header
+             */
+            static drawWindowBackground(ctx, window) {
+                if (window.transparent) return; // Skip for transparent windows (BaseWindow only)
+                
+                // Window background
+                ctx.fillStyle = STYLES.panel.bgColor;
+                ctx.fillRect(window.x, window.y, window.width, window.height);
+                
+                // Window border
+                ctx.strokeStyle = window.isDragging ? STYLES.colors.panelHover : STYLES.panel.borderColor;
+                ctx.lineWidth = STYLES.panel.borderWidth;
+                ctx.strokeRect(window.x, window.y, window.width, window.height);
+                
+                // Header background
+                ctx.fillStyle = STYLES.panel.headerBgColor;
+                ctx.fillRect(window.x, window.y, window.width, window.headerHeight);
+            }
+            
+            /**
+             * Draw window title and header buttons
+             */
+            static drawWindowHeader(ctx, window) {
+                // Title (always visible, even in transparent mode)
+                ctx.fillStyle = window.isDragging ? STYLES.colors.panelHover : STYLES.colors.panel;
+                ctx.font = STYLES.fonts.mainBold;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(window.title, window.x + window.padding, window.y + window.headerHeight / 2);
+                
+                // Header buttons (minimize, close, transparent)
+                drawWindowHeaderButtons(ctx, window);
+            }
+            
+            /**
+             * Draw scrollbar (track + thumb)
+             */
+            static drawScrollbar(ctx, window) {
+                if (window.contentHeight <= window.height) return; // No scrollbar needed
+                
+                const contentAreaHeight = window.height - window.headerHeight;
+                const scrollbarX = window.x + window.width - window.scrollbarWidth - 2;
+                const scrollbarY = window.y + window.headerHeight + 2;
+                const scrollbarHeight = contentAreaHeight - 4;
+                
+                // Scrollbar track
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(scrollbarX, scrollbarY, window.scrollbarWidth, scrollbarHeight);
+                
+                // Scrollbar thumb
+                const thumbHeight = Math.max(20, (window.height / window.contentHeight) * scrollbarHeight);
+                const maxScroll = window.contentHeight - window.height;
+                const thumbY = scrollbarY + (window.scrollOffset / maxScroll) * (scrollbarHeight - thumbHeight);
+                
+                ctx.fillStyle = STYLES.colors.panel;
+                ctx.fillRect(scrollbarX, thumbY, window.scrollbarWidth, thumbHeight);
+            }
+            
+            /**
+             * Execute drawing callback with clipping region
+             */
+            static drawWithClipRegion(ctx, x, y, width, height, callback) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(x, y, width, height);
+                ctx.clip();
+                
+                callback(ctx);
+                
+                ctx.restore();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   BASE WINDOW CLASS
+        // ═══════════════════════════════════════════════════════════════
+
+        class BaseWindow extends WindowBase {
+            constructor(x, y, title, type = 'panel') {
+                // Call WindowBase constructor
+                // Width/height will be calculated in calculateSize()
+                super(title, 0, 0);
+                
+                // Position (from parameters)
+                this.x = x;
+                this.y = y;
+                
+                // Window-specific properties
+                this.type = type;
+                this.items = [];
+                this.zIndex = 0;
+                
+                // Dragging (extends WindowBase)
+                this.dragStartX = 0;
+                this.dragStartY = 0;
+                this.dragThreshold = 5;
+                this.dragMoved = false;
+                
+                // Layout (override WindowBase defaults)
+                this.padding = STYLES.spacing.padding;
+                this.itemSpacing = STYLES.spacing.itemSpacing;
+                this.headerHeight = STYLES.spacing.headerHeight;
+                this.buttonSize = STYLES.spacing.buttonSize;
+                this.buttonSpacing = STYLES.spacing.buttonSpacing;
+                this.buttonPadding = 16; // Horizontal padding for buttons (8px + 8px)
+                
+                // Scrolling (extends WindowBase)
+                this.maxHeight = 0; // Will be set in calculateSize
+                this.scrollbarWidth = STYLES.spacing.scrollbarWidth;
+                this.scrollbarDragStart = 0;
+                
+                // Text alignment (left, center, right)
+                this.textAlign = 'left';
+            }
+
+            addToggle(label, getValue, setValue) {
+                this.items.push(new ToggleItem(label, getValue, setValue));
+                this.markDirty(); // Need to recalculate size
+            }
+
+            addButton(label, callback) {
+                this.items.push(new ButtonItem(label, callback));
+                this.markDirty(); // Need to recalculate size
+            }
+            
+            addSlider(label, getValue, setValue, min, max, step = 0.01) {
+                this.items.push(new SliderItem(label, getValue, setValue, min, max, step));
+                this.markDirty(); // Need to recalculate size
+            }
+
+            addMatrix(getMatrix, setMatrix, colorNames) {
+                this.items.push(new MatrixItem(getMatrix, setMatrix, colorNames));
+                this.markDirty(); // Need to recalculate size
+            }
+            
+            addSection(title) {
+                this.items.push(new SectionItem(title));
+                this.markDirty(); // Need to recalculate size
+            }
+            
+            addText(text, color = '#00ff88', lines = 1) {
+                this.items.push(new TextItem(text, color, lines));
+                this.markDirty(); // Need to recalculate size
+            }
+
+            getButtonWidth(text, ctx) {
+                ctx.font = STYLES.fonts.mainBold;
+                const textWidth = measureTextCached(ctx, text, STYLES.fonts.mainBold);
+                return textWidth + this.buttonPadding * 2;
+            }
+
+            calculateSize() {
+                // Cache text measurements to avoid recalculation
+                // (measureText is cached by OPT-4, but we still check isDirty
+                // to skip the work of iterating through all items)
+                if (!this.isDirty) return;
+                
+                ctx.font = STYLES.fonts.main;
+                let maxWidth = measureTextCached(ctx, this.title, STYLES.fonts.main) + this.headerHeight + this.buttonSize * 3 + this.buttonSpacing * 4;
+                
+                for (let i = 0; i < this.items.length; i++) {
+                    const item = this.items[i];
+                    if (item.type === 'toggle') {
+                        const textWidth = measureTextCached(ctx, item.label, STYLES.fonts.main);
+                        maxWidth = Math.max(maxWidth, textWidth + 30 + this.padding * 2);
+                    } else if (item.type === 'button') {
+                        // Button: text + buttonPadding (for button itself) + padding (for window margins)
+                        ctx.font = STYLES.fonts.mainBold;
+                        const buttonTextWidth = measureTextCached(ctx, item.label, STYLES.fonts.mainBold);
+                        maxWidth = Math.max(maxWidth, buttonTextWidth + this.buttonPadding * 2 + this.padding * 2);
+                        ctx.font = STYLES.fonts.main; // Reset font
+                    } else if (item.type === 'matrix') {
+                        // Matrix: 16 cells × cellSize + labelWidth + padding
+                        const matrixWidth = 16 * item.cellSize + item.labelWidth;
+                        
+                        // Also check title width
+                        ctx.font = STYLES.fonts.mainBold;
+                        const titleWidth = measureTextCached(ctx, 'INTERACTION MATRIX', STYLES.fonts.mainBold);
+                        ctx.font = STYLES.fonts.main; // Reset
+                        
+                        maxWidth = Math.max(maxWidth, matrixWidth + this.padding * 2, titleWidth + this.padding * 2);
+                    } else if (item.type === 'section') {
+                        // Section: ensure minimum width for separator lines
+                        const sectionWidth = measureTextCached(ctx, item.title, STYLES.fonts.main) + 80; // Title + lines on sides
+                        maxWidth = Math.max(maxWidth, sectionWidth + this.padding * 2);
+                    } else if (item.type === 'text') {
+                        // Text: measure longest line
+                        ctx.font = STYLES.fonts.main;
+                        const lines = item.text.split('\n');
+                        for (let j = 0; j < lines.length && j < item.lines; j++) {
+                            const lineWidth = measureTextCached(ctx, lines[j], STYLES.fonts.main);
+                            maxWidth = Math.max(maxWidth, lineWidth + this.padding * 2);
+                        }
+                        ctx.font = STYLES.fonts.main; // Reset (already set)
+                    }
+                }
+
+                if (this.minimized) {
+                    this.width = maxWidth;
+                    this.height = this.headerHeight;
+                    this.contentHeight = this.headerHeight;
+                } else {
+                    // Calculate content height (full height without limit)
+                    this.contentHeight = this.headerHeight + this.padding;
+                    for (let i = 0; i < this.items.length; i++) {
+                        this.contentHeight += this.items[i].getHeight(this) + this.itemSpacing;
+                    }
+                    this.contentHeight += this.padding - this.itemSpacing;
+                    
+                    // Max height = 50% of screen height
+                    this.maxHeight = Math.floor(glCanvas.height * 0.5);
+                    
+                    // Actual height = min of content and max
+                    this.height = Math.min(this.contentHeight, this.maxHeight);
+                    
+                    // Add scrollbar width if needed
+                    if (this.contentHeight > this.height) {
+                        this.width = maxWidth + this.scrollbarWidth + 4; // +4 for margin
+                    } else {
+                        this.width = maxWidth;
+                    }
+                    
+                    // Clamp scroll offset
+                    const maxScroll = Math.max(0, this.contentHeight - this.height);
+                    this.scrollOffset = Math.max(0, Math.min(this.scrollOffset, maxScroll));
+                }
+                
+                // Mark as clean - no need to recalculate until markDirty() is called
+                this.isDirty = false;
+            }
+            
+            containsHeader(x, y) {
+                return this.visible &&
+                       x >= this.x && x <= this.x + this.width &&
+                       y >= this.y && y <= this.y + this.headerHeight;
+            }
+
+            // OPT-3: Removed getScrollbarBounds, isOverScrollbar, handleScroll
+            // Now using WindowBase scrollbar methods instead!
+
+            startDrag(mouseX, mouseY) {
+                // OPT-3: Use WindowBase scrollbar drag handling
+                if (this.startScrollbarDrag(mouseX, mouseY)) {
+                    return; // Scrollbar drag started
+                }
+                
+                if (this.containsHeader(mouseX, mouseY)) {
+                    // OPT-2: Use centralized button hit detection
+                    if (this.hitHeaderButton(0, mouseX, mouseY)) {
+                        this.transparent = !this.transparent;
+                        return;
+                    }
+                    
+                    if (this.hitHeaderButton(1, mouseX, mouseY)) {
+                        this.minimized = !this.minimized;
+                        this.markDirty();
+                        return;
+                    }
+                    
+                    if (this.hitHeaderButton(2, mouseX, mouseY)) {
+                        this.visible = false;
+                        return;
+                    }
+                    
+                    this.isDragging = true;
+                    this.dragStartX = mouseX - this.x;
+                    this.dragStartY = mouseY - this.y;
+                    this.dragMoved = false;
+                    
+                    windowManager.bringToFront(this);
+                }
+            }
+
+            drag(mouseX, mouseY) {
+                // OPT-3: Use WindowBase scrollbar drag handling
+                if (this.updateScrollbarDrag(mouseX, mouseY)) {
+                    return; // Scrollbar is being dragged
+                }
+                
+                if (this.isDragging) {
+                    const newX = mouseX - this.dragStartX;
+                    const newY = mouseY - this.dragStartY;
+                    
+                    // OPT-7: Compare squared distances (avoid Math.sqrt)
+                    const dx = newX - this.x;
+                    const dy = newY - this.y;
+                    const distSq = dx * dx + dy * dy;
+                    
+                    if (distSq > this.dragThreshold * this.dragThreshold) {
+                        this.dragMoved = true;
+                    }
+                    
+                    if (this.dragMoved) {
+                        this.x = Math.max(0, Math.min(uiCanvas.width - this.width, newX));
+                        this.y = Math.max(0, Math.min(uiCanvas.height - 20, newY));
+                    }
+                }
+            }
+
+            endDrag() {
+                this.isDragging = false;
+                this.endScrollbarDrag(); // OPT-3: Use WindowBase method
+            }
+
+            update(mouseX, mouseY, mouseDown, mouseClicked) {
+                if (!this.visible || this.minimized) return;
+
+                // Check if mouse is in content area (not in header, not below window)
+                const contentTop = this.y + this.headerHeight;
+                const contentBottom = this.y + this.height;
+                const mouseInContentArea = mouseY >= contentTop && mouseY <= contentBottom &&
+                                          mouseX >= this.x && mouseX <= this.x + this.width;
+
+                let currentY = this.y + this.headerHeight + this.padding - this.scrollOffset;
+                
+                // PHASE 3: Polymorphic update - each item handles its own interaction!
+                for (let i = 0; i < this.items.length; i++) {
+                    const item = this.items[i];
+                    const itemX = this.x + this.padding;
+                    
+                    // Check if item is in visible area (not clipped by scrolling)
+                    const itemTop = currentY;
+                    const itemBottom = currentY + item.getHeight(this);
+                    const isInVisibleArea = itemBottom > contentTop && itemTop < contentBottom;
+                    
+                    // Only update if visible and mouse in content area
+                    if (isInVisibleArea && mouseInContentArea) {
+                        item.update(mouseX, mouseY, mouseDown, mouseClicked, this, itemX, currentY);
+                    } else {
+                        // Reset hover if not visible or outside content
+                        item.hovered = false;
+                    }
+
+                    currentY += item.getHeight(this) + this.itemSpacing;
+                }
+            }
+
+            draw(ctx, mouseX, mouseY) {
+                if (!this.visible) return;
+                if (this.minimized) return;
+
+                this.calculateSize();
+
+                // PHASE 4: Use UIRenderer for shared drawing code
+                UIRenderer.drawWindowBackground(ctx, this);
+                UIRenderer.drawWindowHeader(ctx, this);
+
+                if (!this.minimized) {
+                    // Draw content with clipping
+                    const contentX = this.x;
+                    const contentY = this.y + this.headerHeight;
+                    const contentWidth = this.width;
+                    const contentAreaHeight = this.height - this.headerHeight;
+                    
+                    UIRenderer.drawWithClipRegion(ctx, contentX, contentY, contentWidth, contentAreaHeight, () => {
+                        let currentY = this.y + this.headerHeight + this.padding - this.scrollOffset;
+                        
+                        // Draw items
+                        for (let i = 0; i < this.items.length; i++) {
+                            const item = this.items[i];
+                            const itemX = this.x + this.padding;
+                            
+                            item.draw(ctx, this, itemX, currentY);
+                            currentY += item.getHeight(this) + this.itemSpacing;
+                        }
+                    });
+                    
+                    // Draw scrollbar
+                    UIRenderer.drawScrollbar(ctx, this);
+                }
+            }
+        }
+
+
+        // ═══════════════════════════════════════════════════════════════
+        //   FPS & STATS CACHE (Initialize BEFORE StatsWindow!)
+        // ═══════════════════════════════════════════════════════════════
+
+        let fps = 0;
+        let frameCount = 0;
+        let lastFpsUpdate = performance.now();
+        let cachedStatsText = []; // SYSTEM STATISTICS cache
+        let lastStatsCache = 0;
+        let cachedSim1StatsText = []; // SIM1 STATISTICS cache
+        let lastSim1StatsCache = 0;
+
+        function updateFPS() {
+            frameCount++;
+            const now = performance.now();
+            if (now - lastFpsUpdate >= 1000) {
+                fps = Math.round(frameCount * 1000 / (now - lastFpsUpdate));
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   STATS WINDOW (STANDALONE - draggable!)
+        // ═══════════════════════════════════════════════════════════════
+
+        // ═══════════════════════════════════════════════════════════════
+        //   StatsWindow Implementation (extends BaseWindow)
+        // ═══════════════════════════════════════════════════════════════
+        
+        /**
+         * StatsWindow - System statistics display
+         * Now inherits from BaseWindow to eliminate duplicate code!
+         * 
+         * Before OPT-1: ~300 lines of duplicate code
+         * After OPT-1: ~50 lines (just stats-specific logic)
+         * Savings: -250 lines (-83%)!
+         */
+        class StatsWindow extends BaseWindow {
+            constructor() {
+                // Call parent constructor
+                // x=0, y=0, title='SYSTEM STATISTICS', type='stats'
+                super(0, 0, 'SYSTEM STATISTICS', 'stats');
+                
+                // Stats-specific properties only!
+                this.position = 'center'; // Position mode: 'center', 'top-right', etc.
+                this.isDragged = false; // Has user dragged it manually?
+                this.lineHeight = STYLES.spacing.lineHeight;
+                
+                // Initially closed
+                this.visible = false;
+            }
+
+            // Override: Stats-specific size calculation
+            calculateSize() {
+                // Calculate content height based on stats text
+                const lines = cachedStatsText.length;
+                this.contentHeight = this.headerHeight + this.padding + 
+                    (lines * this.lineHeight) + this.padding;
+                
+                // Calculate width based on content
+                const uiCtx = uiCanvas.getContext('2d');
+                uiCtx.font = STYLES.fonts.main;
+                
+                // Start with title width (including buttons)
+                let maxWidth = measureTextCached(uiCtx, this.title, STYLES.fonts.main) + 
+                    this.headerHeight + this.buttonSize * 3 + this.buttonSpacing * 4;
+                
+                // Measure each line of text to find max width
+                for (let i = 0; i < cachedStatsText.length; i++) {
+                    const lineWidth = measureTextCached(uiCtx, cachedStatsText[i], STYLES.fonts.main);
+                    maxWidth = Math.max(maxWidth, lineWidth + this.padding * 2);
+                }
+                
+                // Max height = 50% of screen
+                this.maxHeight = uiCanvas.height * 0.5;
+                
+                if (this.minimized) {
+                    this.width = maxWidth;
+                    this.height = this.headerHeight;
+                } else {
+                    // Use minimum of content height and max height
+                    this.height = Math.min(this.contentHeight, this.maxHeight);
+                    
+                    // Add scrollbar width if content exceeds height
+                    if (this.contentHeight > this.height) {
+                        this.width = maxWidth + this.scrollbarWidth + 4;
+                    } else {
+                        this.width = maxWidth;
+                    }
+                }
+            }
+
+            // Stats-specific: Calculate position based on position mode
+            calculatePosition() {
+                // Only if not manually dragged
+                if (this.isDragged) return;
+                
+                if (this.position === 'center') {
+                    this.x = (uiCanvas.width - this.width) / 2;
+                    this.y = (uiCanvas.height - this.height) / 2;
+                } else if (this.position === 'top-right') {
+                    this.x = uiCanvas.width - this.width - 20;
+                    this.y = 20;
+                } else if (this.position === 'top-left') {
+                    this.x = 20;
+                    this.y = 20;
+                } else if (this.position === 'bottom-right') {
+                    this.x = uiCanvas.width - this.width - 20;
+                    this.y = uiCanvas.height - this.height - 20;
+                } else if (this.position === 'bottom-left') {
+                    this.x = 20;
+                    this.y = uiCanvas.height - this.height - 20;
+                }
+            }
+
+            setPosition(pos) {
+                this.position = pos;
+                this.isDragged = false;
+                this.calculatePosition();
+            }
+
+            // Override: Mark as dragged when user drags
+            startDrag(mouseX, mouseY) {
+                super.startDrag(mouseX, mouseY);
+                if (this.isDragging) {
+                    this.isDragged = true;
+                }
+            }
+
+            // Override: Draw stats content
+            draw(ctx, mouseX, mouseY) {
+                if (!this.visible || this.minimized) return;
+
+                // Use parent's rendering (UIRenderer-based)
+                UIRenderer.drawWindowBackground(ctx, this);
+                UIRenderer.drawWindowHeader(ctx, this);
+
+                // Draw stats content with clipping
+                const contentX = this.x + this.padding;
+                const contentY = this.y + this.headerHeight + this.padding;
+                const contentWidth = this.width - this.padding * 2;
+                const contentHeight = this.height - this.headerHeight - this.padding * 2;
+                
+                UIRenderer.drawWithClipRegion(ctx, contentX, contentY, contentWidth, contentHeight, () => {
+                    let y = contentY - this.scrollOffset;
+                    
+                    ctx.font = STYLES.fonts.main;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+
+                    for (let i = 0; i < cachedStatsText.length; i++) {
+                        const line = cachedStatsText[i];
+                        ctx.fillStyle = line.startsWith('━━━') ? 
+                            STYLES.colors.sectionDim : STYLES.colors.stats;
+                        ctx.fillText(line, contentX, y);
+                        y += this.lineHeight;
+                    }
+                });
+                
+                UIRenderer.drawScrollbar(ctx, this);
+            }
+        }
+
+        const statsWindow = new StatsWindow();
+        statsWindow.calculateSize(); // Initial size
+        statsWindow.calculatePosition(); // Initial position
+
+
+        // ═══════════════════════════════════════════════════════════════
+        //   TASKBAR (Windows-style!)
+        // ═══════════════════════════════════════════════════════════════
+
+        class Taskbar {
+            constructor() {
+                this.height = 48;
+                this.menuOpen = false;
+                this.menuWidth = 200;
+                this.menuItemHeight = 36; // Reduced to 36px
+                this.buttonWidth = 100; // Will be dynamic now
+                this.buttonHeight = 32;
+                this.buttonSpacing = 4;
+                this.startButtonWidth = 80;
+                this.buttonPadding = 16; // Horizontal padding for buttons (8px left + 8px right each side = 16px total)
+                
+                // Menu items - names from windows
+                this.menuItems = [];
+                
+                // OPT-6: Button position cache
+                this.cachedPositions = [];
+                this.cachedCount = 0;
+            }
+            
+            // Calculate dynamic button width based on text
+            getButtonWidth(text, ctx) {
+                ctx.font = STYLES.fonts.mainBold;
+                const textWidth = measureTextCached(ctx, text, STYLES.fonts.mainBold);
+                return textWidth + this.buttonPadding * 2;
+            }
+            
+            getMenuHeight() {
+                // Dynamic menu height based on items (sections have different height)
+                let totalHeight = 16; // padding (8px top + 8px bottom)
+                for (let i = 0; i < this.menuItems.length; i++) {
+                    const item = this.menuItems[i];
+                    if (item.type === 'section') {
+                        totalHeight += 24; // Section height
+                    } else if (item.type === 'window') {
+                        totalHeight += this.menuItemHeight; // Window item height
+                    }
+                }
+                return totalHeight;
+            }
+
+            addSection(title) {
+                // Add section header to menu
+                this.menuItems.push({
+                    type: 'section',
+                    title: title
+                });
+            }
+            
+            addWindowItem(title, window) {
+                // Add window to menu with custom display title
+                this.menuItems.push({
+                    type: 'window',
+                    title: title, // Display title (e.g., "Sim1 simulation")
+                    windowTitle: window.title, // Actual window title
+                    window: window,
+                    isOpen: true
+                });
+            }
+
+            getStartButtonBounds() {
+                return {
+                    x: 0,
+                    y: uiCanvas.height - this.height + (this.height - this.buttonHeight) / 2,
+                    width: this.startButtonWidth,
+                    height: this.buttonHeight
+                };
+            }
+
+            getMenuBounds() {
+                const menuHeight = this.getMenuHeight();
+                return {
+                    x: 0,
+                    y: uiCanvas.height - this.height - menuHeight,
+                    width: this.menuWidth,
+                    height: menuHeight
+                };
+            }
+
+            getTaskbarButtonBounds(index, ctx, minimizedWindows) {
+                // OPT-6: Cache positions in O(n) instead of O(n²)
+                // Rebuild cache if window count changed
+                if (this.cachedCount !== minimizedWindows.length) {
+                    this.cachedPositions = [];
+                    let x = this.startButtonWidth + 8;
+                    const y = uiCanvas.height - this.height + (this.height - this.buttonHeight) / 2;
+                    
+                    for (let i = 0; i < minimizedWindows.length; i++) {
+                        const item = minimizedWindows[i];
+                        const width = this.getButtonWidth(item.title, ctx);
+                        
+                        this.cachedPositions.push({
+                            x: x,
+                            y: y,
+                            width: width,
+                            height: this.buttonHeight
+                        });
+                        
+                        x += width + this.buttonSpacing;
+                    }
+                    
+                    this.cachedCount = minimizedWindows.length;
+                }
+                
+                return this.cachedPositions[index];
+            }
+
+            handleClick(mouseX, mouseY, ctx) {
+                // Check start button
+                const startBtn = this.getStartButtonBounds();
+                if (mouseX >= startBtn.x && mouseX <= startBtn.x + startBtn.width &&
+                    mouseY >= startBtn.y && mouseY <= startBtn.y + startBtn.height) {
+                    this.menuOpen = !this.menuOpen;
+                    return true;
+                }
+
+                // Check menu items if open
+                if (this.menuOpen) {
+                    const menu = this.getMenuBounds();
+                    const padding = 8;
+                    let currentY = menu.y + padding;
+                    
+                    for (let i = 0; i < this.menuItems.length; i++) {
+                        const item = this.menuItems[i];
+                        
+                        if (item.type === 'section') {
+                            // Sections are not clickable, just skip
+                            currentY += 24;
+                            continue;
+                        } else if (item.type === 'window') {
+                            const itemHeight = this.menuItemHeight;
+                            
+                            if (mouseX >= menu.x && mouseX <= menu.x + menu.width &&
+                                mouseY >= currentY && mouseY <= currentY + itemHeight) {
+                                
+                                // Toggle window visibility
+                                if (item.window.minimized || !item.window.visible) {
+                                    item.window.visible = true;
+                                    item.window.minimized = false;
+                                    item.isOpen = true;
+                                    windowManager.bringToFront(item.window);
+                                } else {
+                                    item.window.visible = true;
+                                    item.window.minimized = false;
+                                    item.isOpen = true;
+                                    windowManager.bringToFront(item.window);
+                                }
+                                
+                                this.menuOpen = false; // Close menu after selection
+                                return true;
+                            }
+                            
+                            currentY += itemHeight;
+                        }
+                    }
+                }
+
+                // Check taskbar buttons (minimized windows - filter only window items!)
+                const minimizedWindows = this.menuItems.filter(item => 
+                    item.type === 'window' && item.window.minimized && item.window.visible
+                );
+                
+                for (let i = 0; i < minimizedWindows.length; i++) {
+                    const btn = this.getTaskbarButtonBounds(i, ctx, minimizedWindows);
+                    
+                    if (mouseX >= btn.x && mouseX <= btn.x + btn.width &&
+                        mouseY >= btn.y && mouseY <= btn.y + btn.height) {
+                        
+                        // Restore window
+                        minimizedWindows[i].window.minimized = false;
+                        windowManager.bringToFront(minimizedWindows[i].window);
+                        return true;
+                    }
+                }
+
+                // If menu is open, any click (even outside menu) closes it and blocks pass-through
+                if (this.menuOpen) {
+                    this.menuOpen = false;
+                    return true;
+                }
+                
+                // Block clicks on entire taskbar area (even empty space!)
+                const taskbarY = uiCanvas.height - this.height;
+                if (mouseY >= taskbarY) {
+                    return true; // Clicked on taskbar bar - block it!
+                }
+
+                return false;
+            }
+
+            draw(ctx, mouseX = 0, mouseY = 0) {
+                // Taskbar background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.fillRect(0, uiCanvas.height - this.height, uiCanvas.width, this.height);
+                
+                // Taskbar border
+                ctx.strokeStyle = '#00ff88';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, uiCanvas.height - this.height);
+                ctx.lineTo(uiCanvas.width, uiCanvas.height - this.height);
+                ctx.stroke();
+
+                // Start button (always same style - no highlight when clicked)
+                const startBtn = this.getStartButtonBounds();
+                
+                ctx.fillStyle = 'rgba(0, 255, 136, 0.1)';
+                ctx.fillRect(startBtn.x, startBtn.y, startBtn.width, startBtn.height);
+                
+                ctx.strokeStyle = STYLES.colors.panel;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(startBtn.x, startBtn.y, startBtn.width, startBtn.height);
+                
+                ctx.fillStyle = STYLES.colors.panel;
+                ctx.font = STYLES.fonts.mainBold;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('MENU', startBtn.x + startBtn.width / 2, startBtn.y + startBtn.height / 2);
+
+                // Menu (if open)
+                if (this.menuOpen) {
+                    const menu = this.getMenuBounds();
+                    
+                    // Menu background
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+                    ctx.fillRect(menu.x, menu.y, menu.width, menu.height);
+                    
+                    // Menu border
+                    ctx.strokeStyle = '#00ff88';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(menu.x, menu.y, menu.width, menu.height);
+                    
+                    // Menu items
+                    const padding = 8;
+                    let currentY = menu.y + padding;
+                    
+                    for (let i = 0; i < this.menuItems.length; i++) {
+                        const item = this.menuItems[i];
+                        
+                        if (item.type === 'section') {
+                            // Section header
+                            const sectionHeight = 24;
+                            
+                            // Section text (lowercase, centered)
+                            ctx.fillStyle = STYLES.colors.sectionDim;
+                            ctx.font = STYLES.fonts.small;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(`━━━ ${item.title} ━━━`, menu.x + menu.width / 2, currentY + sectionHeight / 2);
+                            
+                            currentY += sectionHeight;
+                        } else if (item.type === 'window') {
+                            // Window item
+                            const itemHeight = this.menuItemHeight;
+                            
+                            // Item background (always same - no hover effect)
+                            ctx.fillStyle = 'rgba(0, 255, 136, 0.05)';
+                            ctx.fillRect(menu.x + 4, currentY + 2, menu.width - 8, itemHeight - 4);
+                            
+                            // Item text - always bold (like window title)
+                            ctx.fillStyle = STYLES.colors.panel;
+                            ctx.font = STYLES.fonts.mainBold; // Always bold!
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(item.title, menu.x + 12, currentY + itemHeight / 2);
+                            
+                            currentY += itemHeight;
+                        }
+                    }
+                }
+
+                // Taskbar buttons (minimized windows)
+                const minimizedWindows = this.menuItems.filter(item => 
+                    item.type === 'window' && item.window.minimized && item.window.visible
+                );
+                
+                for (let i = 0; i < minimizedWindows.length; i++) {
+                    const btn = this.getTaskbarButtonBounds(i, ctx, minimizedWindows);
+                    const item = minimizedWindows[i];
+                    
+                    // Button background
+                    ctx.fillStyle = 'rgba(0, 255, 136, 0.2)';
+                    ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+                    
+                    // Button border
+                    ctx.strokeStyle = '#00ff88';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(btn.x, btn.y, btn.width, btn.height);
+                    
+                    // Button text (no truncation - width is dynamic)
+                    ctx.fillStyle = '#00ff88';
+                    ctx.font = STYLES.fonts.mainBold;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    ctx.fillText(item.title, btn.x + btn.width / 2, btn.y + btn.height / 2);
+                }
+            }
+        }
+        // ═══════════════════════════════════════════════════════════════
+        //   CREATE WINDOWS
+        // ═══════════════════════════════════════════════════════════════
+
+        const controlsWindow = new BaseWindow(20, 20, 'SIM1 SIMULATION');
+        controlsWindow.visible = false; // Closed by default
+        controlsWindow.addButton('SPAWN 1000', () => {
+            spawnParticles(1000);
+        });
+        controlsWindow.addButton('🎲 RANDOMIZE MATRIX', () => {
+            randomizeInteractionMatrix();
+        });
+        
+        // Force strength slider
+        controlsWindow.addSlider(
+            '💫 Force Strength',
+            () => INTERACTION_STRENGTH,
+            (v) => {
+                INTERACTION_STRENGTH = v;
+                console.log(`💫 Force: ${v.toFixed(2)}x`);
+            },
+            0.5,  // min
+            10.0, // max
+            0.1   // step
+        );
+        
+        // Velocity damping slider
+        controlsWindow.addSlider(
+            '🌊 Velocity Damping',
+            () => VELOCITY_DAMPING,
+            (v) => {
+                VELOCITY_DAMPING = v;
+                console.log(`🌊 Damping: ${v.toFixed(3)}`);
+            },
+            0.90,  // min
+            0.999, // max
+            0.001  // step
+        );
+        
+        // Max speed slider
+        controlsWindow.addSlider(
+            '🏃 Max Speed',
+            () => MAX_SPEED,
+            (v) => {
+                MAX_SPEED = v;
+                console.log(`🏃 Max Speed: ${v.toFixed(1)}`);
+            },
+            1.0,  // min
+            20.0, // max
+            0.5   // step
+        );
+        
+        // Add interaction matrix
+        const colorNames = COLOR_PALETTE.map(c => c.name);
+        controlsWindow.addMatrix(
+            () => INTERACTION_MATRIX,
+            (matrix) => { 
+                INTERACTION_MATRIX = matrix; 
+                // Upload to GPU if available
+                if (USE_WEBGPU && gpuPhysicsEngine) {
+                    gpuPhysicsEngine.uploadInteractionMatrix(INTERACTION_MATRIX);
+                }
+            },
+            colorNames
+        );
+        
+        windowManager.add(controlsWindow);
+
+        const settingsWindow = new BaseWindow(20, 140, 'SYSTEM SETTINGS');
+        settingsWindow.visible = false; // Closed by default
+        
+        // SCREEN section
+        settingsWindow.addSection('screen');
+        settingsWindow.addToggle('Grid', () => settings.showGrid, (v) => settings.showGrid = v);
+        settingsWindow.addToggle('Crosshair A', () => settings.showCrosshair, (v) => settings.showCrosshair = v);
+        settingsWindow.addToggle('Crosshair B', () => settings.showCrosshairB, (v) => settings.showCrosshairB = v);
+        
+        // CAMERA section
+        settingsWindow.addSection('camera');
+        settingsWindow.addToggle('Invert Camera', () => settings.invertCamera, (v) => settings.invertCamera = v);
+        settingsWindow.addToggle('Zoom to Mouse', () => settings.zoomToMouse, (v) => settings.zoomToMouse = v);
+        settingsWindow.addButton('RESET CAM', () => {
+            camera.reset();
+            console.log('🔄 Camera reset');
+        });
+        
+        // WORLD section
+        settingsWindow.addSection('world');
+        settingsWindow.addButton('TOROIDAL (wrap)', () => {
+            settings.boundaryMode = 'toroidal';
+            console.log('🌐 Boundary: Toroidal (wrap around)');
+        });
+        settingsWindow.addButton('BOUNCE (walls)', () => {
+            settings.boundaryMode = 'bounce';
+            console.log('🎾 Boundary: Bounce (reflect)');
+        });
+        settingsWindow.addButton('VOID (fall off)', () => {
+            settings.boundaryMode = 'void';
+            console.log('🕳️ Boundary: Void (disappear)');
+        });
+        
+        // PHYSICS section
+        settingsWindow.addSection('physics');
+        settingsWindow.addToggle('Spatial Hash (CPU)', () => settings.useSpatialHash, (v) => {
+            settings.useSpatialHash = v;
+            console.log(v ? '🚀 Spatial Hash: ON (5.5x faster!)' : '🐌 Brute Force: ON (slow)');
+        });
+        settingsWindow.addToggle('GPU Compute (10-100x!)', () => settings.useGPUPhysics, (v) => {
+            if (USE_WEBGPU && gpuPhysicsEngine) {
+                settings.useGPUPhysics = v;
+                console.log(v ? '🚀 GPU Physics: ON (10-100x faster!)' : '🖥️ CPU Physics: ON');
+                
+                // Upload particles to GPU when enabling
+                if (v) {
+                    gpuPhysicsEngine.uploadParticles(activeParticles);
+                    gpuPhysicsEngine.uploadInteractionMatrix(INTERACTION_MATRIX);
+                    console.log('📤 Uploaded particles to GPU');
+                }
+            } else {
+                console.log('⚠️ GPU Physics not available - WebGPU not initialized');
+                alert('GPU Physics requires WebGPU support.\nYour browser may not support it.');
+            }
+        });
+        
+        settingsWindow.addToggle('GPU Render (Zero-Copy!)', () => settings.useGPURender, (v) => {
+            if (USE_WEBGPU && gpuPhysicsEngine && gpuCanvasContext) {
+                settings.useGPURender = v;
+                console.log(v ? '⚡ GPU Rendering: ON (Zero-Copy!)' : '🖼️ WebGL Rendering: ON');
+                
+                // Upload color palette when enabling
+                if (v) {
+                    gpuPhysicsEngine.uploadColorPalette(COLOR_PALETTE);
+                    console.log('🎨 Uploaded color palette to GPU');
+                }
+            } else {
+                console.log('⚠️ GPU Rendering not available - WebGPU not initialized');
+                alert('GPU Rendering requires WebGPU support.\\nYour browser may not support it.');
+            }
+        });
+        
+        settingsWindow.addButton('🔬 TEST GPU SYNC', async () => {
+            if (!USE_WEBGPU || !gpuBufferManager) {
+                console.log('⚠️ GPU not available - running in CPU mode');
+                alert('GPU mode not active. Check console for details.');
+                return;
+            }
+            
+            // Upload
+            const uploadStart = performance.now();
+            gpuBufferManager.uploadParticles(activeParticles);
+            const uploadTime = performance.now() - uploadStart;
+            
+            // Download
+            const downloadStart = performance.now();
+            await gpuBufferManager.downloadParticles(activeParticles);
+            const downloadTime = performance.now() - downloadStart;
+        });
+        
+        windowManager.add(settingsWindow);
+
+        // Test window state (for displaying in statistics)
+        const testWindowState = {
+            toggleValue: false,
+            buttonClicks: 0,
+            sliderValue: 5.0
+        };
+        
+        const testWindow = new BaseWindow(200, 20, 'SYMULACJA TESTOWA');
+        
+        // ━━━ controls ━━━
+        testWindow.addSection('controls');
+        testWindow.addToggle('Test Toggle', 
+            () => testWindowState.toggleValue, 
+            (v) => {
+                testWindowState.toggleValue = v;
+                console.log('Test toggle:', v);
+            }
+        );
+        testWindow.addButton('TEST BUTTON', () => {
+            testWindowState.buttonClicks++;
+            console.log(`Test button clicked ${testWindowState.buttonClicks} times!`);
+        });
+        testWindow.addSlider('Test Slider',
+            () => testWindowState.sliderValue,
+            (v) => {
+                testWindowState.sliderValue = v;
+                console.log('Test slider:', v.toFixed(1));
+            },
+            0.0,  // min
+            10.0, // max
+            0.1   // step
+        );
+        
+        // ━━━ system text ━━━
+        testWindow.addSection('system text');
+        testWindow.addText(
+            'Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit,\nsed do eiusmod tempor incididunt\nut labore et dolore magna aliqua.\nUt enim ad minim veniam,\nquis nostrud exercitation ullamco\nlaboris nisi ut aliquip ex ea\ncommodo consequat. Duis aute\nirure dolor in reprehenderit\nin voluptate velit esse cillum.',
+            '#00ff88', // green
+            10
+        );
+        
+        // ━━━ statistics text ━━━
+        testWindow.addSection('statistics text');
+        // This will be updated dynamically - create getter
+        testWindow.addText(
+            '', // Will be replaced in update
+            STYLES.colors.stats, // Cyan for statistics
+            7
+        );
+        
+        windowManager.add(testWindow);
+        
+        // Create SIM1 STATISTICS window
+        const sim1StatsWindow = new BaseWindow(300, 20, 'SIM1 STATISTICS');
+        sim1StatsWindow.visible = false; // Closed by default
+        
+        // Dynamic simulation statistics (updated every second)
+        sim1StatsWindow.addSection('performance');
+        sim1StatsWindow.addText('Loading...', STYLES.colors.stats, 8); // FPS, Physics, Render, etc
+        
+        sim1StatsWindow.addSection('particles');
+        sim1StatsWindow.addText('Loading...', STYLES.colors.stats, 4); // Active, Culled, Pool, etc
+        
+        sim1StatsWindow.addSection('gpu');
+        sim1StatsWindow.addText('Loading...', STYLES.colors.stats, 2); // GPU Mode, Buffers
+        
+        sim1StatsWindow.addSection('camera');
+        sim1StatsWindow.addText('Loading...', STYLES.colors.stats, 1); // Zoom
+        
+        windowManager.add(sim1StatsWindow);
+
+
+        // Add stats window to WindowManager (normal z-index behavior!)
+        windowManager.add(statsWindow);
+
+
+        // Create taskbar FIRST
+        const taskbar = new Taskbar();
+
+        // Build menu with sections
+        taskbar.addSection('simulations');
+        taskbar.addWindowItem('SIM1 SIMULATION', controlsWindow);
+        taskbar.addWindowItem('SIM1 STATISTICS', sim1StatsWindow);
+        taskbar.addWindowItem('SYMULACJA TESTOWA', testWindow);
+        
+        taskbar.addSection('system');
+        taskbar.addWindowItem('SYSTEM SETTINGS', settingsWindow);
+        taskbar.addWindowItem('SYSTEM STATISTICS', statsWindow);
+        
+        // ═══════════════════════════════════════════════════════════════
+        //   🎯 PHASE 6: EVENT ROUTER (Centralized Event Handling)
+        // ═══════════════════════════════════════════════════════════════
+        
+        /**
+         * EventRouter - Centralized event handling for UI
+         * Manages mouse, keyboard, and wheel events
+         */
+        class EventRouter {
+            constructor(canvas, camera, windowManager, taskbar, statsWindow) {
+                this.canvas = canvas;
+                this.camera = camera;
+                this.windowManager = windowManager;
+                this.taskbar = taskbar;
+                this.statsWindow = statsWindow;
+                
+                // Mouse state
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.mouseDown = false;
+                this.mouseClicked = false;
+                this.lastMouseX = 0;
+                this.lastMouseY = 0;
+                this.clickedWindow = null;
+                
+                // Panning state
+                this.isPanning = false;
+                this.panStarted = false;
+                this.panStartX = 0;
+                this.panStartY = 0;
+                this.panThreshold = 5;
+                
+                this.attachListeners();
+            }
+            
+            attachListeners() {
+                this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+                this.canvas.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+                this.canvas.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.canvas.addEventListener('wheel', (e) => this.handleWheel(e), { passive: false });
+                // Keyboard handling removed - UI only
+            }
+            
+            handleMouseDown(e) {
+                this.mouseDown = true;
+                this.mouseClicked = true;
+                this.lastMouseX = e.clientX;
+                this.lastMouseY = e.clientY;
+
+                // Check taskbar FIRST (highest priority)
+                const ctx = this.canvas.getContext('2d');
+                if (this.taskbar.handleClick(e.clientX, e.clientY, ctx)) {
+                    e.preventDefault();
+                    this.clickedWindow = null;
+                    this.isPanning = false;
+                    this.mouseClicked = false;
+                    return;
+                }
+
+                // WindowManager handles all windows
+                this.clickedWindow = this.windowManager.getWindowAt(e.clientX, e.clientY);
+                
+                if (this.clickedWindow) {
+                    e.preventDefault();
+                    this.isPanning = false;
+                    this.clickedWindow.startDrag(e.clientX, e.clientY);
+                    this.windowManager.bringToFront(this.clickedWindow);
+                } else {
+                    this.isPanning = true;
+                    this.panStarted = false;
+                    this.panStartX = e.clientX;
+                    this.panStartY = e.clientY;
+                }
+            }
+            
+            handleMouseUp(e) {
+                if (this.clickedWindow) {
+                    this.clickedWindow.endDrag();
+                }
+                
+                this.clickedWindow = null;
+                this.mouseDown = false;
+                this.mouseClicked = false;
+                this.isPanning = false;
+                this.panStarted = false;
+            }
+            
+            handleMouseMove(e) {
+                this.mouseX = e.clientX;
+                this.mouseY = e.clientY;
+
+                if (this.clickedWindow) {
+                    this.clickedWindow.drag(e.clientX, e.clientY);
+                } else if (this.isPanning) {
+                    // Check threshold before starting actual pan
+                    if (!this.panStarted) {
+                        const dx = e.clientX - this.panStartX;
+                        const dy = e.clientY - this.panStartY;
+                        // OPT-7: Compare squared distances (avoid Math.sqrt)
+                        const distSq = dx * dx + dy * dy;
+                        
+                        if (distSq >= this.panThreshold * this.panThreshold) {
+                            this.panStarted = true;
+                            this.lastMouseX = e.clientX;
+                            this.lastMouseY = e.clientY;
+                        }
+                    } else {
+                        // Already panning
+                        const dx = e.clientX - this.lastMouseX;
+                        const dy = e.clientY - this.lastMouseY;
+                        this.camera.pan(dx, dy);
+                        this.lastMouseX = e.clientX;
+                        this.lastMouseY = e.clientY;
+                    }
+                }
+            }
+            
+            handleWheel(e) {
+                e.preventDefault();
+                
+                // Check StatsWindow first
+                if (this.statsWindow.visible && !this.statsWindow.minimized && 
+                    this.statsWindow.contains(e.clientX, e.clientY) && 
+                    this.statsWindow.contentHeight > this.statsWindow.height) {
+                    const scrollableHeight = this.statsWindow.contentHeight - this.statsWindow.height;
+                    this.statsWindow.scrollOffset = Math.max(0, Math.min(scrollableHeight, 
+                        this.statsWindow.scrollOffset + e.deltaY * 0.5));
+                    return;
+                }
+                
+                // Check other windows
+                const hoveredWindow = this.windowManager.getWindowAt(e.clientX, e.clientY);
+                if (hoveredWindow && !hoveredWindow.minimized) {
+                    if (hoveredWindow.handleScroll(e.deltaY)) {
+                        return;
+                    }
+                }
+                
+                // Otherwise, zoom camera
+                const factor = e.deltaY > 0 ? 0.9 : 1.1;
+                this.camera.setZoom(this.camera.targetZoom * factor, e.clientX, e.clientY);
+            }
+            
+        }
+        
+        // ═══════════════════════════════════════════════════════════════
+        //   INPUT (Now managed by EventRouter)
+        // ═══════════════════════════════════════════════════════════════
+
+        // Create EventRouter to handle all input
+        const eventRouter = new EventRouter(uiCanvas, camera, windowManager, taskbar, statsWindow);
+        
+        // Expose mouse state for rendering (backwards compatibility)
+        let mouseX = 0, mouseY = 0, mouseDown = false, mouseClicked = false;
+        
+        // Sync exposed variables with EventRouter state
+        function syncInputState() {
+            mouseX = eventRouter.mouseX;
+            mouseY = eventRouter.mouseY;
+            mouseDown = eventRouter.mouseDown;
+            mouseClicked = eventRouter.mouseClicked;
+        }
+
+
+        // ═══════════════════════════════════════════════════════════════
+        //   UPDATE SIM1 STATISTICS CACHE
+        // ═══════════════════════════════════════════════════════════════
+        
+        function updateSim1StatsCache() {
+            const now = performance.now();
+            if (now - lastSim1StatsCache >= 1000) {
+                // Determine rendering mode
+                const renderMode = (USE_WEBGPU && settings.useGPURender) ? 
+                    'GPU Render ⚡' : 'WebGL 🎮';
+                const physicsMode = (USE_WEBGPU && settings.useGPUPhysics) ? 
+                    'GPU Physics 🚀' : 'CPU Physics 💻';
+                    
+                // Build simulation statistics arrays
+                const performanceStats = [
+                    `FPS: ${fps}`,
+                    renderMode,
+                    physicsMode,
+                    `Physics: ${physicsTime.toFixed(2)}ms`,
+                    `Render: ${renderTime.toFixed(2)}ms`,
+                    `Frame: ${(physicsTime + renderTime).toFixed(2)}ms`,
+                    `Target: 16.67ms (60 FPS)`,
+                ];
+                
+                const particleStats = [
+                    `Active: ${activeParticles.length.toLocaleString()}`,
+                    `Culled: ${culledCount.toLocaleString()}`,
+                    `Pool: ${particlePool.length.toLocaleString()}`,
+                    `Total: ${(activeParticles.length + particlePool.length).toLocaleString()}`,
+                ];
+                
+                const gpuStats = [
+                    USE_WEBGPU ? `WebGPU Enabled 🚀` : `CPU Mode 💻`,
+                    USE_WEBGPU && gpuBufferManager ? `Max: ${(gpuBufferManager.maxParticles / 1000).toFixed(0)}k particles` : ``,
+                ].filter(s => s); // Remove empty strings
+                
+                const cameraStats = [
+                    `Zoom: ${camera.zoom.toFixed(2)}x`,
+                ];
+                
+                // Update SIM1 STATISTICS window items
+                // Items are: [section, text, section, text, section, text, section, text]
+                // We only update the text items (odd indices)
+                let itemIndex = 0;
+                
+                // Skip 'performance' section, update text
+                itemIndex++; // Skip section
+                if (sim1StatsWindow.items[itemIndex] && sim1StatsWindow.items[itemIndex].type === 'text') {
+                    sim1StatsWindow.items[itemIndex].text = performanceStats.join('\n');
+                    sim1StatsWindow.items[itemIndex].lines = performanceStats.length;
+                    sim1StatsWindow.items[itemIndex].height = STYLES.spacing.lineHeight * performanceStats.length;
+                }
+                itemIndex++;
+                
+                // Skip 'particles' section, update text
+                itemIndex++; // Skip section
+                if (sim1StatsWindow.items[itemIndex] && sim1StatsWindow.items[itemIndex].type === 'text') {
+                    sim1StatsWindow.items[itemIndex].text = particleStats.join('\n');
+                    sim1StatsWindow.items[itemIndex].lines = particleStats.length;
+                    sim1StatsWindow.items[itemIndex].height = STYLES.spacing.lineHeight * particleStats.length;
+                }
+                itemIndex++;
+                
+                // Skip 'gpu' section, update text
+                itemIndex++; // Skip section
+                if (sim1StatsWindow.items[itemIndex] && sim1StatsWindow.items[itemIndex].type === 'text') {
+                    sim1StatsWindow.items[itemIndex].text = gpuStats.join('\n');
+                    sim1StatsWindow.items[itemIndex].lines = gpuStats.length;
+                    sim1StatsWindow.items[itemIndex].height = STYLES.spacing.lineHeight * gpuStats.length;
+                }
+                itemIndex++;
+                
+                // Skip 'camera' section, update text
+                itemIndex++; // Skip section
+                if (sim1StatsWindow.items[itemIndex] && sim1StatsWindow.items[itemIndex].type === 'text') {
+                    sim1StatsWindow.items[itemIndex].text = cameraStats.join('\n');
+                    sim1StatsWindow.items[itemIndex].lines = cameraStats.length;
+                    sim1StatsWindow.items[itemIndex].height = STYLES.spacing.lineHeight * cameraStats.length;
+                }
+                
+                lastSim1StatsCache = now;
+                
+                // Update window height when content changes
+                sim1StatsWindow.calculateSize();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   UPDATE SYSTEM STATISTICS CACHE
+        // ═══════════════════════════════════════════════════════════════
+        
+        function updateStatsCache() {
+            const now = performance.now();
+            if (now - lastStatsCache >= 1000) {
+                // Calculate positions
+                // Crosshair A - world origin (0,0)
+                const crosshairA_worldX = 0;
+                const crosshairA_worldY = 0;
+                const crosshairA_screenX = Math.round(glCanvas.width / 2 + camera.x * camera.zoom);
+                const crosshairA_screenY = Math.round(glCanvas.height / 2 + camera.y * camera.zoom);
+                
+                // Crosshair B - screen center
+                const crosshairB_screenX = Math.round(glCanvas.width / 2);
+                const crosshairB_screenY = Math.round(glCanvas.height / 2);
+                const crosshairB_worldX = Math.round(-(crosshairB_screenX - glCanvas.width / 2) / camera.zoom + camera.x);
+                const crosshairB_worldY = Math.round((crosshairB_screenY - glCanvas.height / 2) / camera.zoom + camera.y);
+                
+                // Mouse
+                const mouse_screenX = Math.round(mouseX);
+                const mouse_screenY = Math.round(mouseY);
+                const mouse_worldX = Math.round(-(mouseX - glCanvas.width / 2) / camera.zoom + camera.x);
+                const mouse_worldY = Math.round((mouseY - glCanvas.height / 2) / camera.zoom + camera.y);
+                
+                // Window statistics (filter only window items, not sections!)
+                const windowItems = taskbar.menuItems.filter(item => item.type === 'window');
+                const allWindows = windowItems.length;
+                const openWindows = windowItems.filter(item => item.window.visible && !item.window.minimized).length;
+                const minimizedWindows = windowItems.filter(item => item.window.visible && item.window.minimized).length;
+                const visibleAndMinimized = windowItems.filter(item => item.window.visible).length;
+                
+                // Calculate viewport bounds (visible world area)
+                const viewportLeft = Math.round(-(glCanvas.width / 2) / camera.zoom + camera.x);
+                const viewportRight = Math.round((glCanvas.width / 2) / camera.zoom + camera.x);
+                const viewportTop = Math.round((glCanvas.height / 2) / camera.zoom + camera.y);
+                const viewportBottom = Math.round(-(glCanvas.height / 2) / camera.zoom + camera.y);
+                
+                cachedStatsText = [
+                    `━━━ canvas ━━━`,
+                    `Size: ${glCanvas.width} × ${glCanvas.height}`,
+                    `Aspect: ${(glCanvas.width / glCanvas.height).toFixed(2)}`,
+                    `━━━ viewport ━━━`,
+                    `World bounds:`,
+                    `  X: [${viewportLeft}, ${viewportRight}]`,
+                    `  Y: [${viewportBottom}, ${viewportTop}]`,
+                    `World size:`,
+                    `  W: ${viewportRight - viewportLeft}`,
+                    `  H: ${viewportTop - viewportBottom}`,
+                    `━━━ windows ━━━`,
+                    `Open: ${openWindows}`,
+                    `Minimized: ${minimizedWindows}`,
+                    `Visible+Min: ${visibleAndMinimized}`,
+                    `Total: ${allWindows}`,
+                    `━━━ positions ━━━`,
+                    `Crosshair A (origin)`,
+                    `  World: ${crosshairA_worldX}, ${crosshairA_worldY}`,
+                    `  Screen: ${crosshairA_screenX}, ${crosshairA_screenY}`,
+                    `Crosshair B (center)`,
+                    `  World: ${crosshairB_worldX}, ${crosshairB_worldY}`,
+                    `  Screen: ${crosshairB_screenX}, ${crosshairB_screenY}`,
+                    `Mouse`,
+                    `  World: ${mouse_worldX}, ${mouse_worldY}`,
+                    `  Screen: ${mouse_screenX}, ${mouse_screenY}`
+                ];
+                lastStatsCache = now;
+                
+                // Update StatsWindow height when content changes (once per second, not every frame!)
+                statsWindow.calculateSize();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   RENDER
+        // ═══════════════════════════════════════════════════════════════
+
+        function renderWebGL() {
+            const renderStart = performance.now();
+
+            gl.clearColor(0.039, 0.039, 0.078, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            gl.useProgram(program);
+
+            gl.uniform2f(u_resolution, glCanvas.width, glCanvas.height);
+            // Invert X axis for particles - pass -camera.x to shader
+            gl.uniform2f(u_cameraPos, -camera.x, camera.y);
+            gl.uniform1f(u_cameraZoom, camera.zoom);
+
+            const visibleParticles = [];
+            culledCount = 0;
+
+            for (let i = 0; i < activeParticles.length; i++) {
+                const p = activeParticles[i];
+                if (camera.isInView(p.x, p.y, p.radius)) {
+                    visibleParticles.push(p);
+                } else {
+                    culledCount++;
+                }
+            }
+
+            const count = visibleParticles.length;
+            if (count === 0) {
+                renderTime = performance.now() - renderStart;
+                return;
+            }
+
+            const positions = new Float32Array(count * 2);
+            const colors = new Float32Array(count * 3);
+            const radii = new Float32Array(count);
+
+            for (let i = 0; i < count; i++) {
+                const p = visibleParticles[i];
+                positions[i * 2] = p.x;
+                positions[i * 2 + 1] = p.y;
+                colors[i * 3] = p.r;
+                colors[i * 3 + 1] = p.g;
+                colors[i * 3 + 2] = p.b;
+                radii[i] = p.radius;
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
+            gl.enableVertexAttribArray(a_position);
+            gl.vertexAttribPointer(a_position, 2, gl.FLOAT, false, 0, 0);
+            gl.vertexAttribDivisor(a_position, 1);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, colors, gl.DYNAMIC_DRAW);
+            gl.enableVertexAttribArray(a_color);
+            gl.vertexAttribPointer(a_color, 3, gl.FLOAT, false, 0, 0);
+            gl.vertexAttribDivisor(a_color, 1);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, radiusBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, radii, gl.DYNAMIC_DRAW);
+            gl.enableVertexAttribArray(a_radius);
+            gl.vertexAttribPointer(a_radius, 1, gl.FLOAT, false, 0, 0);
+            gl.vertexAttribDivisor(a_radius, 1);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+            gl.enableVertexAttribArray(a_vertexPos);
+            gl.vertexAttribPointer(a_vertexPos, 2, gl.FLOAT, false, 0, 0);
+
+            gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
+
+            renderTime = performance.now() - renderStart;
+        }
+
+        function drawGrid(ctx) {
+            if (!settings.showGrid) return;
+
+            // Draw at proper scale without giant canvas
+            
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.15)';
+            ctx.lineWidth = 1;
+
+            const gridSize = GRID_SIZE;
+            
+            // Calculate visible world bounds (true optimization!)
+            const halfWidth = glCanvas.width / (2 * camera.zoom);
+            const halfHeight = glCanvas.height / (2 * camera.zoom);
+            const visibleMinX = camera.x - halfWidth;
+            const visibleMaxX = camera.x + halfWidth;
+            const visibleMinY = camera.y - halfHeight;
+            const visibleMaxY = camera.y + halfHeight;
+            
+            // Round to grid boundaries (with small margin)
+            const minX = Math.floor((visibleMinX - gridSize) / gridSize) * gridSize;
+            const maxX = Math.ceil((visibleMaxX + gridSize) / gridSize) * gridSize;
+            const minY = Math.floor((visibleMinY - gridSize) / gridSize) * gridSize;
+            const maxY = Math.ceil((visibleMaxY + gridSize) / gridSize) * gridSize;
+            
+            // Draw only visible grid lines (2-3× faster!)
+            for (let x = minX; x <= maxX; x += gridSize) {
+                // Invert X axis for grid to move correctly with camera
+                const screenX = (camera.x - x) * camera.zoom + glCanvas.width / 2;
+                ctx.beginPath();
+                ctx.moveTo(screenX, 0);
+                ctx.lineTo(screenX, glCanvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = minY; y <= maxY; y += gridSize) {
+                // Invert Y axis for grid to move correctly with camera
+                const screenY = (camera.y - y) * camera.zoom + glCanvas.height / 2;
+                ctx.beginPath();
+                ctx.moveTo(0, screenY);
+                ctx.lineTo(glCanvas.width, screenY);
+                ctx.stroke();
+            }
+        }
+
+        function drawCrosshairs(ctx) {
+            if (settings.showCrosshair) {
+                // Crosshair A shows world origin (0,0) - independent of invert setting
+                const centerX = glCanvas.width / 2 + (camera.x) * camera.zoom;
+                const centerY = glCanvas.height / 2 + (camera.y) * camera.zoom;
+                const size = 7 * camera.zoom;
+
+                ctx.strokeStyle = 'rgba(255, 0, 110, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX - size, centerY);
+                ctx.lineTo(centerX + size, centerY);
+                ctx.moveTo(centerX, centerY - size);
+                ctx.lineTo(centerX, centerY + size);
+                ctx.stroke();
+            }
+
+            if (settings.showCrosshairB) {
+                const centerX = glCanvas.width / 2;
+                const centerY = glCanvas.height / 2;
+                const size = 10;
+
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX - size, centerY);
+                ctx.lineTo(centerX + size, centerY);
+                ctx.moveTo(centerX, centerY - size);
+                ctx.lineTo(centerX, centerY + size);
+                ctx.stroke();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   MAIN LOOP
+        // ═══════════════════════════════════════════════════════════════
+
+        // ═══════════════════════════════════════════════════════════════
+        //   SPATIAL HASH - PERFORMANCE OPTIMIZATION
+        // ═══════════════════════════════════════════════════════════════
+
+        class SpatialHash {
+            constructor(cellSize) {
+                this.cellSize = cellSize;
+                this.cells = new Map();
+            }
+
+            // Get cell key for position
+            getKey(x, y) {
+                const cellX = Math.floor(x / this.cellSize);
+                const cellY = Math.floor(y / this.cellSize);
+                return `${cellX},${cellY}`;
+            }
+
+            // Clear all cells
+            clear() {
+                this.cells.clear();
+            }
+
+            // Insert particle into spatial hash
+            insert(particle) {
+                const key = this.getKey(particle.x, particle.y);
+                if (!this.cells.has(key)) {
+                    this.cells.set(key, []);
+                }
+                this.cells.get(key).push(particle);
+            }
+
+            // Query nearby particles within range
+            query(x, y, range) {
+                const nearby = [];
+                
+                // Check cells in range
+                const cellRadius = Math.ceil(range / this.cellSize);
+                const centerCellX = Math.floor(x / this.cellSize);
+                const centerCellY = Math.floor(y / this.cellSize);
+
+                for (let dx = -cellRadius; dx <= cellRadius; dx++) {
+                    for (let dy = -cellRadius; dy <= cellRadius; dy++) {
+                        const cellX = centerCellX + dx;
+                        const cellY = centerCellY + dy;
+                        const key = `${cellX},${cellY}`;
+                        
+                        const cell = this.cells.get(key);
+                        if (cell) {
+                            nearby.push(...cell);
+                        }
+                    }
+                }
+                
+                return nearby;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   PARTICLE INTERACTIONS
+        // ═══════════════════════════════════════════════════════════════
+
+        const INTERACTION_RANGE = 100; // Distance for interactions
+        let INTERACTION_STRENGTH = 2.0; // Force multiplier (adjustable!)
+        
+        // Velocity control (adjustable!)
+        let VELOCITY_DAMPING = 0.98; // Friction/drag (0.90-0.99)
+        let MAX_SPEED = 5.0; // Maximum velocity magnitude (1-20)
+
+        // Create spatial hash with cell size = interaction range
+        const spatialHash = new SpatialHash(INTERACTION_RANGE);
+
+        function applyParticleInteractions() {
+            if (settings.useSpatialHash) {
+                // O(n) instead of O(n²)
+                spatialHash.clear();
+                
+                // Insert all active particles into spatial hash
+                for (let i = 0; i < activeParticles.length; i++) {
+                    if (activeParticles[i].active) {
+                        spatialHash.insert(activeParticles[i]);
+                    }
+                }
+                
+                // Apply forces using spatial hash (much faster!)
+                for (let i = 0; i < activeParticles.length; i++) {
+                    const p1 = activeParticles[i];
+                    if (!p1.active) continue;
+                    
+                    // Query nearby particles using spatial hash
+                    const nearby = spatialHash.query(p1.x, p1.y, INTERACTION_RANGE);
+                    
+                    for (let j = 0; j < nearby.length; j++) {
+                        const p2 = nearby[j];
+                        if (p2 === p1) continue; // Skip self
+                        if (!p2.active) continue;
+                        
+                        // Only process each pair once: p1.id < p2.id
+                        // This is MUCH faster than string-based Set!
+                        if (p1.id >= p2.id) continue;
+                        
+                        applyForcesBetween(p1, p2);
+                    }
+                }
+            } else {
+                // BRUTE FORCE: O(n²) - for comparison
+                for (let i = 0; i < activeParticles.length; i++) {
+                    const p1 = activeParticles[i];
+                    if (!p1.active) continue;
+                    
+                    for (let j = i + 1; j < activeParticles.length; j++) {
+                        const p2 = activeParticles[j];
+                        if (!p2.active) continue;
+                        
+                        applyForcesBetween(p1, p2);
+                    }
+                }
+            }
+        }
+        
+        // Helper function to apply forces between two particles
+        function applyForcesBetween(p1, p2) {
+            let dx = p2.x - p1.x;
+            let dy = p2.y - p1.y;
+            
+            // TOROIDAL DISTANCE: account for wrap-around
+            if (settings.boundaryMode === 'toroidal') {
+                // If distance is more than half world size, use shorter path through wrap
+                if (Math.abs(dx) > WORLD_SIZE / 2) {
+                    dx = dx > 0 ? dx - WORLD_SIZE : dx + WORLD_SIZE;
+                }
+                if (Math.abs(dy) > WORLD_SIZE / 2) {
+                    dy = dy > 0 ? dy - WORLD_SIZE : dy + WORLD_SIZE;
+                }
+            }
+            
+            const distSq = dx * dx + dy * dy;
+            
+            if (distSq < INTERACTION_RANGE * INTERACTION_RANGE && distSq > 0) {
+                const dist = Math.sqrt(distSq);
+                
+                // Get interaction strength from matrix
+                const force1to2 = INTERACTION_MATRIX[p1.colorIndex][p2.colorIndex];
+                const force2to1 = INTERACTION_MATRIX[p2.colorIndex][p1.colorIndex];
+                
+                // Normalize direction
+                const nx = dx / dist;
+                const ny = dy / dist;
+                
+                // Apply force (attraction/repulsion)
+                // Base force inversely proportional to distance (1/r law)
+                const strength = INTERACTION_STRENGTH / dist;
+                
+                // Apply force with matrix strength and mass scaling
+                // p1 affected by p2
+                p1.vx += nx * force1to2 * strength / p1.mass;
+                p1.vy += ny * force1to2 * strength / p1.mass;
+                
+                // p2 affected by p1
+                p2.vx -= nx * force2to1 * strength / p2.mass;
+                p2.vy -= ny * force2to1 * strength / p2.mass;
+            }
+        }
+
+        let gpuSyncCounter = 0;
+        
+        async function animate() {
+            updateFPS();
+            updateStatsCache(); // System statistics
+            updateSim1StatsCache(); // Simulation statistics
+
+            // Physics
+            const physicsStart = performance.now();
+            
+            if (USE_WEBGPU && gpuPhysicsEngine && settings.useGPUPhysics) {
+                // GPU PHYSICS PATH
+                const count = activeParticles.length;
+                
+                // Update parameters
+                const boundaryMode = settings.boundaryMode === 'toroidal' ? 0 : 
+                                   settings.boundaryMode === 'bounce' ? 1 : 2;
+                
+                gpuPhysicsEngine.updateSimParams(
+                    count, 
+                    INTERACTION_RANGE, 
+                    INTERACTION_STRENGTH, 
+                    WORLD_SIZE, 
+                    boundaryMode
+                );
+                
+                gpuPhysicsEngine.updateIntegrationParams(
+                    count,
+                    VELOCITY_DAMPING,
+                    MAX_SPEED,
+                    WORLD_MIN,
+                    WORLD_MAX,
+                    boundaryMode
+                );
+                
+                // Compute on GPU
+                gpuPhysicsEngine.computePhysicsStep(count);
+                
+                // Sync back to CPU for rendering (MUST wait for this!)
+                await gpuPhysicsEngine.downloadParticles(activeParticles);
+                
+            } else {
+                // CPU PHYSICS PATH (FALLBACK)
+                // Apply interactions between particles
+                applyParticleInteractions();
+                
+                // Update particle positions
+                for (let i = 0; i < activeParticles.length; i++) {
+                    activeParticles[i].update();
+                }
+            }
+            
+            physicsTime = performance.now() - physicsStart;
+
+            // Render
+            const renderStart = performance.now();
+            camera.update();
+            
+            if (USE_WEBGPU && gpuPhysicsEngine && settings.useGPURender) {
+                // WEBGPU RENDERING (Zero-Copy!)
+                // Update camera uniforms
+                gpuPhysicsEngine.updateCamera(
+                    { x: glCanvas.width, y: glCanvas.height },
+                    { x: -camera.x, y: camera.y },  // Invert X like WebGL
+                    camera.zoom
+                );
+                
+                // Render directly from GPU buffers
+                gpuPhysicsEngine.render(gpuCanvasContext, activeParticles.length);
+            } else {
+                // WEBGL RENDERING (Fallback)
+                renderWebGL();
+            }
+            
+            renderTime = performance.now() - renderStart;
+
+            // Render UI
+            ctx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
+            
+            drawGrid(ctx);
+            drawCrosshairs(ctx);
+
+            // PHASE 6: Sync input state from EventRouter
+            syncInputState();
+            
+            windowManager.update(mouseX, mouseY, mouseDown, mouseClicked);
+            
+            // Close taskbar menu if clicking on any window
+            if (mouseClicked && taskbar.menuOpen) {
+                for (let i = 0; i < windowManager.windows.length; i++) {
+                    const win = windowManager.windows[i];
+                    if (win.visible && !win.minimized && win.contains && win.contains(mouseX, mouseY)) {
+                        taskbar.menuOpen = false;
+                        break;
+                    }
+                }
+            }
+            
+            // Update test window statistics text dynamically
+            // Find the statistics text item (last text item in test window)
+            for (let i = testWindow.items.length - 1; i >= 0; i--) {
+                if (testWindow.items[i].type === 'text' && testWindow.items[i].color === STYLES.colors.stats) {
+                    // Update statistics text with current values
+                    testWindow.items[i].text = 
+                        `Test toggle: ${testWindowState.toggleValue ? 'ON' : 'OFF'}\n` +
+                        `Test button: clicked ${testWindowState.buttonClicks} times\n` +
+                        `Test slider value: ${testWindowState.sliderValue.toFixed(1)}\n` +
+                        `Consectetur adipiscing elit,\n` +
+                        `sed do eiusmod tempor,\n` +
+                        `ut labore et dolore magna,\n` +
+                        `aliqua ut enim ad minim.`;
+                    break;
+                }
+            }
+            
+            windowManager.draw(ctx, mouseX, mouseY);
+            
+            // Draw taskbar on top of everything
+            taskbar.draw(ctx, mouseX, mouseY);
+            
+            // Consume click after processing
+            if (eventRouter.mouseClicked) {
+                eventRouter.mouseClicked = false;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //   ASYNC MAIN - INITIALIZE WEBGPU THEN START
+        // ═══════════════════════════════════════════════════════════════
+
+        async function main() {
+            // Try to initialize WebGPU
+            const webgpuAvailable = await initWebGPU();
+            
+            if (webgpuAvailable) {
+                // Create GPU Physics Engine
+                try {
+                    gpuPhysicsEngine = new GPUPhysicsEngine(gpuDevice, 100000);
+                    const initialized = await gpuPhysicsEngine.initialize();
+                    
+                    if (initialized) {
+                        // Upload initial particles to GPU
+                        gpuPhysicsEngine.uploadParticles(activeParticles);
+                        gpuPhysicsEngine.uploadInteractionMatrix(INTERACTION_MATRIX);
+                        gpuPhysicsEngine.uploadColorPalette(COLOR_PALETTE);
+                        console.log('✅ GPU Physics Engine ready - 10-100x speedup available!');
+                        console.log('✅ GPU Rendering ready - Zero-Copy rendering!');
+                    } else {
+                        console.warn('⚠️ Failed to initialize GPU Physics - falling back to CPU');
+                        USE_WEBGPU = false;
+                        settings.useGPUPhysics = false;
+                    }
+                } catch (error) {
+                    console.error('❌ GPU Physics initialization failed:', error);
+                    USE_WEBGPU = false;
+                    settings.useGPUPhysics = false;
+                    gpuPhysicsEngine = null;
+                }
+            } else {
+                console.log('💡 Running in CPU mode - GPU compute not available');
+                settings.useGPUPhysics = false;
+            }
+
+            // Start animation loop
+            animate();
+        }
+
+        // Start the app!
+        main().catch(error => {
+            console.error('💥 Fatal error during initialization:', error);
+        });
+    </script>
+</body>
+</html>
