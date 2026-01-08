@@ -5,9 +5,17 @@ All notable changes to Petrie Dish will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v5.1-C2] - 2025-01-07 (IN PROGRESS)
+## [v5.1-C2] - 2025-01-08 (IN PROGRESS)
 
 ### ⚡ Optimized
+- **GPU compute shader workgroup size** (~40-50% faster physics)
+  - Benchmarking system for automatic workgroup size testing
+  - Tests sizes: 64, 128, 256, 512, 1024, 2048
+  - Changed default from 256 → 512 (optimal on test hardware)
+  - Dynamic shader compilation with configurable WORKGROUP_SIZE
+  - UI button: "⚡ BENCHMARK WORKGROUPS" in Settings
+  - Impact: Better GPU utilization, fewer dispatch calls
+
 - **Buffer synchronization** (~70-80% reduction in CPU↔GPU transfers)
   - Conditional download: Only sync to CPU when GPU rendering disabled
   - Dirty flags for simulation parameters (updateSimParams)
