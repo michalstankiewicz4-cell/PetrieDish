@@ -3441,8 +3441,10 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
             // Confirm with user
             const confirmed = confirm(
                 'Workgroup Benchmark\n\n' +
-                'This will test workgroup sizes: 64, 128, 256, 512\n' +
-                'Takes ~20-30 seconds\n\n' +
+                'This will test workgroup sizes:\n' +
+                '64, 128, 256, 512, 1024, 2048\n' +
+                '(Large sizes may fail on some GPUs)\n\n' +
+                'Takes ~30-45 seconds\n\n' +
                 `Current particles: ${activeParticles.length}\n` +
                 `Current workgroup size: ${WORKGROUP_SIZE}\n\n` +
                 'Continue?'
@@ -4221,10 +4223,11 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
             }
             
             console.log('🔬 Starting workgroup size benchmark...');
-            console.log('📊 Testing sizes: 64, 128, 256, 512');
+            console.log('📊 Testing sizes: 64, 128, 256, 512, 1024, 2048');
             console.log('⏱️ Measuring 60 frames per size...');
+            console.log('⚠️ Large sizes (1024+) may fail on some GPUs');
             
-            const sizes = [64, 128, 256, 512];
+            const sizes = [64, 128, 256, 512, 1024, 2048];
             const results = [];
             const testFrames = 60;
             
@@ -4293,19 +4296,32 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
             }
             
             // Find best result
+            if (results.length === 0) {
+                console.error('❌ No valid workgroup sizes found!');
+                alert('Benchmark failed - no valid workgroup sizes. Check console.');
+                return;
+            }
+            
             results.sort((a, b) => a.avgTime - b.avgTime);
             const best = results[0];
             
             console.log('\n📊 ===== BENCHMARK RESULTS =====');
             console.log(`Particle count: ${activeParticles.length}`);
+            console.log(`Valid sizes tested: ${results.length}/6`);
             console.log('');
             results.forEach((r, i) => {
                 const marker = i === 0 ? '🏆' : '  ';
                 const speedup = ((results[results.length - 1].avgTime / r.avgTime) * 100 - 100).toFixed(1);
-                console.log(`${marker} Size ${r.size.toString().padStart(3)}: ${r.avgTime.toFixed(3)}ms (${speedup}% faster)`);
+                console.log(`${marker} Size ${r.size.toString().padStart(4)}: ${r.avgTime.toFixed(3)}ms (${speedup}% faster)`);
             });
             console.log('');
             console.log(`🏆 Winner: workgroup_size(${best.size}) - ${best.avgTime.toFixed(3)}ms average`);
+            
+            // Check if large sizes worked
+            const testedLarge = results.some(r => r.size >= 1024);
+            if (!testedLarge) {
+                console.log('⚠️ Note: Sizes 1024+ not supported on this GPU');
+            }
             
             // Restore best size
             WORKGROUP_SIZE = best.size;
@@ -4315,7 +4331,7 @@ fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
             gpuPhysicsEngine.uploadInteractionMatrix(INTERACTION_MATRIX);
             gpuPhysicsEngine.uploadColorPalette(COLOR_PALETTE);
             
-            alert(`Benchmark Complete!\n\n🏆 Best workgroup size: ${best.size}\n⏱️ Average time: ${best.avgTime.toFixed(3)}ms\n\nCheck console for full results.`);
+            alert(`Benchmark Complete!\n\n🏆 Best workgroup size: ${best.size}\n⏱️ Average time: ${best.avgTime.toFixed(3)}ms\n📊 Tested: ${results.length}/6 sizes\n\nCheck console for full results.`);
         }
 
         // ═══════════════════════════════════════════════════════════════
