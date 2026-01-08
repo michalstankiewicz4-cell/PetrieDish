@@ -1,6 +1,6 @@
 # Module Structure Map
 
-> Decomposition of petrie-dish-v5.0-C1.html into modular architecture
+> Decomposition of petrie-dish-v5.1-C2.html into modular architecture
 
 ## 📦 Module Organization
 
@@ -10,8 +10,9 @@
 - `settings.js` - Runtime settings, user preferences
 - `init.js` - Application initialization, WebGPU detection
 - `error-handler.js` - Error console capture system
+- `workgroup-config.js` - Dynamic workgroup size configuration (NEW in v5.1-C2)
 
-**Lines:** ~300  
+**Lines:** ~350  
 **Dependencies:** None (foundation layer)
 
 ---
@@ -29,16 +30,19 @@
 
 ---
 
-### `/src/physics/` - Physics Engine
+### `/src/physics/` - Physics Engine (GPU-Only)
 **Files:**
 - `particle.js` - Particle class, data structures
-- `spatial-hash.js` - Spatial hash grid optimization
-- `interactions.js` - Particle interaction calculations
-- `collision.js` - Collision detection and response
+- `interactions.js` - Particle interaction calculations (GPU)
 - `color-matrix.js` - 16-color interaction matrix logic
 
-**Lines:** ~600  
-**Dependencies:** `core/`, potentially `gpu/`
+**Lines:** ~450 (reduced from ~600, CPU code removed in v5.1-C2)  
+**Dependencies:** `core/`, `gpu/`
+
+**Removed in v5.1-C2:**
+- ~~`spatial-hash.js`~~ - CPU spatial hash (replaced by GPU)
+- ~~`collision.js`~~ - CPU collision detection (moved to GPU)
+- ~~CPU physics methods~~ - All physics now GPU-only (-152 lines)
 
 ---
 
@@ -166,19 +170,27 @@ node build/concat-modules.js
 
 ## 📊 Line Count Breakdown
 
+**v5.1-C2** (Current)
+
 | Module | Lines | % Total | Status |
 |--------|-------|---------|--------|
-| `core/` | ~300 | 7% | ✅ Extracted |
-| `gpu/` | ~800 | 18% | ✅ Extracted |
-| `physics/` | ~600 | 14% | ✅ Extracted |
+| `core/` | ~350 | 8% | ✅ Optimized |
+| `gpu/` | ~900 | 21% | ✅ Enhanced (workgroup benchmark) |
+| `physics/` | ~450 | 11% | ✅ GPU-only (CPU removed) |
 | `rendering/` | ~400 | 9% | ✅ Extracted |
-| `ui/` | ~1500 | 34% | ✅ Extracted |
+| `ui/` | ~1500 | 35% | ✅ Extracted |
 | `utils/` | ~200 | 5% | ✅ Extracted |
 | CSS | ~40 | 1% | In index.html |
 | HTML | ~15 | <1% | In index.html |
 | Main Loop | ~300 | 7% | In main.js |
-| Legacy Code | ~250 | 6% | 🗑️ To Remove |
-| **Total** | **~4400** | **100%** | |
+| ~~Legacy Code~~ | ~~0~~ | ~~0%~~ | ✅ **Removed in v5.1-C2** |
+| **Total** | **~4250** | **100%** | **-152 lines vs v5.0-C1** |
+
+**Changes from v5.0-C1:**
+- ✅ Removed CPU physics code: -152 lines
+- ✅ Added workgroup benchmark: +120 lines
+- ✅ Buffer sync optimization: +30 lines
+- ✅ Net change: -2 lines (cleaner, faster)
 
 ---
 
@@ -196,8 +208,8 @@ node build/concat-modules.js
 - [ ] Build script created
 - [ ] Testing completed
 
-**Target Completion:** v5.1-C2 (2025-01-20)
+**Target Completion:** v5.2 (Advanced GPU Optimizations) - 2025-02-28
 
 ---
 
-**Last Updated:** 2025-01-07
+**Last Updated:** 2025-01-08

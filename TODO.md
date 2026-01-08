@@ -42,8 +42,150 @@
 
 ---
 
-## 📌 Priority 2 - v5.2 (Advanced Features)
-**Target:** 2025-02-15  
+## 📌 Priority 2 - v5.2 (Advanced GPU Optimizations)
+**Target:** 2025-02-28  
+**Status:** Planned  
+**Goal:** 10-100x performance improvement, 100k-1M particles @ 60 FPS
+
+### 🔥 LEVEL 2: Advanced GPU Techniques (HIGHEST IMPACT)
+
+- [ ] **Shared Memory Optimization** ⭐⭐⭐ (PRIORITY #1)
+  - [ ] Implement workgroup shared memory for position/velocity data
+  - [ ] Reduce global memory reads from O(n²) to O(n)
+  - [ ] Optimize memory access patterns
+  - [ ] Benchmark performance improvement
+  - Expected gain: 3-10x faster physics
+  - Difficulty: Medium
+  - Time estimate: 3-4 hours
+
+- [ ] **GPU Spatial Hashing** ⭐⭐⭐ (PRIORITY #2)
+  - [ ] Implement spatial hash grid on GPU
+  - [ ] Compute shader for hash table construction
+  - [ ] Neighbor search in O(1) instead of O(n)
+  - [ ] Handle hash collisions efficiently
+  - Expected gain: 100-1000x for large simulations (10k+ particles)
+  - Difficulty: Hard
+  - Time estimate: 6-8 hours
+
+- [ ] **Barnes-Hut Algorithm** ⭐⭐
+  - [ ] Implement quad-tree on GPU
+  - [ ] Tree construction in compute shader
+  - [ ] Force calculation with tree traversal
+  - [ ] O(n log n) instead of O(n²)
+  - Expected gain: 60x for 100k particles
+  - Difficulty: Hard
+  - Time estimate: 8-10 hours
+
+### ⚡ LEVEL 3: Rendering Optimizations
+
+- [ ] **GPU-Driven Rendering** ⭐⭐
+  - [ ] Indirect draw calls (drawIndirect)
+  - [ ] GPU-based culling in compute shader
+  - [ ] Zero CPU overhead for draw commands
+  - [ ] Automatic LOD system
+  - Expected gain: 2-5x render performance
+  - Difficulty: Medium-Hard
+  - Time estimate: 4-5 hours
+
+- [ ] **Compute Shader Culling** ⭐
+  - [ ] Frustum culling on GPU
+  - [ ] Skip off-screen particles
+  - [ ] Visibility buffer generation
+  - Expected gain: 2-3x render performance
+  - Difficulty: Medium
+  - Time estimate: 2-3 hours
+
+- [ ] **Post-Processing Pipeline** ⭐
+  - [ ] Bloom/Glow effects
+  - [ ] Motion blur
+  - [ ] Heat distortion
+  - [ ] Chromatic aberration
+  - Impact: Visual quality boost
+  - Difficulty: Medium
+  - Time estimate: 3-4 hours
+
+### 🌟 LEVEL 4: Physics Improvements
+
+- [ ] **Verlet Integration** ⭐⭐
+  - [ ] Replace Euler with Verlet integrator
+  - [ ] More stable physics simulation
+  - [ ] Remove velocity buffer (saves memory)
+  - [ ] Position-based dynamics
+  - Impact: Better stability, less memory
+  - Difficulty: Medium
+  - Time estimate: 2-3 hours
+
+- [ ] **Fixed Timestep** ⭐
+  - [ ] Decouple physics from render framerate
+  - [ ] Deterministic simulation
+  - [ ] Frame-independent behavior
+  - [ ] Accumulator pattern
+  - Impact: Consistent physics regardless of FPS
+  - Difficulty: Easy
+  - Time estimate: 1-2 hours
+
+- [ ] **Particle Collisions** ⭐⭐
+  - [ ] Sphere-sphere collision detection
+  - [ ] Elastic collision response
+  - [ ] Impulse-based resolution
+  - [ ] Energy conservation
+  - Impact: New physics dimension (billiards, gases)
+  - Difficulty: Hard
+  - Time estimate: 4-6 hours
+
+### 📊 LEVEL 5: Scale Up
+
+- [ ] **1 Million Particles Support** ⭐⭐⭐
+  - [ ] Optimize all systems for 1M particles
+  - [ ] Memory management for large counts
+  - [ ] Streaming/pagination if needed
+  - [ ] Performance validation
+  - Goal: 1M particles @ 60 FPS
+  - Dependencies: Shared memory + Spatial hash
+  - Difficulty: Hard
+  - Time estimate: 10-12 hours
+
+- [ ] **Web Workers for CPU Tasks** ⭐
+  - [ ] Multi-threaded statistics
+  - [ ] Async collision detection fallback
+  - [ ] Background data processing
+  - Impact: Better CPU utilization
+  - Difficulty: Medium
+  - Time estimate: 3-4 hours
+
+### 🧪 LEVEL 6: New Physics Features
+
+- [ ] **Chemistry Simulation** ⭐⭐
+  - [ ] Particle reactions (Red + Blue → Purple)
+  - [ ] Reaction rules system
+  - [ ] Energy transfer in reactions
+  - [ ] Molecule formation
+  - Impact: New gameplay/education possibilities
+  - Difficulty: Hard
+  - Time estimate: 6-8 hours
+
+- [ ] **Temperature & Phase States** ⭐⭐
+  - [ ] Temperature property per particle
+  - [ ] Solid/Liquid/Gas phase states
+  - [ ] Heat transfer between particles
+  - [ ] State transitions
+  - Impact: Realistic thermodynamics
+  - Difficulty: Medium-Hard
+  - Time estimate: 4-5 hours
+
+- [ ] **Gravity Wells & Orbits** ⭐
+  - [ ] Point mass gravity sources
+  - [ ] Orbital mechanics
+  - [ ] N-body simulation
+  - [ ] Black holes, planets, stars
+  - Impact: Astrophysics simulation
+  - Difficulty: Medium
+  - Time estimate: 3-4 hours
+
+---
+
+## 📌 Priority 3 - v5.3 (User Features)
+**Target:** 2025-03-15  
 **Status:** Planned
 
 ### Simulation Features
