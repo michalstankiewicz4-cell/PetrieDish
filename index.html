@@ -1585,8 +1585,65 @@ button:hover {
     box-shadow: var(--shadow-glow) rgba(131, 56, 236, 0.4);
 }
 
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: rgba(16, 16, 30, 0.97);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow: auto;
+    position: relative;
+    box-shadow: 0 0 30px rgba(131, 56, 236, 0.3);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #dcefff;
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 1;
+}
+
+.modal-close-btn:hover {
+    opacity: 1;
+    color: #FF006E;
+}
+
+.modal-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    color: #00F5FF;
+    text-align: center;
+    margin-bottom: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
 .matrix-container {
-    margin-top: 10px;
     padding: 10px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 4px;
@@ -2610,22 +2667,6 @@ button:hover {
                     <button id="editMatrixBtn" class="edit-matrix-btn">📊 Edit Interaction Matrix</button>
                     <button id="viewPropertiesBtn" class="edit-matrix-btn">🎨 View Color Properties</button>
                 </div>
-                
-                <!-- Macierz interakcji (ukryta domyślnie) -->
-                <div id="interactionMatrixContainer" class="matrix-container" style="display: none;">
-                    <div class="matrix-hint">📊 Row (Y↓) = FROM | Column (X→) = TO | Value: -1.0 (repels) ... 0.0 (neutral) ... +1.0 (attracts)</div>
-                    <div id="interactionMatrix" class="interaction-matrix">
-                        <!-- Wygenerowane dynamicznie przez JS -->
-                    </div>
-                </div>
-                
-                <!-- Color Properties Table (ukryta domyślnie) -->
-                <div id="colorPropertiesContainer" class="matrix-container" style="display: none;">
-                    <div class="matrix-hint">🎨 Properties of each color from seed (read-only – changes with new seed)</div>
-                    <div id="colorPropertiesTable" class="color-properties-table">
-                        <!-- Wygenerowane dynamicznie przez JS -->
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -2860,6 +2901,30 @@ button:hover {
             </div>
         </div>
 
+    </div>
+</div>
+
+<!-- Modal: Interaction Matrix -->
+<div id="matrixModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="matrixModalClose">✕</button>
+        <div class="modal-title">📊 Edit Interaction Matrix</div>
+        <div id="interactionMatrixContainer" class="matrix-container">
+            <div class="matrix-hint">Row (Y↓) = FROM | Column (X→) = TO | Value: -1.0 (repels) ... 0.0 (neutral) ... +1.0 (attracts)</div>
+            <div id="interactionMatrix" class="interaction-matrix"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Color Properties -->
+<div id="propertiesModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="propertiesModalClose">✕</button>
+        <div class="modal-title">🎨 Color Properties</div>
+        <div id="colorPropertiesContainer" class="matrix-container">
+            <div class="matrix-hint">Properties of each color from seed (read-only – changes with new seed)</div>
+            <div id="colorPropertiesTable" class="color-properties-table"></div>
+        </div>
     </div>
 </div>
 
@@ -3135,6 +3200,10 @@ button:hover {
         const viewPropertiesBtn = document.getElementById('viewPropertiesBtn');
         const colorPropertiesContainer = document.getElementById('colorPropertiesContainer');
         const colorPropertiesTable = document.getElementById('colorPropertiesTable');
+        const matrixModal = document.getElementById('matrixModal');
+        const matrixModalClose = document.getElementById('matrixModalClose');
+        const propertiesModal = document.getElementById('propertiesModal');
+        const propertiesModalClose = document.getElementById('propertiesModalClose');
         
         const chargesOptions = document.getElementById('chargesOptions');
         const chargeForce = document.getElementById('chargeForce');
@@ -4655,12 +4724,12 @@ button:hover {
             INTERACTION_MATRIX = matrix;
             
             // Odśwież matrix UI jeśli jest otwarta
-            if (interactionMatrixContainer && interactionMatrixContainer.style.display !== 'none') {
+            if (matrixModal && matrixModal.classList.contains('active')) {
                 generateInteractionMatrixUI();
             }
             
             // Odśwież color properties table jeśli jest otwarta
-            if (colorPropertiesContainer && colorPropertiesContainer.style.display !== 'none') {
+            if (propertiesModal && propertiesModal.classList.contains('active')) {
                 generateColorPropertiesTable();
             }
             
@@ -5562,37 +5631,41 @@ button:hover {
             });
         }
         
-        // Toggle matrix visibility
+        // Toggle matrix visibility (modal)
         if (editMatrixBtn) {
             editMatrixBtn.addEventListener('click', () => {
-                const isVisible = interactionMatrixContainer.style.display !== 'none';
-                
-                if (isVisible) {
-                    interactionMatrixContainer.style.display = 'none';
-                    editMatrixBtn.textContent = '📊 Edit Interaction Matrix';
-                } else {
-                    generateInteractionMatrixUI();
-                    interactionMatrixContainer.style.display = 'block';
-                    editMatrixBtn.textContent = '✕ Close Matrix';
-                }
+                generateInteractionMatrixUI();
+                matrixModal.classList.add('active');
             });
         }
         
-        // Toggle color properties visibility
-        if (viewPropertiesBtn) {
-            viewPropertiesBtn.addEventListener('click', () => {
-                const isVisible = colorPropertiesContainer.style.display !== 'none';
-                
-                if (isVisible) {
-                    colorPropertiesContainer.style.display = 'none';
-                    viewPropertiesBtn.textContent = '🎨 View Color Properties';
-                } else {
-                    generateColorPropertiesTable();
-                    colorPropertiesContainer.style.display = 'block';
-                    viewPropertiesBtn.textContent = '✕ Close Properties';
-                }
+        if (matrixModalClose) {
+            matrixModalClose.addEventListener('click', () => {
+                matrixModal.classList.remove('active');
             });
         }
+        
+        matrixModal.addEventListener('click', (e) => {
+            if (e.target === matrixModal) matrixModal.classList.remove('active');
+        });
+        
+        // Toggle color properties visibility (modal)
+        if (viewPropertiesBtn) {
+            viewPropertiesBtn.addEventListener('click', () => {
+                generateColorPropertiesTable();
+                propertiesModal.classList.add('active');
+            });
+        }
+        
+        if (propertiesModalClose) {
+            propertiesModalClose.addEventListener('click', () => {
+                propertiesModal.classList.remove('active');
+            });
+        }
+        
+        propertiesModal.addEventListener('click', (e) => {
+            if (e.target === propertiesModal) propertiesModal.classList.remove('active');
+        });
 
         // ═══════════════════════════════════════════
         // VISUAL FX SYSTEM
