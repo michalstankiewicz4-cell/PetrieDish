@@ -266,6 +266,46 @@ body {
     transform: rotate(90deg);
 }
 
+/* ═══════════════════════════════════════════
+   INFO PANEL - FPS i SEED
+   ═══════════════════════════════════════════ */
+.info-panel {
+    background: rgba(131, 56, 236, 0.15);
+    border-bottom: 2px solid rgba(131, 56, 236, 0.3);
+    padding: 15px 20px;
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.info-label {
+    font-size: 10px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    color: #8892b0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.info-value {
+    font-size: 24px;
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    background: linear-gradient(135deg, #00F5FF, #3A86FF);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+}
+
 .panel-content {
     padding: 20px;
     flex: 1;
@@ -1572,6 +1612,19 @@ button:hover {
             <h2>⚙️ Ustawienia</h2>
             <button class="close-btn" id="closeLeftPanel">×</button>
         </div>
+        
+        <!-- INFO PANEL - FPS i SEED -->
+        <div class="info-panel">
+            <div class="info-item" id="seedInfoItem" style="display: none;">
+                <div class="info-label">SEED</div>
+                <div class="info-value" id="seedInfoValue">-</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">FPS</div>
+                <div class="info-value" id="fpsInfoValue">0</div>
+            </div>
+        </div>
+        
         <div class="panel-content" id="leftPanelContent">
             <!-- Tutaj przeniesione zostaną kontrolki -->
         </div>
@@ -3276,48 +3329,22 @@ button:hover {
         }
 
         function drawStatusAndFPS() {
-            let yPos = 20;
+            // Aktualizuj wyświetlanie w lewym panelu (zamiast na canvasie)
             
-            // Rysuj numer próbki/seed
+            // Aktualizuj Seed info
+            const seedInfoItem = document.getElementById('seedInfoItem');
+            const seedInfoValue = document.getElementById('seedInfoValue');
             if (enableSeedDisplay && CURRENT_SEED !== null) {
-                ctx.fillStyle = '#FFBE0B';
-                ctx.font = 'bold 12px Orbitron, Arial, sans-serif';
-                ctx.shadowBlur = 2;
-                ctx.shadowColor = '#FFBE0B';
-                
-                const seedText = `Seed: ${CURRENT_SEED}`;
-                ctx.fillText(seedText, 10, yPos);
-                ctx.shadowBlur = 0;
-                yPos += 18;
+                seedInfoItem.style.display = 'flex';
+                seedInfoValue.textContent = CURRENT_SEED;
+            } else {
+                seedInfoItem.style.display = 'none';
             }
             
-            // Rysuj FPS
+            // Aktualizuj FPS info
+            const fpsInfoValue = document.getElementById('fpsInfoValue');
             if (enableFpsDisplay) {
-                let fpsColor;
-                if (fps <= 16) {
-                    fpsColor = '#FF006E';
-                } else if (fps <= 23) {
-                    fpsColor = '#FFBE0B';
-                } else {
-                    fpsColor = '#00FF00';
-                }
-                
-                ctx.fillStyle = fpsColor;
-                ctx.font = 'bold 20px Orbitron, Arial, sans-serif';
-                ctx.shadowBlur = 5;
-                ctx.shadowColor = fpsColor;
-                ctx.fillText('●', 10, yPos);
-                ctx.shadowBlur = 0;
-
-                ctx.fillStyle = '#00F5FF';
-                ctx.font = 'bold 14px Orbitron, Arial, sans-serif';
-                ctx.shadowBlur = 2.5;
-                ctx.shadowColor = '#00F5FF';
-                
-                let statusText = `FPS: ${fps}`;
-                
-                ctx.fillText(statusText, 32, yPos);
-                ctx.shadowBlur = 0;
+                fpsInfoValue.textContent = fps;
             }
         }
 
