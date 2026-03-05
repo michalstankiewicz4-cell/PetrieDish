@@ -1668,110 +1668,158 @@ button:hover {
     text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
 }
 
-/* MENU COMPACT MODE - 20% mniejsze fonty i odstępy */
-.side-panel {
-    width: 420px;
+/* MENU COMPACT MODE - wymuszone (przebija starsze style) */
+#leftPanel,
+#rightPanel {
+    width: 336px !important;
 }
 
-.side-panel .panel-header {
-    padding: 16px;
+#leftPanel .panel-header,
+#rightPanel .panel-header {
+    padding: 13px !important;
 }
 
-.side-panel .panel-header h2 {
-    font-size: 19px;
-    letter-spacing: 1.6px;
+#leftPanel .panel-header h2,
+#rightPanel .panel-header h2 {
+    font-size: 15px !important;
+    letter-spacing: 1.3px !important;
 }
 
-.side-panel .panel-content {
-    padding: 16px;
+#leftPanel .panel-content,
+#rightPanel .panel-content {
+    padding: 13px !important;
 }
 
-.side-panel .panel-title-wrap,
-.side-panel .legend-item,
-.side-panel .legend-item label,
-.side-panel .seed-controls .row,
-.side-panel .size-controls .row,
-.side-panel .option-row,
-.side-panel .controls {
-    gap: 8px;
+#leftPanel .panel-title-wrap,
+#rightPanel .panel-title-wrap,
+#leftPanel .legend-item,
+#rightPanel .legend-item,
+#leftPanel .legend-item label,
+#rightPanel .legend-item label,
+#leftPanel .seed-controls .row,
+#rightPanel .seed-controls .row,
+#leftPanel .size-controls .row,
+#rightPanel .size-controls .row,
+#leftPanel .option-row,
+#rightPanel .option-row,
+#leftPanel .controls,
+#rightPanel .controls {
+    gap: 6px !important;
 }
 
-.side-panel .seed-controls,
-.side-panel .size-controls,
-.side-panel .controls,
-.side-panel .legend {
-    margin-bottom: 16px;
+#leftPanel .seed-controls,
+#rightPanel .seed-controls,
+#leftPanel .size-controls,
+#rightPanel .size-controls,
+#leftPanel .controls,
+#rightPanel .controls,
+#leftPanel .legend,
+#rightPanel .legend {
+    margin-bottom: 13px !important;
 }
 
-.side-panel .legend {
-    padding: 16px 24px;
+#leftPanel .legend,
+#rightPanel .legend {
+    padding: 13px 19px !important;
 }
 
-.side-panel .mech-options {
-    margin-top: 8px;
-    margin-left: 22px;
-    padding: 8px;
+#leftPanel .mech-options,
+#rightPanel .mech-options {
+    margin-top: 6px !important;
+    margin-left: 18px !important;
+    padding: 6px !important;
 }
 
-.side-panel .panel-lock-toggle,
-.side-panel .left-panel label,
-.side-panel .legend-content,
-.side-panel .option-row,
-.side-panel .option-row label,
-.side-panel .option-value,
-.side-panel .future-value,
-.side-panel .matrix-hint,
-.side-panel .intelligent-info,
-.side-panel .option-hint,
-.side-panel .control-value,
-.side-panel .current-seed,
-.side-panel .density-value,
-.side-panel .species-value,
-.side-panel .speed-value {
-    font-size: 10px;
+#leftPanel label,
+#rightPanel label,
+#leftPanel .text,
+#rightPanel .text,
+#leftPanel .panel-lock-toggle,
+#rightPanel .panel-lock-toggle,
+#leftPanel .legend-content,
+#rightPanel .legend-content,
+#leftPanel .option-row,
+#rightPanel .option-row,
+#leftPanel .option-row label,
+#rightPanel .option-row label,
+#leftPanel .option-value,
+#rightPanel .option-value,
+#leftPanel .future-value,
+#rightPanel .future-value,
+#leftPanel .matrix-hint,
+#rightPanel .matrix-hint,
+#leftPanel .intelligent-info,
+#rightPanel .intelligent-info,
+#leftPanel .option-hint,
+#rightPanel .option-hint,
+#leftPanel .control-value,
+#rightPanel .control-value,
+#leftPanel .current-seed,
+#rightPanel .current-seed,
+#leftPanel .density-value,
+#rightPanel .density-value,
+#leftPanel .species-value,
+#rightPanel .species-value,
+#leftPanel .speed-value,
+#rightPanel .speed-value {
+    font-size: 8px !important;
 }
 
-.side-panel input[type="number"],
-.side-panel input[type="text"],
-.side-panel select {
-    font-size: 11px;
-    padding: 6px 10px;
+#leftPanel input[type="number"],
+#rightPanel input[type="number"],
+#leftPanel input[type="text"],
+#rightPanel input[type="text"],
+#leftPanel select,
+#rightPanel select {
+    font-size: 9px !important;
+    padding: 5px 8px !important;
 }
 
-.side-panel .seed-controls select,
-.side-panel .seed-controls input[type="number"],
-.side-panel .seed-controls input[type="text"] {
-    min-height: 24px;
+#leftPanel .seed-controls select,
+#rightPanel .seed-controls select,
+#leftPanel .seed-controls input[type="number"],
+#rightPanel .seed-controls input[type="number"],
+#leftPanel .seed-controls input[type="text"],
+#rightPanel .seed-controls input[type="text"] {
+    min-height: 19px !important;
 }
 
-.side-panel .btn-small,
-.side-panel .edit-matrix-btn,
-.side-panel .controls button,
-.side-panel .load-seed-btn,
-.side-panel .apply-size-btn {
-    font-size: 10px;
-    padding: 6px 11px;
-    letter-spacing: 0.3px;
+#leftPanel .btn-small,
+#rightPanel .btn-small,
+#leftPanel .edit-matrix-btn,
+#rightPanel .edit-matrix-btn,
+#leftPanel .controls button,
+#rightPanel .controls button,
+#leftPanel .load-seed-btn,
+#rightPanel .load-seed-btn,
+#leftPanel .apply-size-btn,
+#rightPanel .apply-size-btn {
+    font-size: 8px !important;
+    padding: 5px 9px !important;
+    letter-spacing: 0.2px !important;
 }
 
-.side-panel .close-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 24px;
+#leftPanel .close-btn,
+#rightPanel .close-btn {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 19px !important;
 }
 
-.side-panel .tooltip-icon {
-    width: 12px;
-    height: 12px;
-    line-height: 12px;
-    font-size: 8px;
-    margin-left: 4px;
+#leftPanel .tooltip-icon,
+#rightPanel .tooltip-icon {
+    width: 10px !important;
+    height: 10px !important;
+    line-height: 10px !important;
+    font-size: 6px !important;
+    margin-left: 3px !important;
 }
 
-.side-panel .tooltip-text {
-    width: 224px;
-    font-size: 9px;
-    padding: 8px 10px;
+#leftPanel .tooltip-text,
+#rightPanel .tooltip-text {
+    width: 179px !important;
+    font-size: 7px !important;
+    padding: 6px 8px !important;
 }
 
     </style>
