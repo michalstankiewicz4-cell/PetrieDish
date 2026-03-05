@@ -4947,11 +4947,49 @@ button:hover {
             }
         });
         
+        // ══════════════════════════════════════════
+        // RESTORE SETTINGS FROM LOCALSTORAGE
+        // ══════════════════════════════════════════
+        function restoreSettings() {
+            // Restore FPS Display
+            const savedFpsDisplay = localStorage.getItem('fpsDisplayEnabled');
+            if (savedFpsDisplay !== null && fpsDisplayCheckbox) {
+                const isEnabled = savedFpsDisplay === 'true';
+                fpsDisplayCheckbox.checked = isEnabled;
+                enableFpsDisplay = isEnabled;
+            }
+            
+            // Restore Seed Display
+            const savedSeedDisplay = localStorage.getItem('seedDisplayEnabled');
+            if (savedSeedDisplay !== null && seedDisplayCheckbox) {
+                const isEnabled = savedSeedDisplay === 'true';
+                seedDisplayCheckbox.checked = isEnabled;
+                enableSeedDisplay = isEnabled;
+            }
+            
+            // Restore Life Scanner Display
+            const savedLifeScannerDisplay = localStorage.getItem('lifeScannerDisplayEnabled');
+            if (savedLifeScannerDisplay !== null && lifeScannerDisplayCheckbox && lifeScannerPanel) {
+                const isEnabled = savedLifeScannerDisplay === 'true';
+                lifeScannerDisplayCheckbox.checked = isEnabled;
+                lifeScannerPanel.style.display = isEnabled ? 'block' : 'none';
+            }
+            
+            // Restore Auto-hide Buttons
+            const savedAutoHide = localStorage.getItem('autoHideButtonsEnabled');
+            if (savedAutoHide !== null && autoHideCheckbox) {
+                const isEnabled = savedAutoHide === 'true';
+                autoHideCheckbox.checked = isEnabled;
+                autoHideEnabled = isEnabled;
+            }
+        }
+        
         // FPS Display Toggle
         const fpsDisplayCheckbox = document.getElementById('fpsDisplayCheckbox');
         if (fpsDisplayCheckbox) {
             fpsDisplayCheckbox.addEventListener('change', (e) => {
                 enableFpsDisplay = e.target.checked;
+                localStorage.setItem('fpsDisplayEnabled', e.target.checked);
             });
         }
         
@@ -4960,6 +4998,7 @@ button:hover {
         if (seedDisplayCheckbox) {
             seedDisplayCheckbox.addEventListener('change', (e) => {
                 enableSeedDisplay = e.target.checked;
+                localStorage.setItem('seedDisplayEnabled', e.target.checked);
             });
         }
         
@@ -4969,6 +5008,7 @@ button:hover {
         if (lifeScannerDisplayCheckbox && lifeScannerPanel) {
             lifeScannerDisplayCheckbox.addEventListener('change', (e) => {
                 lifeScannerPanel.style.display = e.target.checked ? 'block' : 'none';
+                localStorage.setItem('lifeScannerDisplayEnabled', e.target.checked);
                 if (e.target.checked && enableLifeDetection) {
                     requestAnimationFrame(fitLifeScannerToContent);
                 }
@@ -5001,6 +5041,7 @@ button:hover {
         if (autoHideCheckbox) {
             autoHideCheckbox.addEventListener('change', (e) => {
                 autoHideEnabled = e.target.checked;
+                localStorage.setItem('autoHideButtonsEnabled', e.target.checked);
                 if (!autoHideEnabled) {
                     clearTimeout(autoHideTimer);
                     showUiButtons();
@@ -5634,6 +5675,9 @@ button:hover {
             console.log('💡 Full control: Detect life in specific ranges!');
             console.log('🎯 Example: particles 5-20, colors 3-6, distance 20-40px');
         }
+        
+        // Restore settings from localStorage (after all elements are defined)
+        restoreSettings();
         
         init();
     </script>
