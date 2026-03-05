@@ -99,7 +99,7 @@ body {
    ═══════════════════════════════════════════ */
 .hamburger-btn {
     position: fixed;
-    top: 20px;
+    bottom: 20px;
     width: 50px;
     height: 50px;
     background: rgba(131, 56, 236, 0.3);
@@ -3644,8 +3644,8 @@ button:hover {
             massHierarchyOptions.style.display = settings.massHierarchy ? 'block' : 'none';
             bondsOptions.style.display = settings.bonds ? 'block' : 'none';
             
-            boundaryModeSelect.value = settings.boundaryMode;
-            BOUNDARY_MODE = settings.boundaryMode;
+            boundaryModeSelect.value = 'warp';
+            BOUNDARY_MODE = 'warp';
             initModeSelect.value = settings.initMode;
             INIT_MODE = settings.initMode;
             
@@ -3657,7 +3657,7 @@ button:hover {
             speciesInput.value = settings.speciesCount;
             speciesValue.textContent = settings.speciesCount;
             
-            handleSpeedChange(settings.speed);
+            handleSpeedChange(1.0);
             
             // VISCOSITY - update UI!
             VISCOSITY = settings.viscosity / 100;
