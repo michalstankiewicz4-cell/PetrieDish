@@ -875,12 +875,13 @@ button:hover {
     appearance: none;
     width: var(--checkbox-size);
     height: var(--checkbox-size);
-    border: var(--checkbox-border) solid currentColor;
+    border: var(--checkbox-border) solid rgba(131, 56, 236, 0.6);
     border-radius: var(--border-radius-small);
     cursor: pointer;
     position: relative;
     transition: all var(--transition-normal);
     flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .mech-attraction input[type="checkbox"]:hover,
@@ -895,6 +896,8 @@ button:hover {
 .mech-intelligent input[type="checkbox"]:hover,
 .mech-life-detection input[type="checkbox"]:hover {
     transform: scale(1.1);
+    border-color: #00F5FF;
+    box-shadow: 0 0 8px rgba(0, 245, 255, 0.4);
 }
 
 .mech-attraction input[type="checkbox"]:checked,
@@ -908,8 +911,9 @@ button:hover {
 .mech-bonds input[type="checkbox"]:checked,
 .mech-intelligent input[type="checkbox"]:checked,
 .mech-life-detection input[type="checkbox"]:checked {
-    background: color-mix(in srgb, currentColor 30%, transparent);
-    box-shadow: var(--shadow-glow) currentColor;
+    background: rgba(131, 56, 236, 0.3);
+    border-color: #8338EC;
+    box-shadow: 0 0 10px rgba(131, 56, 236, 0.5);
 }
 
 .mech-attraction input[type="checkbox"]:checked::after,
@@ -930,7 +934,7 @@ button:hover {
     transform: translate(-50%, -50%);
     font-size: 14px;
     font-weight: bold;
-    color: currentColor;
+    color: #00F5FF;
 }
 
 /* Kolory dla poszczególnych mechanik */
