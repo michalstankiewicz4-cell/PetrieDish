@@ -298,12 +298,19 @@ body {
 }
 
 
-/* QUICK RANDOM BUTTON - top center */
-.quick-random-btn {
+/* TOP BUTTONS ROW - Random + Donate side by side */
+.top-btn-row {
     position: absolute;
     top: 16px;
     left: 50%;
     transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.quick-random-btn {
     padding: 8px 22px;
     background: rgba(16, 16, 30, 0.75);
     border: 1px solid rgba(255, 190, 11, 0.45);
@@ -314,9 +321,8 @@ body {
     font-weight: 700;
     letter-spacing: 2px;
     cursor: pointer;
-    z-index: 10;
     backdrop-filter: blur(10px);
-    transition: all 0.25s ease;
+    transition: opacity 0.6s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
     box-shadow: 0 0 16px rgba(255, 190, 11, 0.1);
 }
 
@@ -324,11 +330,38 @@ body {
     background: rgba(255, 190, 11, 0.15);
     border-color: #FFBE0B;
     box-shadow: 0 0 24px rgba(255, 190, 11, 0.35);
-    transform: translateX(-50%) translateY(-1px);
+    transform: translateY(-1px);
 }
 
 .quick-random-btn:active {
-    transform: translateX(-50%) translateY(1px);
+    transform: translateY(1px);
+}
+
+.donate-btn {
+    padding: 8px 14px;
+    background: rgba(16, 16, 30, 0.75);
+    border: 1px solid rgba(255, 0, 110, 0.55);
+    border-radius: 24px;
+    color: #FF006E;
+    font-size: 16px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: opacity 0.6s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+    box-shadow: 0 0 16px rgba(255, 0, 110, 0.15);
+    line-height: 1;
+}
+
+.donate-btn:hover {
+    background: rgba(255, 0, 110, 0.15);
+    border-color: #FF006E;
+    box-shadow: 0 0 24px rgba(255, 0, 110, 0.4);
+    transform: translateY(-1px);
+}
+
+.donate-btn.active {
+    background: rgba(255, 0, 110, 0.2);
+    border-color: #FF006E;
+    box-shadow: 0 0 30px rgba(255, 0, 110, 0.5);
 }
 
 /* HUD OVERLAY - FPS & Seed, outside canvas so VFX filters don't affect them */
@@ -375,13 +408,13 @@ body {
 /* AUTO-HIDE BUTTONS */
 .hamburger-btn,
 .vfx-btn,
-.quick-random-btn {
+.top-btn-row {
     transition: opacity 0.6s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .ui-hidden .hamburger-btn,
 .ui-hidden .vfx-btn,
-.ui-hidden .quick-random-btn {
+.ui-hidden .top-btn-row {
     opacity: 0;
     pointer-events: none;
 }
@@ -2393,8 +2426,11 @@ button:hover {
             </div>
         </div>
 
-        <!-- Quick random button - top center -->
-        <button id="quickRandomBtn" class="quick-random-btn">🎲 Random Sample</button>
+        <!-- Top center buttons row -->
+        <div class="top-btn-row">
+            <button id="quickRandomBtn" class="quick-random-btn">🎲 Random Sample</button>
+            <button id="donateBtn" class="donate-btn">❤️</button>
+        </div>
         
         <!-- LIFE SCANNER - Floating Panel -->
         <div class="life-scanner-panel" id="lifeScannerPanel">
@@ -4264,6 +4300,23 @@ button:hover {
                 particles.forEach(particle => {
                     particle.update(particles);
                 });
+
+                // DONATE MODE - pull particles toward text target positions
+                if (donateMode && donateTargets.length > 0) {
+                    donateTargets.forEach(({ particle, tx, ty }) => {
+                        if (!particle || particle.dead) return;
+                        const dx = tx - particle.x;
+                        const dy = ty - particle.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist > 1) {
+                            const force = Math.min(dist * 0.012, 1.8);
+                            particle.vx += (dx / dist) * force;
+                            particle.vy += (dy / dist) * force;
+                            particle.vx *= 0.78;
+                            particle.vy *= 0.78;
+                        }
+                    });
+                }
                 
                 // Molecular Bonds - detect and create
                 detectAndCreateBonds(particles);
@@ -4420,6 +4473,8 @@ button:hover {
         function handleReset() {
             const wasRunning = isRunning;
             const currentSpeed = SPEED_MULTIPLIER;
+
+            if (typeof deactivateDonateMode === 'function' && donateMode) deactivateDonateMode();
             
             initParticles();
             ctx.fillStyle = '#0a0a14';
@@ -4711,6 +4766,75 @@ button:hover {
                 }
                 animate();
                 updateButtonState();
+            }
+        });
+
+        // ═══════════════════════════════════════════
+        // DONATE TEXT FORMATION
+        // ═══════════════════════════════════════════
+        let donateMode = false;
+        let donateTargets = [];
+
+        function getTextPoints(text, canvasW, canvasH) {
+            const off = document.createElement('canvas');
+            off.width = canvasW;
+            off.height = canvasH;
+            const octx = off.getContext('2d');
+            const fontSize = Math.min(Math.floor(canvasW / (text.length * 0.62)), Math.floor(canvasH * 0.28));
+            octx.fillStyle = '#ffffff';
+            octx.font = `900 ${fontSize}px Orbitron, Arial Black, sans-serif`;
+            octx.textAlign = 'center';
+            octx.textBaseline = 'middle';
+            octx.fillText(text, canvasW / 2, canvasH / 2);
+            const imageData = octx.getImageData(0, 0, canvasW, canvasH).data;
+            const points = [];
+            const step = 6;
+            for (let y = 0; y < canvasH; y += step) {
+                for (let x = 0; x < canvasW; x += step) {
+                    const idx = (y * canvasW + x) * 4;
+                    if (imageData[idx + 3] > 128) points.push({ x, y });
+                }
+            }
+            return points;
+        }
+
+        function activateDonateMode() {
+            donateMode = true;
+            document.getElementById('donateBtn').classList.add('active');
+            const points = getTextPoints('DONATE PLEASE', WIDTH, HEIGHT);
+            if (points.length === 0) return;
+            for (let i = points.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [points[i], points[j]] = [points[j], points[i]];
+            }
+            donateTargets = [];
+            const count = Math.min(particles.length, points.length);
+            for (let i = 0; i < count; i++) {
+                donateTargets.push({ particle: particles[i], tx: points[i].x, ty: points[i].y });
+            }
+        }
+
+        function deactivateDonateMode() {
+            donateMode = false;
+            donateTargets = [];
+            document.getElementById('donateBtn').classList.remove('active');
+        }
+
+        document.getElementById('donateBtn').addEventListener('click', () => {
+            if (donateMode) {
+                deactivateDonateMode();
+            } else {
+                if (!isRunning) {
+                    isRunning = true;
+                    if (SPEED_MULTIPLIER === 0) {
+                        SPEED_MULTIPLIER = SPEED_BEFORE_PAUSE > 0 ? SPEED_BEFORE_PAUSE : 1.0;
+                        speedInput.value = Math.round(SPEED_MULTIPLIER * 100);
+                        speedValue.textContent = Math.round(SPEED_MULTIPLIER * 100) + '%';
+                    }
+                    animate();
+                    updateButtonState();
+                }
+                activateDonateMode();
             }
         });
         loadSeedBtn.addEventListener('click', loadSeed);
