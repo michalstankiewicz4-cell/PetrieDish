@@ -290,6 +290,33 @@ body {
     box-shadow: none;
 }
 
+/* PRAWY PANEL - suwaki identyczne jak w lewym menu */
+#rightPanel input[type="range"] {
+    background: rgba(220, 240, 255, 0.4);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+#rightPanel input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+}
+
+#rightPanel input[type="range"]::-moz-range-thumb {
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+}
+
 
 .panel-header {
     display: flex;
@@ -2458,24 +2485,41 @@ button:hover {
                 #rightPanel .panel-content input[type="range"] {
                     width: 120px !important;
                     height: 5px !important;
+                    background: rgba(220, 240, 255, 0.4) !important;
+                    border-radius: 3px !important;
+                    outline: none !important;
+                    -webkit-appearance: none !important;
+                    appearance: none !important;
                 }
 
                 #leftPanel .panel-content .option-row input[type="range"],
                 #rightPanel .panel-content .option-row input[type="range"] {
-                    width: 96px !important;
-                    height: 3px !important;
+                    width: 120px !important;
+                    height: 5px !important;
                 }
 
                 #leftPanel .panel-content input[type="range"]::-webkit-slider-thumb,
                 #rightPanel .panel-content input[type="range"]::-webkit-slider-thumb {
                     width: 12px !important;
                     height: 12px !important;
+                    -webkit-appearance: none !important;
+                    appearance: none !important;
+                    background: linear-gradient(135deg, #FF006E, #8338EC) !important;
+                    border: 2px solid #00F5FF !important;
+                    border-radius: 50% !important;
+                    cursor: pointer !important;
+                    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5) !important;
                 }
 
                 #leftPanel .panel-content input[type="range"]::-moz-range-thumb,
                 #rightPanel .panel-content input[type="range"]::-moz-range-thumb {
                     width: 12px !important;
                     height: 12px !important;
+                    background: linear-gradient(135deg, #FF006E, #8338EC) !important;
+                    border: 2px solid #00F5FF !important;
+                    border-radius: 50% !important;
+                    cursor: pointer !important;
+                    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5) !important;
                 }
 
                 #leftPanel .panel-content select,
