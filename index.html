@@ -251,10 +251,13 @@ body {
 #rightPanel .legend-item,
 #rightPanel .legend-item .text,
 #rightPanel .option-row label,
-#rightPanel .option-value,
-#rightPanel .future-value,
 #rightPanel .option-hint {
     color: #dcefff;
+}
+
+#rightPanel .option-value,
+#rightPanel .future-value {
+    color: #FFBE0B;
 }
 
 #rightPanel label {
@@ -1451,33 +1454,22 @@ button:hover {
 }
 
 /* ============================================
-   LIFE SCANNER - Floating Panel (Futuristic)
-   ============================================ */
+    LIFE SCANNER - Floating Panel (spojny z prawym menu)
+    ============================================ */
 .life-scanner-panel {
     position: absolute;
     top: 12px;
     right: 12px;
     width: 170px; /* Reduced from 200px */
-    background: linear-gradient(135deg, rgba(0, 15, 30, 0.92), rgba(0, 30, 50, 0.92));
-    border: 1.5px solid rgba(0, 255, 136, 0.4);
+    background: rgba(16, 16, 30, 0.95);
+    border: 1px solid rgba(220, 240, 255, 0.35);
     border-radius: 6px;
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.2), 
-                inset 0 0 10px rgba(0, 255, 136, 0.05);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
-    font-family: 'Orbitron', monospace;
+    font-family: 'Rajdhani', sans-serif;
     z-index: 1000;
-    animation: scannerPulse 3s ease-in-out infinite;
-}
-
-@keyframes scannerPulse {
-    0%, 100% {
-        box-shadow: 0 0 30px rgba(0, 255, 136, 0.3), 
-                    inset 0 0 20px rgba(0, 255, 136, 0.05);
-    }
-    50% {
-        box-shadow: 0 0 40px rgba(0, 255, 136, 0.5), 
-                    inset 0 0 30px rgba(0, 255, 136, 0.1);
-    }
+    animation: none;
+    transition: width 0.28s ease, height 0.28s ease;
 }
 
 .scanner-header {
@@ -1485,41 +1477,36 @@ button:hover {
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px; /* Reduced from 10px 15px */
-    border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+    border-bottom: 1px solid rgba(220, 240, 255, 0.35);
     cursor: pointer;
     transition: background 0.3s ease;
 }
 
 .scanner-header:hover {
-    background: rgba(0, 255, 136, 0.05);
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .scanner-title {
     display: flex;
     align-items: center;
     gap: 6px; /* Reduced from 8px */
-    color: #00FF88;
-    font-size: 10px; /* Reduced from 11px */
+    color: #dcefff;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 1px; /* Reduced from 1.5px */
-    text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+    letter-spacing: 0.3px;
+    text-shadow: none;
 }
 
 .scanner-icon {
     font-size: 12px; /* Reduced from 14px */
-    animation: rotate 4s linear infinite;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    animation: none;
 }
 
 .scanner-toggle {
     width: 36px; /* Reduced from 40px */
     height: 20px; /* Reduced from 22px */
-    background: rgba(0, 0, 0, 0.4);
-    border: 1.5px solid rgba(0, 255, 136, 0.3); /* Reduced from 2px */
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
     border-radius: 10px;
     position: relative;
     cursor: pointer;
@@ -1527,25 +1514,25 @@ button:hover {
 }
 
 .scanner-toggle:hover {
-    border-color: rgba(0, 255, 136, 0.6);
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+    border-color: rgba(220, 240, 255, 0.7);
+    box-shadow: none;
 }
 
 .scanner-toggle.active {
-    background: rgba(0, 255, 136, 0.2);
-    border-color: #00FF88;
+    background: rgba(58, 134, 255, 0.22);
+    border-color: #00F5FF;
 }
 
 .toggle-dot {
     width: 12px; /* Reduced from 14px */
     height: 12px; /* Reduced from 14px */
-    background: #00FF88;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
     border-radius: 50%;
     position: absolute;
     top: 2px;
     left: 2px;
     transition: all 0.3s ease;
-    box-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+    box-shadow: 0 0 8px rgba(0, 245, 255, 0.45);
 }
 
 .scanner-toggle.active .toggle-dot {
@@ -1554,7 +1541,7 @@ button:hover {
 
 .scanner-content {
     padding: 10px; /* Reduced from 12px */
-    max-height: 300px; /* Reduced from 350px */
+    max-height: calc(100vh - 120px);
     overflow-y: auto;
 }
 
@@ -1568,12 +1555,12 @@ button:hover {
 }
 
 .scanner-content::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 136, 0.3);
+    background: rgba(0, 245, 255, 0.3);
     border-radius: 3px;
 }
 
 .scanner-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 255, 136, 0.5);
+    background: rgba(0, 245, 255, 0.5);
 }
 
 .scanner-status {
@@ -1581,29 +1568,29 @@ button:hover {
     justify-content: space-between;
     align-items: center;
     padding: 12px 15px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(0, 255, 136, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
     border-radius: 6px;
     margin-bottom: 15px;
 }
 
 .status-label {
-    color: #8892b0;
+    color: #dcefff;
     font-size: 11px;
     letter-spacing: 1px;
 }
 
 .status-value {
-    color: #00FF88;
+    color: #dcefff;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 1px;
-    text-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+    text-shadow: none;
 }
 
 .scanner-readout {
-    background: linear-gradient(135deg, rgba(0, 255, 136, 0.05), rgba(0, 255, 136, 0.02));
-    border: 1px solid rgba(0, 255, 136, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
     border-radius: 6px;
     padding: 10px; /* Reduced from 15px */
     margin-bottom: 12px; /* Reduced from 20px */
@@ -1616,20 +1603,20 @@ button:hover {
 }
 
 .readout-label {
-    color: #8892b0;
+    color: #dcefff;
     font-size: 10px;
     letter-spacing: 1px;
 }
 
 .readout-value {
-    color: #00FF88;
+    color: #dcefff;
     font-size: 18px; /* Reduced from 22px */
     font-weight: 900;
-    text-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+    text-shadow: none;
 }
 
 .readout-unit {
-    color: #00FF88;
+    color: #dcefff;
     font-size: 11px;
     letter-spacing: 1px;
     opacity: 0.7;
@@ -1648,9 +1635,9 @@ button:hover {
 }
 
 .control-label {
-    color: #8892b0;
+    color: #dcefff;
     font-size: 9px; /* Reduced from 10px */
-    letter-spacing: 1px; /* Reduced from 1.5px */
+    letter-spacing: 0.3px;
     font-weight: 600;
 }
 
@@ -1668,7 +1655,7 @@ button:hover {
 }
 
 .range-separator {
-    color: #00FF88;
+    color: #dcefff;
     font-size: 14px;
     font-weight: 700;
     opacity: 0.6;
@@ -1679,61 +1666,61 @@ button:hover {
 
 .range-group .scanner-slider {
     flex: 1;
-    min-width: 80px;
+    min-width: 120px;
 }
 
 .scanner-slider {
     flex: 1;
-    height: 6px;
-    background: rgba(0, 0, 0, 0.4);
+    height: 5px;
+    background: rgba(220, 240, 255, 0.4);
     border-radius: 3px;
     outline: none;
     -webkit-appearance: none;
     appearance: none;
-    border: 1px solid rgba(0, 255, 136, 0.2);
+    border: none;
 }
 
 .scanner-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 16px;
-    height: 16px;
-    background: #00FF88;
-    border: 2px solid rgba(0, 255, 136, 0.5);
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
     transition: all 0.2s ease;
 }
 
 .scanner-slider::-webkit-slider-thumb:hover {
     transform: scale(1.2);
-    box-shadow: 0 0 20px rgba(0, 255, 136, 1);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.7);
 }
 
 .scanner-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: #00FF88;
-    border: 2px solid rgba(0, 255, 136, 0.5);
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
     transition: all 0.2s ease;
 }
 
 .scanner-slider::-moz-range-thumb:hover {
     transform: scale(1.2);
-    box-shadow: 0 0 20px rgba(0, 255, 136, 1);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.7);
 }
 
 .control-value {
     min-width: 30px; /* Reduced from 35px */
-    color: #00FF88;
+    color: #FFBE0B;
     font-size: 11px; /* Reduced from 13px */
     font-weight: 700;
     text-align: right;
-    text-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+    text-shadow: none;
 }
 
 /* MENU COMPACT MODE - wymuszone (przebija starsze style) */
@@ -2676,6 +2663,7 @@ button:hover {
         
         const scannerToggle = document.getElementById('scannerToggle');
         const scannerContent = document.getElementById('scannerContent');
+        const scannerHeader = document.querySelector('.scanner-header');
         // Life Scanner - RANGE SLIDERS (dual)
         const lifeMinParticlesFrom = document.getElementById('lifeMinParticlesFrom');
         const lifeMinParticlesTo = document.getElementById('lifeMinParticlesTo');
@@ -4547,6 +4535,9 @@ button:hover {
         if (lifeScannerDisplayCheckbox && lifeScannerPanel) {
             lifeScannerDisplayCheckbox.addEventListener('change', (e) => {
                 lifeScannerPanel.style.display = e.target.checked ? 'block' : 'none';
+                if (e.target.checked && enableLifeDetection) {
+                    requestAnimationFrame(fitLifeScannerToContent);
+                }
             });
         }
         
@@ -4572,6 +4563,29 @@ button:hover {
         
         // Life Detection event listeners
         // Life Scanner - Toggle panel (click header or toggle button)
+        const fitLifeScannerToContent = () => {
+            if (!lifeScannerPanel || !scannerContent) return;
+
+            if (!enableLifeDetection) {
+                lifeScannerPanel.style.width = '170px';
+                lifeScannerPanel.style.height = 'auto';
+                scannerContent.style.maxHeight = 'calc(100vh - 120px)';
+                return;
+            }
+
+            const maxPanelWidth = Math.max(260, window.innerWidth - 24);
+            const targetWidth = Math.min(Math.max(scannerContent.scrollWidth + 24, 290), maxPanelWidth);
+            lifeScannerPanel.style.width = `${targetWidth}px`;
+
+            const headerHeight = scannerHeader ? scannerHeader.offsetHeight : 0;
+            const maxPanelHeight = Math.max(180, window.innerHeight - 24);
+            const targetPanelHeight = Math.min(headerHeight + scannerContent.scrollHeight + 2, maxPanelHeight);
+            lifeScannerPanel.style.height = `${targetPanelHeight}px`;
+
+            const contentMaxHeight = Math.max(80, targetPanelHeight - headerHeight - 2);
+            scannerContent.style.maxHeight = `${contentMaxHeight}px`;
+        };
+
         const toggleScanner = () => {
             enableLifeDetection = !enableLifeDetection;
             
@@ -4580,6 +4594,12 @@ button:hover {
             
             // Show/hide content
             scannerContent.style.display = enableLifeDetection ? 'block' : 'none';
+
+            if (enableLifeDetection) {
+                requestAnimationFrame(fitLifeScannerToContent);
+            } else {
+                fitLifeScannerToContent();
+            }
             
             console.log('🧬 Life Detection:', enableLifeDetection ? 'WŁĄCZONE' : 'WYŁĄCZONE');
             
@@ -4595,7 +4615,15 @@ button:hover {
         });
         
         // Also allow clicking the header
-        document.querySelector('.scanner-header').addEventListener('click', toggleScanner);
+        if (scannerHeader) {
+            scannerHeader.addEventListener('click', toggleScanner);
+        }
+
+        window.addEventListener('resize', () => {
+            if (enableLifeDetection) {
+                fitLifeScannerToContent();
+            }
+        });
         
         // Life Scanner - RANGE SLIDERS event listeners
         lifeMinParticlesFrom.addEventListener('input', (e) => {
