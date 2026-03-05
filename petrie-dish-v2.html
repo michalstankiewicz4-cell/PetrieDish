@@ -3283,13 +3283,13 @@ button:hover {
             let yPos = 20;
             
             // Rysuj numer próbki/seed
-            if (enableSeedDisplay && CURRENT_SEED !== null) {
+            if (enableSeedDisplay) {
                 ctx.fillStyle = '#FFBE0B';
                 ctx.font = 'bold 14px Orbitron, Arial, sans-serif';
                 ctx.shadowBlur = 2.5;
                 ctx.shadowColor = '#FFBE0B';
                 
-                const seedText = `Seed: ${CURRENT_SEED}`;
+                const seedText = CURRENT_SEED !== null ? `Seed: ${CURRENT_SEED}` : 'Seed: Domyślne';
                 ctx.fillText(seedText, 10, yPos);
                 ctx.shadowBlur = 0;
                 yPos += 18;
