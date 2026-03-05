@@ -4513,6 +4513,8 @@ button:hover {
             const currentSpeed = SPEED_MULTIPLIER;
             const useDefaults = Math.random() < 0.15;
 
+            if (typeof deactivateDonateMode === 'function' && donateMode) deactivateDonateMode();
+
             if (useDefaults) {
                 COLORS = JSON.parse(JSON.stringify(DEFAULT_COLORS));
                 INTERACTION_MATRIX = JSON.parse(JSON.stringify(DEFAULT_INTERACTION_MATRIX));
