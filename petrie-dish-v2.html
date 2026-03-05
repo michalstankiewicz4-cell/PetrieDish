@@ -236,7 +236,6 @@ body {
     background: rgba(131, 56, 236, 0.05);
     border-left: 2px solid rgba(131, 56, 236, 0.3);
     border-radius: 4px;
-    display: block !important;
 }
 
 .right-panel .mech-options input[type="range"] {
@@ -2026,7 +2025,7 @@ button:hover {
                 <option value="19595201">Hungry But Too Slow</option>
             </select>
             <input type="text" id="seedInput" placeholder="Wpisz numer próbki" style="display: none;">
-            <button id="loadSeedBtn" class="btn-small load-seed-btn" style="display: none;">Załaduj Próbkę</button>
+            <button id="loadSeedBtn" class="btn-small load-seed-btn" style="display: none;">📥 Załaduj Próbkę</button>
             <span class="current-seed">Aktualna: <span id="currentSeedDisplay">-</span></span>
         </div>
         
@@ -2067,7 +2066,7 @@ button:hover {
             <span class="species-value" id="speciesValue">6</span>
         </div>
         
-        <button id="applySpeciesBtn" class="btn-small apply-size-btn">Zastosuj</button>
+        <button id="applySpeciesBtn" class="btn-small apply-size-btn">✅ Zastosuj</button>
         
         <div class="row checkbox-row" style="margin-top: 20px; border-top: 1px solid rgba(131, 56, 236, 0.2); padding-top: 15px;">
             <label>
@@ -2169,9 +2168,9 @@ button:hover {
     </div>
 
     <div class="controls">
-        <button id="startStopBtn" class="btn-small apply-size-btn">Start</button>
-        <button id="resetBtn" class="btn-small apply-size-btn">Reset</button>
-        <button id="randomizeBtn" class="btn-small apply-size-btn">Losowa próbka</button>
+        <button id="startStopBtn" class="btn-small apply-size-btn">▶️ Start</button>
+        <button id="resetBtn" class="btn-small apply-size-btn">🔄 Reset</button>
+        <button id="randomizeBtn" class="btn-small apply-size-btn">🎲 Losowa próbka</button>
     </div>
 
 <div class="legend">
@@ -2195,7 +2194,7 @@ button:hover {
                 </div>
                 <div class="option-row">
                     <button id="editMatrixBtn" class="edit-matrix-btn">📊 Edit Interaction Matrix</button>
-                    <button id="viewPropertiesBtn" class="edit-matrix-btn" style="margin-left: 10px;">🎨 View Color Properties</button>
+                    <button id="viewPropertiesBtn" class="edit-matrix-btn">🎨 View Color Properties</button>
                 </div>
                 
                 <!-- Macierz interakcji (ukryta domyślnie) -->
@@ -2972,7 +2971,7 @@ button:hover {
         let spatialGrid = null;
 
         function updateButtonState() {
-            startStopBtn.textContent = isRunning ? 'Stop' : 'Start';
+            startStopBtn.textContent = isRunning ? '⏹️ Stop' : '▶️ Start';
             
             if (isRunning) {
                 startStopBtn.classList.add('running');
@@ -4369,7 +4368,7 @@ button:hover {
         
         attractionCheckbox.addEventListener('change', (e) => {
             enableAttraction = e.target.checked;
-            // Blokuj/odblokowuj suwaki w opcjach
+            attractionOptions.style.display = e.target.checked ? 'block' : 'none';
             const attractionInputs = attractionOptions.querySelectorAll('input[type="range"]');
             attractionInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4381,6 +4380,7 @@ button:hover {
         
         chargesCheckbox.addEventListener('change', (e) => {
             enableCharges = e.target.checked;
+            chargesOptions.style.display = e.target.checked ? 'block' : 'none';
             const chargesInputs = chargesOptions.querySelectorAll('input[type="range"]');
             chargesInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4392,6 +4392,7 @@ button:hover {
         
         massCheckbox.addEventListener('change', (e) => {
             enableMass = e.target.checked;
+            massOptions.style.display = e.target.checked ? 'block' : 'none';
             const massInputs = massOptions.querySelectorAll('input[type="range"]');
             massInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4403,6 +4404,7 @@ button:hover {
         
         mixingCheckbox.addEventListener('change', (e) => {
             enableMixing = e.target.checked;
+            mixingOptions.style.display = e.target.checked ? 'block' : 'none';
             const mixingInputs = mixingOptions.querySelectorAll('input[type="range"]');
             mixingInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4414,6 +4416,7 @@ button:hover {
         
         vortexCheckbox.addEventListener('change', (e) => {
             enableVortex = e.target.checked;
+            vortexOptions.style.display = e.target.checked ? 'block' : 'none';
             const vortexInputs = vortexOptions.querySelectorAll('input[type="range"]');
             vortexInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4425,6 +4428,7 @@ button:hover {
         
         swarmCheckbox.addEventListener('change', (e) => {
             enableSwarm = e.target.checked;
+            swarmOptions.style.display = e.target.checked ? 'block' : 'none';
             const swarmInputs = swarmOptions.querySelectorAll('input[type="range"]');
             swarmInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4441,6 +4445,7 @@ button:hover {
         
         massTransferCheckbox.addEventListener('change', (e) => {
             enableMassTransfer = e.target.checked;
+            massTransferOptions.style.display = e.target.checked ? 'block' : 'none';
             const massTransferInputs = massTransferOptions.querySelectorAll('input[type="range"]');
             massTransferInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4452,6 +4457,7 @@ button:hover {
         
         massHierarchyCheckbox.addEventListener('change', (e) => {
             enableMassHierarchy = e.target.checked;
+            massHierarchyOptions.style.display = e.target.checked ? 'block' : 'none';
             const hierarchyInputs = massHierarchyOptions.querySelectorAll('input[type="range"]');
             hierarchyInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4464,6 +4470,7 @@ button:hover {
         // Viscosity checkbox - toggle opcji
         viscosityCheckbox.addEventListener('change', (e) => {
             enableViscosity = e.target.checked;
+            viscosityOptions.style.display = e.target.checked ? 'block' : 'none';
             const viscosityInputs = viscosityOptions.querySelectorAll('input[type="range"]');
             viscosityInputs.forEach(input => input.disabled = !e.target.checked);
         });
@@ -4476,6 +4483,7 @@ button:hover {
         // Intelligent Life checkbox - toggle opcji
         intelligentCheckbox.addEventListener('change', (e) => {
             const isEnabled = e.target.checked;
+            intelligentOptions.style.display = isEnabled ? 'block' : 'none';
             const intelligentInputs = intelligentOptions.querySelectorAll('input[type="range"]');
             intelligentInputs.forEach(input => input.disabled = !isEnabled);
             
@@ -4501,6 +4509,7 @@ button:hover {
         // Molecular Bonds event listeners
         bondsCheckbox.addEventListener('change', (e) => {
             enableBonds = e.target.checked;
+            bondsOptions.style.display = e.target.checked ? 'block' : 'none';
             const bondsInputs = bondsOptions.querySelectorAll('input[type="range"]');
             bondsInputs.forEach(input => input.disabled = !e.target.checked);
             
