@@ -2381,6 +2381,58 @@ button:hover {
         document.addEventListener('DOMContentLoaded', () => {
             const leftPanelContent = document.getElementById('leftPanelContent');
             const rightPanelContent = document.getElementById('rightPanelContent');
+
+            // Wymuś kompaktowe rozmiary kontrolek (bez zmiany fontów)
+            const forcedStyle = document.createElement('style');
+            forcedStyle.id = 'forcedCompactControlSizes';
+            forcedStyle.textContent = `
+                #leftPanel .panel-content input[type="checkbox"],
+                #rightPanel .panel-content input[type="checkbox"] {
+                    width: 14px !important;
+                    height: 14px !important;
+                }
+
+                #leftPanel .panel-content .panel-lock-toggle input[type="checkbox"],
+                #rightPanel .panel-content .panel-lock-toggle input[type="checkbox"] {
+                    width: 13px !important;
+                    height: 13px !important;
+                }
+
+                #leftPanel .panel-content input[type="range"],
+                #rightPanel .panel-content input[type="range"] {
+                    width: 120px !important;
+                    height: 5px !important;
+                }
+
+                #leftPanel .panel-content .option-row input[type="range"],
+                #rightPanel .panel-content .option-row input[type="range"] {
+                    width: 96px !important;
+                    height: 3px !important;
+                }
+
+                #leftPanel .panel-content input[type="range"]::-webkit-slider-thumb,
+                #rightPanel .panel-content input[type="range"]::-webkit-slider-thumb,
+                #leftPanel .panel-content input[type="range"]::-moz-range-thumb,
+                #rightPanel .panel-content input[type="range"]::-moz-range-thumb {
+                    width: 14px !important;
+                    height: 14px !important;
+                }
+
+                #leftPanel .panel-content select,
+                #rightPanel .panel-content select {
+                    width: 148px !important;
+                    min-height: 15px !important;
+                }
+
+                #leftPanel .panel-content #widthInput,
+                #leftPanel .panel-content #heightInput,
+                #rightPanel .panel-content #widthInput,
+                #rightPanel .panel-content #heightInput {
+                    width: 56px !important;
+                    min-height: 15px !important;
+                }
+            `;
+            document.head.appendChild(forcedStyle);
             
             // Przenieś seed-controls, size-controls, i controls do lewego panelu
             const seedControls = document.querySelector('.seed-controls');
