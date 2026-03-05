@@ -1829,6 +1829,11 @@ button:hover {
     height: 14px !important;
 }
 
+#leftPanel input[type="checkbox"]:checked::after,
+#rightPanel input[type="checkbox"]:checked::after {
+    font-size: 10px !important;
+}
+
 #leftPanel .panel-lock-toggle input[type="checkbox"],
 #rightPanel .panel-lock-toggle input[type="checkbox"] {
     width: 13px !important;
@@ -1842,11 +1847,15 @@ button:hover {
 }
 
 #leftPanel input[type="range"]::-webkit-slider-thumb,
-#rightPanel input[type="range"]::-webkit-slider-thumb,
+#rightPanel input[type="range"]::-webkit-slider-thumb {
+    width: 12px !important;
+    height: 12px !important;
+}
+
 #leftPanel input[type="range"]::-moz-range-thumb,
 #rightPanel input[type="range"]::-moz-range-thumb {
-    width: 14px !important;
-    height: 14px !important;
+    width: 12px !important;
+    height: 12px !important;
 }
 
 #leftPanel .option-row input[type="range"],
@@ -2392,6 +2401,11 @@ button:hover {
                     height: 14px !important;
                 }
 
+                #leftPanel .panel-content input[type="checkbox"]:checked::after,
+                #rightPanel .panel-content input[type="checkbox"]:checked::after {
+                    font-size: 10px !important;
+                }
+
                 #leftPanel .panel-content .panel-lock-toggle input[type="checkbox"],
                 #rightPanel .panel-content .panel-lock-toggle input[type="checkbox"] {
                     width: 13px !important;
@@ -2412,14 +2426,14 @@ button:hover {
 
                 #leftPanel .panel-content input[type="range"]::-webkit-slider-thumb,
                 #rightPanel .panel-content input[type="range"]::-webkit-slider-thumb {
-                    width: 8px !important;
-                    height: 8px !important;
+                    width: 12px !important;
+                    height: 12px !important;
                 }
 
                 #leftPanel .panel-content input[type="range"]::-moz-range-thumb,
                 #rightPanel .panel-content input[type="range"]::-moz-range-thumb {
-                    width: 8px !important;
-                    height: 8px !important;
+                    width: 12px !important;
+                    height: 12px !important;
                 }
 
                 #leftPanel .panel-content select,
