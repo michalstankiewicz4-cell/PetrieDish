@@ -207,16 +207,38 @@ body {
     border-left: none;
 }
 
-.right-panel {
-    right: 0;
-    transform: translateX(100%);
-    border-left: 2px solid rgba(131, 56, 236, 0.5);
-    border-right: none;
+.right-panel .legend-item label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    flex: 1;
 }
 
-.right-panel.open {
-    transform: translateX(0);
+.right-panel .color-dot {
+    display: none;
 }
+
+/* MECH OPTIONS - zawsze widoczne w prawym panelu */
+.right-panel .mech-options {
+    margin-top: 10px;
+    margin-left: 28px;
+    padding: 10px;
+    background: rgba(131, 56, 236, 0.05);
+    border-left: 2px solid rgba(131, 56, 236, 0.3);
+    border-radius: 4px;
+    display: block !important;
+}
+
+.right-panel .mech-options input[type="range"] {
+    width: 150px;
+}
+
+.right-panel .mech-options input[type="range"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 .panel-header {
     display: flex;
@@ -1844,13 +1866,11 @@ button:hover {
     </div>
 
 <div class="legend">
-    <h3>Mechanika</h3>
     <div class="legend-content">
 
         <div class="legend-item mech-attraction">
             <label>
                 <input type="checkbox" id="attractionCheckbox" checked>
-                <span class="color-dot" style="color: #FF006E;">●</span>
                 <span class="text">Przyciąganie/odpychanie kolorów</span>
                 <span class="tooltip-icon">?
                     <span class="tooltip-text">Każda para kolorów ma siłę interakcji z macierzy. Wartości dodatnie przyciągają, ujemne odpychają. Edytuj macierz 6x6 klikając przycisk poniżej!</span>
@@ -1990,7 +2010,6 @@ button:hover {
         <div class="legend-item mech-vortex">
             <label>
                 <input type="checkbox" id="vortexCheckbox">
-                <span class="color-dot" style="color: #FB5607;">●</span>
                 <span class="text">Vortex - siła rotacyjna</span>
                 <span class="tooltip-icon">?
                     <span class="tooltip-text">Każdy kolor ma vorticness (0.0-1.0) tworzący efekty rotacyjne. Cząstki wirują wokół siebie tworząc spirale i wiry. Wyższe vorticness = silniejsze wiry!</span>
@@ -2010,7 +2029,6 @@ button:hover {
         <div class="legend-item mech-swarm">
             <label>
                 <input type="checkbox" id="swarmCheckbox">
-                <span class="color-dot" style="color: #FF006E;">●</span>
                 <span class="text">Swarm - grupowanie tego samego koloru</span>
                 <span class="tooltip-icon">?
                     <span class="tooltip-text">Cząstki tego samego koloru przyciągają się do centrum masy swojej grupy. Tworzy zachowania stadne, kolonie i klastry. Range określa zasięg grupowania!</span>
@@ -2035,7 +2053,6 @@ button:hover {
         <div class="legend-item mech-viscosity">
             <label>
                 <input type="checkbox" id="viscosityCheckbox" checked>
-                <span class="color-dot" style="color: #3A86FF;">●</span>
                 <span class="text">💧 Viscosity - lepkość przestrzeni</span>
                 <span class="tooltip-icon">?
                     <span class="tooltip-text">Określa opór przestrzeni. 0.90 = energetyczne ruchy, długie trajektorie. 0.98 = płynne, realistyczne. 0.99 = lepkie, wolne, "underwater". Wyłączone = cząstki bez oporu!</span>
@@ -2058,7 +2075,6 @@ button:hover {
         <div class="legend-item mech-intelligent">
             <label>
                 <input type="checkbox" id="intelligentCheckbox">
-                <span class="color-dot" style="color: #00F5FF;">●</span>
                 <span class="text">🧠 Intelligent Life - cząstki widzą przyszłość</span>
                 <span class="tooltip-icon">?
                     <span class="tooltip-text">Time-Loop Particles! Cząstki symulują N kroków w przyszłość i unikają samych siebie. Prawy przycisk myszy dodaje inteligentną cząstkę. Future Frames = jak daleko w przyszłość!</span>
@@ -3966,7 +3982,9 @@ button:hover {
         
         attractionCheckbox.addEventListener('change', (e) => {
             enableAttraction = e.target.checked;
-            attractionOptions.style.display = e.target.checked ? 'block' : 'none';
+            // Blokuj/odblokowuj suwaki w opcjach
+            const attractionInputs = attractionOptions.querySelectorAll('input[type="range"]');
+            attractionInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         attractionStrength.addEventListener('input', (e) => {
@@ -3976,7 +3994,8 @@ button:hover {
         
         chargesCheckbox.addEventListener('change', (e) => {
             enableCharges = e.target.checked;
-            chargesOptions.style.display = e.target.checked ? 'block' : 'none';
+            const chargesInputs = chargesOptions.querySelectorAll('input[type="range"]');
+            chargesInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         chargeForce.addEventListener('input', (e) => {
@@ -3986,7 +4005,8 @@ button:hover {
         
         massCheckbox.addEventListener('change', (e) => {
             enableMass = e.target.checked;
-            massOptions.style.display = e.target.checked ? 'block' : 'none';
+            const massInputs = massOptions.querySelectorAll('input[type="range"]');
+            massInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         massEffect.addEventListener('input', (e) => {
@@ -3996,7 +4016,8 @@ button:hover {
         
         mixingCheckbox.addEventListener('change', (e) => {
             enableMixing = e.target.checked;
-            mixingOptions.style.display = e.target.checked ? 'block' : 'none';
+            const mixingInputs = mixingOptions.querySelectorAll('input[type="range"]');
+            mixingInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         blendRateInput.addEventListener('input', (e) => {
@@ -4006,7 +4027,8 @@ button:hover {
         
         vortexCheckbox.addEventListener('change', (e) => {
             enableVortex = e.target.checked;
-            vortexOptions.style.display = e.target.checked ? 'block' : 'none';
+            const vortexInputs = vortexOptions.querySelectorAll('input[type="range"]');
+            vortexInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         vorticnessSlider.addEventListener('input', (e) => {
@@ -4016,7 +4038,8 @@ button:hover {
         
         swarmCheckbox.addEventListener('change', (e) => {
             enableSwarm = e.target.checked;
-            swarmOptions.style.display = e.target.checked ? 'block' : 'none';
+            const swarmInputs = swarmOptions.querySelectorAll('input[type="range"]');
+            swarmInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         swarmStrengthInput.addEventListener('input', (e) => {
@@ -4031,7 +4054,8 @@ button:hover {
         
         massTransferCheckbox.addEventListener('change', (e) => {
             enableMassTransfer = e.target.checked;
-            massTransferOptions.style.display = e.target.checked ? 'block' : 'none';
+            const massTransferInputs = massTransferOptions.querySelectorAll('input[type="range"]');
+            massTransferInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         transferRateInput.addEventListener('input', (e) => {
@@ -4041,7 +4065,8 @@ button:hover {
         
         massHierarchyCheckbox.addEventListener('change', (e) => {
             enableMassHierarchy = e.target.checked;
-            massHierarchyOptions.style.display = e.target.checked ? 'block' : 'none';
+            const hierarchyInputs = massHierarchyOptions.querySelectorAll('input[type="range"]');
+            hierarchyInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         hierarchyStrengthInput.addEventListener('input', (e) => {
@@ -4052,7 +4077,8 @@ button:hover {
         // Viscosity checkbox - toggle opcji
         viscosityCheckbox.addEventListener('change', (e) => {
             enableViscosity = e.target.checked;
-            viscosityOptions.style.display = e.target.checked ? 'block' : 'none';
+            const viscosityInputs = viscosityOptions.querySelectorAll('input[type="range"]');
+            viscosityInputs.forEach(input => input.disabled = !e.target.checked);
         });
         
         viscosityInput.addEventListener('input', (e) => {
@@ -4063,7 +4089,8 @@ button:hover {
         // Intelligent Life checkbox - toggle opcji
         intelligentCheckbox.addEventListener('change', (e) => {
             const isEnabled = e.target.checked;
-            intelligentOptions.style.display = isEnabled ? 'block' : 'none';
+            const intelligentInputs = intelligentOptions.querySelectorAll('input[type="range"]');
+            intelligentInputs.forEach(input => input.disabled = !isEnabled);
             
             // Jeśli wyłączamy, usuń wszystkie inteligentne cząstki
             if (!isEnabled) {
@@ -4087,7 +4114,8 @@ button:hover {
         // Molecular Bonds event listeners
         bondsCheckbox.addEventListener('change', (e) => {
             enableBonds = e.target.checked;
-            bondsOptions.style.display = enableBonds ? 'block' : 'none';
+            const bondsInputs = bondsOptions.querySelectorAll('input[type="range"]');
+            bondsInputs.forEach(input => input.disabled = !e.target.checked);
             
             // Jeśli wyłączamy, reset bonds
             if (!enableBonds) {
