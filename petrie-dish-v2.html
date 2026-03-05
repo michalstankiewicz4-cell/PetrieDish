@@ -1822,6 +1822,53 @@ button:hover {
     padding: 6px 8px !important;
 }
 
+/* Dodatkowe -20% tylko dla rozmiarów kontrolek (bez zmiany tekstu) */
+#leftPanel input[type="checkbox"],
+#rightPanel input[type="checkbox"] {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+#leftPanel .panel-lock-toggle input[type="checkbox"],
+#rightPanel .panel-lock-toggle input[type="checkbox"] {
+    width: 13px !important;
+    height: 13px !important;
+}
+
+#leftPanel input[type="range"],
+#rightPanel input[type="range"] {
+    width: 120px !important;
+    height: 5px !important;
+}
+
+#leftPanel input[type="range"]::-webkit-slider-thumb,
+#rightPanel input[type="range"]::-webkit-slider-thumb,
+#leftPanel input[type="range"]::-moz-range-thumb,
+#rightPanel input[type="range"]::-moz-range-thumb {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+#leftPanel .option-row input[type="range"],
+#rightPanel .option-row input[type="range"] {
+    width: 96px !important;
+    height: 3px !important;
+}
+
+#leftPanel select,
+#rightPanel select {
+    width: 148px !important;
+    min-height: 15px !important;
+}
+
+#leftPanel #widthInput,
+#leftPanel #heightInput,
+#rightPanel #widthInput,
+#rightPanel #heightInput {
+    width: 56px !important;
+    min-height: 15px !important;
+}
+
     </style>
 </head>
 <body>
