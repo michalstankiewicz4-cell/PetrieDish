@@ -343,6 +343,146 @@ body {
     width: 100%;
 }
 
+/* UPROSZCZONY WYGLĄD LEWEGO PANELU (poza checkboxami) */
+.left-panel .seed-controls,
+.left-panel .size-controls,
+.left-panel .controls {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    margin-bottom: 14px;
+    animation: none;
+    box-shadow: none;
+}
+
+.left-panel .seed-controls .row,
+.left-panel .size-controls .row {
+    gap: 10px;
+}
+
+.left-panel label {
+    text-transform: none;
+    letter-spacing: 0.3px;
+}
+
+.left-panel input[type="number"],
+.left-panel input[type="text"],
+.left-panel select {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    box-shadow: none;
+}
+
+.left-panel select option {
+    background: #151b2f;
+    color: #dcefff;
+}
+
+.left-panel select option:checked,
+.left-panel select option:hover {
+    background: #243252;
+    color: #eaffff;
+}
+
+.left-panel .seed-controls select {
+    width: 185px;
+    min-height: 30px;
+    padding: 5px 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.left-panel .seed-controls input[type="number"],
+.left-panel .seed-controls input[type="text"] {
+    width: 70px;
+    min-height: 30px;
+    padding: 5px 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.left-panel .current-seed,
+.left-panel .density-value,
+.left-panel .species-value,
+.left-panel .speed-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.left-panel .controls {
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.left-panel .controls button,
+.left-panel .btn-small,
+.left-panel .load-seed-btn,
+.left-panel .apply-size-btn {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    color: #dcefff;
+    text-transform: none;
+    letter-spacing: 0.3px;
+    box-shadow: none;
+}
+
+.left-panel .controls button:hover,
+.left-panel .btn-small:hover,
+.left-panel .load-seed-btn:hover,
+.left-panel .apply-size-btn:hover {
+    transform: none;
+    border-color: rgba(220, 240, 255, 0.7);
+    box-shadow: none;
+}
+
+.left-panel .checkbox-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.1;
+}
+
+.left-panel .checkbox-row input[type="checkbox"] {
+    margin: 0;
+}
+
+/* Jaśniejszy tor suwaków w lewym panelu (thumb bez zmian) */
+.left-panel .seed-controls input[type="range"],
+.left-panel .size-controls input[type="range"] {
+    background: transparent;
+    height: 18px;
+    padding: 0;
+}
+
+.left-panel .seed-controls input[type="range"]::-webkit-slider-runnable-track,
+.left-panel .size-controls input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    background: rgba(220, 240, 255, 0.45);
+    border: none;
+    border-radius: 3px;
+}
+
+.left-panel .seed-controls input[type="range"]::-moz-range-track,
+.left-panel .size-controls input[type="range"]::-moz-range-track {
+    height: 6px;
+    background: rgba(220, 240, 255, 0.45);
+    border: none;
+    border-radius: 3px;
+}
+
+.left-panel .seed-controls input[type="range"]::-webkit-slider-thumb,
+.left-panel .size-controls input[type="range"]::-webkit-slider-thumb {
+    margin-top: -6px;
+}
+
 /* NAGŁÓWEK - USUNIĘTY, CSS ZACHOWANY DLA KOMPATYBILNOŚCI */
 h1 {
     font-size: 48px;
@@ -602,6 +742,13 @@ input[type="range"]::-moz-range-thumb:hover {
     flex-wrap: wrap;
 }
 
+.size-controls .row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
 .seed-controls label {
     color: #8892b0;
     font-size: 12px;
@@ -679,53 +826,9 @@ button {
 /* ═══════════════════════════════════════════
    BUTTONY - Zoptymalizowane z CSS Variables
    ═══════════════════════════════════════════ */
-#randomizeBtn {
-    border-color: var(--color-orange);
-    background: linear-gradient(135deg, rgba(251, 86, 7, 0.2), rgba(251, 86, 7, 0.05));
-    color: var(--color-orange);
-    box-shadow: var(--shadow-neon) rgba(251, 86, 7, 0.3);
-}
-
-#startStopBtn {
-    border-color: var(--color-cyan);
-    background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(0, 245, 255, 0.05));
-    color: var(--color-cyan);
-    box-shadow: var(--shadow-neon) rgba(0, 245, 255, 0.3);
-}
-
-#startStopBtn.running {
-    border-color: var(--color-pink);
-    background: linear-gradient(135deg, rgba(255, 0, 110, 0.2), rgba(255, 0, 110, 0.05));
-    color: var(--color-pink);
-    box-shadow: var(--shadow-neon) rgba(255, 0, 110, 0.3);
-}
-
-#resetBtn {
-    border-color: var(--color-yellow);
-    background: linear-gradient(135deg, rgba(255, 190, 11, 0.2), rgba(255, 190, 11, 0.05));
-    color: var(--color-yellow);
-    box-shadow: var(--shadow-neon) rgba(255, 190, 11, 0.3);
-}
-
 /* HOVER PRZYCISKÓW */
 button:hover {
     transform: translateY(-2px);
-}
-
-#randomizeBtn:hover {
-    box-shadow: 0 5px 30px rgba(251, 86, 7, 0.5);
-}
-
-#startStopBtn:hover {
-    box-shadow: 0 5px 30px rgba(0, 245, 255, 0.5);
-}
-
-#startStopBtn.running:hover {
-    box-shadow: 0 5px 30px rgba(255, 0, 110, 0.5);
-}
-
-#resetBtn:hover {
-    box-shadow: 0 5px 30px rgba(255, 190, 11, 0.5);
 }
 
 /* LEGENDA — BLOK */
@@ -1635,14 +1738,14 @@ button:hover {
         
         <button id="applySpeciesBtn" class="btn-small apply-size-btn">Zastosuj</button>
         
-        <div class="row" style="margin-top: 20px; border-top: 1px solid rgba(131, 56, 236, 0.2); padding-top: 15px;">
+        <div class="row checkbox-row" style="margin-top: 20px; border-top: 1px solid rgba(131, 56, 236, 0.2); padding-top: 15px;">
             <label>
                 <input type="checkbox" id="fpsDisplayCheckbox" checked>
                 Wyświetl licznik FPS
             </label>
         </div>
         
-        <div class="row">
+        <div class="row checkbox-row">
             <label>
                 <input type="checkbox" id="seedDisplayCheckbox" checked>
                 Wyświetl numer próbki/seed
@@ -1651,7 +1754,7 @@ button:hover {
     </div>
 
     <div class="size-controls">
-        <div class="speed-group">
+        <div class="row speed-group">
             <label for="speedInput">Szybkość:</label>
             <input type="range" id="speedInput" min="0" max="200" value="100" step="10">
             <span class="speed-value" id="speedValue">100%</span>
@@ -1728,9 +1831,9 @@ button:hover {
     </div>
 
     <div class="controls">
-        <button id="startStopBtn">Start</button>
-        <button id="resetBtn">Reset</button>
-        <button id="randomizeBtn">Losowa próbka</button>
+        <button id="startStopBtn" class="btn-small apply-size-btn">Start</button>
+        <button id="resetBtn" class="btn-small apply-size-btn">Reset</button>
+        <button id="randomizeBtn" class="btn-small apply-size-btn">Losowa próbka</button>
     </div>
 
 <div class="legend">
@@ -2030,9 +2133,9 @@ button:hover {
             const sizeControls = document.querySelector('.size-controls');
             const controls = document.querySelector('.controls');
             
+            if (controls) leftPanelContent.appendChild(controls);
             if (seedControls) leftPanelContent.appendChild(seedControls);
             if (sizeControls) leftPanelContent.appendChild(sizeControls);
-            if (controls) leftPanelContent.appendChild(controls);
             
             // Przenieś legend do prawego panelu
             const legend = document.querySelector('.legend');
