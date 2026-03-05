@@ -74,19 +74,250 @@
     box-sizing: border-box;
 }
 
-/* TŁO I GŁÓWNY UKŁAD */
+/* TŁO I GŁÓWNY UKŁAD - FULLSCREEN */
 body {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
     min-height: 100vh;
+    width: 100vw;
     background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
     font-family: 'Orbitron', monospace;
-    padding: 40px 20px;
+    position: relative;
 }
 
-/* NAGŁÓWEK */
+/* UKRYJ KONTROLKI Z GŁÓWNEGO WIDOKU - BĘDĄ W HAMBURGERZECH */
+.seed-controls,
+.size-controls,
+.controls,
+.legend {
+    display: none;
+}
+
+/* ═══════════════════════════════════════════
+   HAMBURGER BUTTONS
+   ═══════════════════════════════════════════ */
+.hamburger-btn {
+    position: fixed;
+    top: 20px;
+    width: 50px;
+    height: 50px;
+    background: rgba(131, 56, 236, 0.3);
+    border: 2px solid rgba(131, 56, 236, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.hamburger-btn:hover {
+    background: rgba(131, 56, 236, 0.5);
+    border-color: #00F5FF;
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.hamburger-btn span {
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: #00F5FF;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.hamburger-btn:hover span {
+    background: #FFBE0B;
+}
+
+.left-hamburger {
+    left: 20px;
+}
+
+.right-hamburger {
+    right: 20px;
+}
+
+.hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(8px, -8px);
+}
+
+/* ═══════════════════════════════════════════
+   SIDE PANELS
+   ═══════════════════════════════════════════ */
+.side-panel {
+    position: fixed;
+    top: 0;
+    width: 450px;
+    max-width: 90vw;
+    height: 100vh;
+    background: rgba(16, 16, 30, 0.95);
+    border: 2px solid rgba(131, 56, 236, 0.5);
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    overflow-x: hidden;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Scrollbar styling dla paneli */
+.side-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.side-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.side-panel::-webkit-scrollbar-thumb {
+    background: rgba(131, 56, 236, 0.5);
+    border-radius: 4px;
+}
+
+.side-panel::-webkit-scrollbar-thumb:hover {
+    background: rgba(131, 56, 236, 0.8);
+}
+
+.side-panel.open {
+    transform: translateX(0);
+}
+
+.left-panel {
+    left: 0;
+    border-right: 2px solid rgba(131, 56, 236, 0.5);
+    border-left: none;
+}
+
+.right-panel {
+    right: 0;
+    transform: translateX(100%);
+    border-left: 2px solid rgba(131, 56, 236, 0.5);
+    border-right: none;
+}
+
+.right-panel.open {
+    transform: translateX(0);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: rgba(131, 56, 236, 0.2);
+    border-bottom: 2px solid rgba(131, 56, 236, 0.5);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+}
+
+.panel-header h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #00F5FF;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.close-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 0, 110, 0.2);
+    border: 2px solid rgba(255, 0, 110, 0.5);
+    border-radius: 50%;
+    color: #FF006E;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    padding: 0;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    background: rgba(255, 0, 110, 0.4);
+    border-color: #FF006E;
+    box-shadow: 0 0 15px rgba(255, 0, 110, 0.5);
+    transform: rotate(90deg);
+}
+
+.panel-content {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Zapewnij, że wszystkie dzieci .panel-content nie przekroczą szerokości */
+.panel-content > * {
+    max-width: 100%;
+}
+
+/* Scrollbar styling dla zawartości panelu */
+.panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 245, 255, 0.3);
+    border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 245, 255, 0.5);
+}
+
+/* W panelach - pokaż kontrolki */
+.side-panel .seed-controls,
+.side-panel .size-controls,
+.side-panel .controls,
+.side-panel .legend {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.side-panel .legend {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Dostosowanie szerokości kontrolek w panelach */
+.side-panel .seed-controls,
+.side-panel .size-controls {
+    width: 100%;
+}
+
+/* NAGŁÓWEK - USUNIĘTY, CSS ZACHOWANY DLA KOMPATYBILNOŚCI */
 h1 {
     font-size: 48px;
     font-weight: 900;
@@ -372,20 +603,26 @@ input[type="range"]::-moz-range-thumb:hover {
     white-space: nowrap;
 }
 
-/* CANVAS */
+/* CANVAS - FULLSCREEN */
 .canvas-container {
-    position: relative; /* IMPORTANT: for floating panel */
-    border: 3px solid rgba(131, 56, 236, 0.5);
-    border-radius: 8px;
-    overflow: visible; /* Changed from hidden - allow panel to show */
-    box-shadow: 0 0 30px rgba(131, 56, 236, 0.3), 0 0 60px rgba(0, 245, 255, 0.2);
-    margin-bottom: 30px;
-    animation: slideDown 0.8s ease-out;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+    margin: 0;
+    z-index: 1;
 }
 
 canvas {
     display: block;
     background: #0a0a14;
+    width: 100% !important;
+    height: 100% !important;
 }
 
 /* PRZYCISKI GŁÓWNE */
@@ -722,12 +959,14 @@ button:hover {
     gap: 10px;
     margin-bottom: 8px;
     font-size: 11px;
+    flex-wrap: wrap;
 }
 
 .option-row label {
     color: #8892b0;
     min-width: 90px;
     cursor: default;
+    flex-shrink: 0;
 }
 
 .option-row input[type="range"] {
@@ -854,6 +1093,26 @@ button:hover {
     grid-template-columns: 60px repeat(6, 1fr);
     gap: 3px;
     font-size: 9px;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Scrollbar dla macierzy */
+.interaction-matrix::-webkit-scrollbar {
+    height: 6px;
+}
+
+.interaction-matrix::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.interaction-matrix::-webkit-scrollbar-thumb {
+    background: rgba(131, 56, 236, 0.5);
+    border-radius: 3px;
+}
+
+.interaction-matrix::-webkit-scrollbar-thumb:hover {
+    background: rgba(131, 56, 236, 0.8);
 }
 
 .matrix-cell {
@@ -1293,9 +1552,42 @@ button:hover {
     </style>
 </head>
 <body>
-    <h1>Petrie Dish<span class="version">v2.22.0</span></h1>
-    <p class="subtitle">Fluid Dynamics × Particle Life × Magnetic Forces × Spatial Grid</p>
-
+    <!-- LEWY HAMBURGER - USTAWIENIA -->
+    <button class="hamburger-btn left-hamburger" id="leftHamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    
+    <!-- PRAWY HAMBURGER - MECHANIKI -->
+    <button class="hamburger-btn right-hamburger" id="rightHamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+    
+    <!-- LEWY PANEL - USTAWIENIA -->
+    <div class="side-panel left-panel" id="leftPanel">
+        <div class="panel-header">
+            <h2>⚙️ Ustawienia</h2>
+            <button class="close-btn" id="closeLeftPanel">×</button>
+        </div>
+        <div class="panel-content" id="leftPanelContent">
+            <!-- Tutaj przeniesione zostaną kontrolki -->
+        </div>
+    </div>
+    
+    <!-- PRAWY PANEL - MECHANIKI -->
+    <div class="side-panel right-panel" id="rightPanel">
+        <div class="panel-header">
+            <h2>🧬 Mechaniki</h2>
+            <button class="close-btn" id="closeRightPanel">×</button>
+        </div>
+        <div class="panel-content" id="rightPanelContent">
+            <!-- Tutaj przeniesiona zostanie legenda -->
+        </div>
+    </div>
+    
     <div class="seed-controls">
         <div class="row">
             <label for="seedInput">Próbka:</label>
@@ -1732,6 +2024,91 @@ button:hover {
 </div>
 
     <script>
+        // ═══════════════════════════════════════════
+        // HAMBURGER MENU FUNCTIONALITY
+        // ═══════════════════════════════════════════
+        
+        // Przenieś kontrolki do paneli po załadowaniu DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            const leftPanelContent = document.getElementById('leftPanelContent');
+            const rightPanelContent = document.getElementById('rightPanelContent');
+            
+            // Przenieś seed-controls, size-controls, i controls do lewego panelu
+            const seedControls = document.querySelector('.seed-controls');
+            const sizeControls = document.querySelector('.size-controls');
+            const controls = document.querySelector('.controls');
+            
+            if (seedControls) leftPanelContent.appendChild(seedControls);
+            if (sizeControls) leftPanelContent.appendChild(sizeControls);
+            if (controls) leftPanelContent.appendChild(controls);
+            
+            // Przenieś legend do prawego panelu
+            const legend = document.querySelector('.legend');
+            if (legend) rightPanelContent.appendChild(legend);
+        });
+        
+        // Obsługa przycisków hamburgerowych
+        const leftHamburger = document.getElementById('leftHamburger');
+        const rightHamburger = document.getElementById('rightHamburger');
+        const leftPanel = document.getElementById('leftPanel');
+        const rightPanel = document.getElementById('rightPanel');
+        const closeLeftPanel = document.getElementById('closeLeftPanel');
+        const closeRightPanel = document.getElementById('closeRightPanel');
+        
+        // Otwórz/zamknij lewy panel
+        leftHamburger.addEventListener('click', () => {
+            leftPanel.classList.toggle('open');
+            leftHamburger.classList.toggle('active');
+            // Zamknij prawy panel jeśli otwarty
+            if (rightPanel.classList.contains('open')) {
+                rightPanel.classList.remove('open');
+                rightHamburger.classList.remove('active');
+            }
+        });
+        
+        // Otwórz/zamknij prawy panel
+        rightHamburger.addEventListener('click', () => {
+            rightPanel.classList.toggle('open');
+            rightHamburger.classList.toggle('active');
+            // Zamknij lewy panel jeśli otwarty
+            if (leftPanel.classList.contains('open')) {
+                leftPanel.classList.remove('open');
+                leftHamburger.classList.remove('active');
+            }
+        });
+        
+        // Przycisk zamknięcia lewego panelu
+        closeLeftPanel.addEventListener('click', () => {
+            leftPanel.classList.remove('open');
+            leftHamburger.classList.remove('active');
+        });
+        
+        // Przycisk zamknięcia prawego panelu
+        closeRightPanel.addEventListener('click', () => {
+            rightPanel.classList.remove('open');
+            rightHamburger.classList.remove('active');
+        });
+        
+        // Zamknij panel przy kliknięciu poza nim (opcjonalne)
+        document.addEventListener('click', (e) => {
+            if (!leftPanel.contains(e.target) && 
+                !leftHamburger.contains(e.target) && 
+                leftPanel.classList.contains('open')) {
+                leftPanel.classList.remove('open');
+                leftHamburger.classList.remove('active');
+            }
+            if (!rightPanel.contains(e.target) && 
+                !rightHamburger.contains(e.target) && 
+                rightPanel.classList.contains('open')) {
+                rightPanel.classList.remove('open');
+                rightHamburger.classList.remove('active');
+            }
+        });
+        
+        // ═══════════════════════════════════════════
+        // GŁÓWNY KOD SYMULACJI
+        // ═══════════════════════════════════════════
+        
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const startStopBtn = document.getElementById('startStopBtn');
@@ -1850,8 +2227,8 @@ button:hover {
         const viscosityInput = document.getElementById('viscosityInput');
         const viscosityValueSpan = document.getElementById('viscosityValueSpan');
 
-        let WIDTH = 1000;
-        let HEIGHT = 500;
+        let WIDTH = window.innerWidth;
+        let HEIGHT = window.innerHeight;
         let PARTICLE_COUNT = 1000; // STAGE 4: WebWorker-ready (zwiększone z 600!) // ZWIĘKSZONE z 300 → 600 (Stage 3 optimization!)
         let SPECIES_COUNT = 6;
         let SPEED_MULTIPLIER = 1.0;
@@ -1861,6 +2238,24 @@ button:hover {
         let CURRENT_SEED = null;
         let INIT_MODE = 'random';
         let BOUNDARY_MODE = 'warp';
+        
+        // Ustaw rozmiar canvas na pełny ekran
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+        
+        // Nasłuchuj zmian rozmiaru okna
+        window.addEventListener('resize', () => {
+            WIDTH = window.innerWidth;
+            HEIGHT = window.innerHeight;
+            canvas.width = WIDTH;
+            canvas.height = HEIGHT;
+            
+            // Aktualizuj inputy rozmiaru jeśli są widoczne
+            const widthInput = document.getElementById('widthInput');
+            const heightInput = document.getElementById('heightInput');
+            if (widthInput) widthInput.value = WIDTH;
+            if (heightInput) heightInput.value = HEIGHT;
+        });
         
         // Mechanics Options - Multipliers dla każdej mechaniki
         let ATTRACTION_STRENGTH = 1.0;  // 100%
