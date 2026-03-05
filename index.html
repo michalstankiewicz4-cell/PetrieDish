@@ -1658,7 +1658,6 @@ button:hover {
 
 .interaction-matrix {
     display: grid;
-    grid-template-columns: 60px repeat(6, 1fr);
     gap: 3px;
     font-size: 9px;
     max-width: 100%;
@@ -5504,6 +5503,11 @@ button:hover {
             if (!interactionMatrixDiv) return;
             
             interactionMatrixDiv.innerHTML = '';
+            
+            // Dynamiczny grid na podstawie liczby kolorów
+            const cols = COLORS.slice(0, SPECIES_COUNT).length;
+            const cellSize = cols <= 6 ? '1fr' : 'minmax(48px, 1fr)';
+            interactionMatrixDiv.style.gridTemplateColumns = `60px repeat(${cols}, ${cellSize})`;
             
             const colorNames = COLORS.slice(0, SPECIES_COUNT).map(c => c.name);
             
