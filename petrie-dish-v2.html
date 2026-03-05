@@ -776,16 +776,24 @@ button:hover {
     appearance: none;
     width: 18px;
     height: 18px;
-    border: 2px solid;
+    border: 2px solid rgba(220, 240, 255, 0.9);
     border-radius: 3px;
     cursor: pointer;
     position: relative;
     transition: all 0.3s ease;
     flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .side-panel input[type="checkbox"]:hover {
     transform: scale(1.1);
+    border-color: #00F5FF;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.35);
+}
+
+.side-panel input[type="checkbox"]:checked {
+    background: rgba(0, 245, 255, 0.2);
+    border-color: #00F5FF;
 }
 
 /* CHECKBOX — ZNACZNIK */
@@ -797,6 +805,8 @@ button:hover {
     transform: translate(-50%, -50%);
     font-size: 14px;
     font-weight: bold;
+    color: #EFFFFF;
+    text-shadow: 0 0 8px rgba(0, 245, 255, 0.55);
 }
 
 /* TOOLTIPS — IKONKA POMOCY */
