@@ -241,6 +241,29 @@ body {
     letter-spacing: 2px;
 }
 
+.panel-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.panel-lock-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #00F5FF;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.panel-lock-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
 .close-btn {
     width: 40px;
     height: 40px;
@@ -1500,7 +1523,13 @@ button:hover {
     <!-- LEWY PANEL - USTAWIENIA -->
     <div class="side-panel left-panel" id="leftPanel">
         <div class="panel-header">
-            <h2>⚙️ Ustawienia</h2>
+            <div class="panel-title-wrap">
+                <h2>⚙️ Ustawienia</h2>
+                <label class="panel-lock-toggle" for="leftPanelLockCheckbox">
+                    <input type="checkbox" id="leftPanelLockCheckbox">
+                    <span>Zablokuj</span>
+                </label>
+            </div>
             <button class="close-btn" id="closeLeftPanel">×</button>
         </div>
         
@@ -1514,7 +1543,13 @@ button:hover {
     <!-- PRAWY PANEL - MECHANIKI -->
     <div class="side-panel right-panel" id="rightPanel">
         <div class="panel-header">
-            <h2>🧬 Mechaniki</h2>
+            <div class="panel-title-wrap">
+                <h2>🧬 Mechaniki</h2>
+                <label class="panel-lock-toggle" for="rightPanelLockCheckbox">
+                    <input type="checkbox" id="rightPanelLockCheckbox">
+                    <span>Zablokuj</span>
+                </label>
+            </div>
             <button class="close-btn" id="closeRightPanel">×</button>
         </div>
         <div class="panel-content" id="rightPanelContent">
@@ -2001,39 +2036,66 @@ button:hover {
         const rightPanel = document.getElementById('rightPanel');
         const closeLeftPanel = document.getElementById('closeLeftPanel');
         const closeRightPanel = document.getElementById('closeRightPanel');
+        const leftPanelLockCheckbox = document.getElementById('leftPanelLockCheckbox');
+        const rightPanelLockCheckbox = document.getElementById('rightPanelLockCheckbox');
+
+        const isLeftPanelLocked = () => leftPanelLockCheckbox && leftPanelLockCheckbox.checked;
+        const isRightPanelLocked = () => rightPanelLockCheckbox && rightPanelLockCheckbox.checked;
+
+        function closePanel(panel, hamburger, isLockedFn) {
+            if (!panel.classList.contains('open')) {
+                return;
+            }
+
+            if (isLockedFn()) {
+                return;
+            }
+
+            panel.classList.remove('open');
+            hamburger.classList.remove('active');
+        }
+
+        function openPanel(panel, hamburger) {
+            panel.classList.add('open');
+            hamburger.classList.add('active');
+        }
         
         // Otwórz/zamknij lewy panel
         leftHamburger.addEventListener('click', () => {
-            leftPanel.classList.toggle('open');
-            leftHamburger.classList.toggle('active');
-            // Zamknij prawy panel jeśli otwarty
-            if (rightPanel.classList.contains('open')) {
-                rightPanel.classList.remove('open');
-                rightHamburger.classList.remove('active');
+            if (leftPanel.classList.contains('open')) {
+                closePanel(leftPanel, leftHamburger, isLeftPanelLocked);
+            } else {
+                openPanel(leftPanel, leftHamburger);
+            }
+
+            // Zamknij prawy panel jeśli otwarty i nie jest zablokowany
+            if (rightPanel.classList.contains('open') && !isRightPanelLocked()) {
+                closePanel(rightPanel, rightHamburger, isRightPanelLocked);
             }
         });
         
         // Otwórz/zamknij prawy panel
         rightHamburger.addEventListener('click', () => {
-            rightPanel.classList.toggle('open');
-            rightHamburger.classList.toggle('active');
-            // Zamknij lewy panel jeśli otwarty
-            if (leftPanel.classList.contains('open')) {
-                leftPanel.classList.remove('open');
-                leftHamburger.classList.remove('active');
+            if (rightPanel.classList.contains('open')) {
+                closePanel(rightPanel, rightHamburger, isRightPanelLocked);
+            } else {
+                openPanel(rightPanel, rightHamburger);
+            }
+
+            // Zamknij lewy panel jeśli otwarty i nie jest zablokowany
+            if (leftPanel.classList.contains('open') && !isLeftPanelLocked()) {
+                closePanel(leftPanel, leftHamburger, isLeftPanelLocked);
             }
         });
         
         // Przycisk zamknięcia lewego panelu
         closeLeftPanel.addEventListener('click', () => {
-            leftPanel.classList.remove('open');
-            leftHamburger.classList.remove('active');
+            closePanel(leftPanel, leftHamburger, isLeftPanelLocked);
         });
         
         // Przycisk zamknięcia prawego panelu
         closeRightPanel.addEventListener('click', () => {
-            rightPanel.classList.remove('open');
-            rightHamburger.classList.remove('active');
+            closePanel(rightPanel, rightHamburger, isRightPanelLocked);
         });
         
         // Zamknij panel przy kliknięciu poza nim (opcjonalne)
@@ -2041,14 +2103,12 @@ button:hover {
             if (!leftPanel.contains(e.target) && 
                 !leftHamburger.contains(e.target) && 
                 leftPanel.classList.contains('open')) {
-                leftPanel.classList.remove('open');
-                leftHamburger.classList.remove('active');
+                closePanel(leftPanel, leftHamburger, isLeftPanelLocked);
             }
             if (!rightPanel.contains(e.target) && 
                 !rightHamburger.contains(e.target) && 
                 rightPanel.classList.contains('open')) {
-                rightPanel.classList.remove('open');
-                rightHamburger.classList.remove('active');
+                closePanel(rightPanel, rightHamburger, isRightPanelLocked);
             }
         });
         
