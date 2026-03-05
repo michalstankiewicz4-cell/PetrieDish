@@ -1751,6 +1751,13 @@ button:hover {
                 Wyświetl numer próbki/seed
             </label>
         </div>
+        
+        <div class="row checkbox-row">
+            <label>
+                <input type="checkbox" id="lifeScannerDisplayCheckbox" checked>
+                Wyświetl Life Scanner
+            </label>
+        </div>
     </div>
 
     <div class="size-controls">
@@ -4107,6 +4114,15 @@ button:hover {
         if (seedDisplayCheckbox) {
             seedDisplayCheckbox.addEventListener('change', (e) => {
                 enableSeedDisplay = e.target.checked;
+            });
+        }
+        
+        // Life Scanner Display Toggle
+        const lifeScannerDisplayCheckbox = document.getElementById('lifeScannerDisplayCheckbox');
+        const lifeScannerPanel = document.getElementById('lifeScannerPanel');
+        if (lifeScannerDisplayCheckbox && lifeScannerPanel) {
+            lifeScannerDisplayCheckbox.addEventListener('change', (e) => {
+                lifeScannerPanel.style.display = e.target.checked ? 'block' : 'none';
             });
         }
         
