@@ -1,11 +1,13 @@
 Petrie Dish
-Thats one of my first projects with vibecoding that visualizes the physical and chemical relationships between particles in fluid
+Thats one of my first projects with vibecoding, that visualizes the physical and chemical relationships between particles in fluid.
 Just run it and have fun.
 You only need one file to run it.
 Some options don't work correctly, but there are no critical bugs.
-The project is in Polish language, but you'll manage ;D I hope.
+
 Feel free to use
 
-<img width="1518" height="764" alt="image" src="https://github.com/user-attachments/assets/7b51bb3d-436f-4a4b-b30a-717128a0acdd" />
+<img width="1916" height="944" alt="image" src="https://github.com/user-attachments/assets/5243612c-ebdc-418a-b24e-13eb4f4b31ca" />
 
-<img width="1233" height="736" alt="image" src="https://github.com/user-attachments/assets/31bc8e9f-2317-47ad-b393-0442185d1c59" />
+<img width="1919" height="946" alt="image" src="https://github.com/user-attachments/assets/83adec1c-2dde-45bc-ac85-9283787daa48" />
+
+<img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/755e9d64-c894-4d2d-a32f-ddb9820a751d" />
