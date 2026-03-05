@@ -749,7 +749,7 @@ button:hover {
 }
 
 /* CHECKBOX — WSPÓLNY */
-.legend-item input[type="checkbox"] {
+.side-panel input[type="checkbox"] {
     appearance: none;
     width: 18px;
     height: 18px;
@@ -761,12 +761,12 @@ button:hover {
     flex-shrink: 0;
 }
 
-.legend-item input[type="checkbox"]:hover {
+.side-panel input[type="checkbox"]:hover {
     transform: scale(1.1);
 }
 
 /* CHECKBOX — ZNACZNIK */
-.legend-item input[type="checkbox"]:checked::after {
+.side-panel input[type="checkbox"]:checked::after {
     content: '✓';
     position: absolute;
     top: 50%;
@@ -858,86 +858,6 @@ button:hover {
 .color-blue { color: var(--color-blue); }
 .color-orange { color: var(--color-orange); }
 .color-green { color: var(--color-green); }
-
-/* ═══════════════════════════════════════════
-   CHECKBOX BAZOWY - Wszystkie mechaniki
-   Używa currentColor z klasy rodzica!
-   ═══════════════════════════════════════════ */
-.mech-attraction input[type="checkbox"],
-.mech-charges input[type="checkbox"],
-.mech-mass input[type="checkbox"],
-.mech-mixing input[type="checkbox"],
-.mech-vortex input[type="checkbox"],
-.mech-swarm input[type="checkbox"],
-.mech-mass-transfer input[type="checkbox"],
-.mech-warp input[type="checkbox"],
-.mech-bonds input[type="checkbox"],
-.mech-intelligent input[type="checkbox"],
-.mech-life-detection input[type="checkbox"] {
-    appearance: none;
-    width: var(--checkbox-size);
-    height: var(--checkbox-size);
-    border: var(--checkbox-border) solid rgba(131, 56, 236, 0.6);
-    border-radius: var(--border-radius-small);
-    cursor: pointer;
-    position: relative;
-    transition: all var(--transition-normal);
-    flex-shrink: 0;
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.mech-attraction input[type="checkbox"]:hover,
-.mech-charges input[type="checkbox"]:hover,
-.mech-mass input[type="checkbox"]:hover,
-.mech-mixing input[type="checkbox"]:hover,
-.mech-vortex input[type="checkbox"]:hover,
-.mech-swarm input[type="checkbox"]:hover,
-.mech-mass-transfer input[type="checkbox"]:hover,
-.mech-warp input[type="checkbox"]:hover,
-.mech-bonds input[type="checkbox"]:hover,
-.mech-intelligent input[type="checkbox"]:hover,
-.mech-life-detection input[type="checkbox"]:hover {
-    transform: scale(1.1);
-    border-color: #00F5FF;
-    box-shadow: 0 0 8px rgba(0, 245, 255, 0.4);
-}
-
-.mech-attraction input[type="checkbox"]:checked,
-.mech-charges input[type="checkbox"]:checked,
-.mech-mass input[type="checkbox"]:checked,
-.mech-mixing input[type="checkbox"]:checked,
-.mech-vortex input[type="checkbox"]:checked,
-.mech-swarm input[type="checkbox"]:checked,
-.mech-mass-transfer input[type="checkbox"]:checked,
-.mech-warp input[type="checkbox"]:checked,
-.mech-bonds input[type="checkbox"]:checked,
-.mech-intelligent input[type="checkbox"]:checked,
-.mech-life-detection input[type="checkbox"]:checked {
-    background: rgba(131, 56, 236, 0.3);
-    border-color: #8338EC;
-    box-shadow: 0 0 10px rgba(131, 56, 236, 0.5);
-}
-
-.mech-attraction input[type="checkbox"]:checked::after,
-.mech-charges input[type="checkbox"]:checked::after,
-.mech-mass input[type="checkbox"]:checked::after,
-.mech-mixing input[type="checkbox"]:checked::after,
-.mech-vortex input[type="checkbox"]:checked::after,
-.mech-swarm input[type="checkbox"]:checked::after,
-.mech-mass-transfer input[type="checkbox"]:checked::after,
-.mech-warp input[type="checkbox"]:checked::after,
-.mech-bonds input[type="checkbox"]:checked::after,
-.mech-intelligent input[type="checkbox"]:checked::after,
-.mech-life-detection input[type="checkbox"]:checked::after {
-    content: '✓';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 14px;
-    font-weight: bold;
-    color: #00F5FF;
-}
 
 /* Kolory dla poszczególnych mechanik */
 .mech-attraction { color: var(--color-pink); }
