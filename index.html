@@ -298,6 +298,39 @@ body {
 }
 
 
+/* QUICK RANDOM BUTTON - top center */
+.quick-random-btn {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 22px;
+    background: rgba(16, 16, 30, 0.75);
+    border: 1px solid rgba(255, 190, 11, 0.45);
+    border-radius: 24px;
+    color: #FFBE0B;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    transition: all 0.25s ease;
+    box-shadow: 0 0 16px rgba(255, 190, 11, 0.1);
+}
+
+.quick-random-btn:hover {
+    background: rgba(255, 190, 11, 0.15);
+    border-color: #FFBE0B;
+    box-shadow: 0 0 24px rgba(255, 190, 11, 0.35);
+    transform: translateX(-50%) translateY(-1px);
+}
+
+.quick-random-btn:active {
+    transform: translateX(-50%) translateY(1px);
+}
+
 /* HUD OVERLAY - FPS & Seed, outside canvas so VFX filters don't affect them */
 .hud-overlay {
     position: absolute;
@@ -341,12 +374,14 @@ body {
 
 /* AUTO-HIDE BUTTONS */
 .hamburger-btn,
-.vfx-btn {
+.vfx-btn,
+.quick-random-btn {
     transition: opacity 0.6s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .ui-hidden .hamburger-btn,
-.ui-hidden .vfx-btn {
+.ui-hidden .vfx-btn,
+.ui-hidden .quick-random-btn {
     opacity: 0;
     pointer-events: none;
 }
@@ -2357,6 +2392,9 @@ button:hover {
                 <span id="hudFpsText">FPS: 0</span>
             </div>
         </div>
+
+        <!-- Quick random button - top center -->
+        <button id="quickRandomBtn" class="quick-random-btn">🎲 Random Sample</button>
         
         <!-- LIFE SCANNER - Floating Panel -->
         <div class="life-scanner-panel" id="lifeScannerPanel">
@@ -4660,6 +4698,21 @@ button:hover {
         startStopBtn.addEventListener('click', handleStartStop);
         resetBtn.addEventListener('click', handleReset);
         randomizeBtn.addEventListener('click', randomizeSettings);
+
+        // Quick random button - always starts simulation after randomizing
+        document.getElementById('quickRandomBtn').addEventListener('click', () => {
+            randomizeSettings();
+            if (!isRunning) {
+                isRunning = true;
+                if (SPEED_MULTIPLIER === 0) {
+                    SPEED_MULTIPLIER = SPEED_BEFORE_PAUSE > 0 ? SPEED_BEFORE_PAUSE : 1.0;
+                    speedInput.value = Math.round(SPEED_MULTIPLIER * 100);
+                    speedValue.textContent = Math.round(SPEED_MULTIPLIER * 100) + '%';
+                }
+                animate();
+                updateButtonState();
+            }
+        });
         loadSeedBtn.addEventListener('click', loadSeed);
         applySpeciesBtn.addEventListener('click', handleReset);
 
