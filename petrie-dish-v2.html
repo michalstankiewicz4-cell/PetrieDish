@@ -2019,6 +2019,21 @@ button:hover {
             </div>
         </div>
 
+        <div class="legend-item mech-display">
+            <label>
+                <input type="checkbox" id="fpsDisplayCheckbox" checked>
+                <span class="color-dot" style="color: #00F5FF;">●</span>
+                <span class="text">Wyświetl licznik FPS</span>
+            </label>
+        </div>
+
+        <div class="legend-item mech-display">
+            <label>
+                <input type="checkbox" id="seedDisplayCheckbox" checked>
+                <span class="color-dot" style="color: #FFBE0B;">●</span>
+                <span class="text">Wyświetl numer próbki/seed</span>
+            </label>
+        </div>
 
     </div>
 </div>
@@ -2314,6 +2329,8 @@ button:hover {
         let enableMassHierarchy = false;
         let enableViscosity = true;  // Domyślnie włączona
         let enableBonds = false;
+        let enableFpsDisplay = true;  // Wyświetlaj FPS
+        let enableSeedDisplay = true; // Wyświetlaj numer próbki
         
         // Life Detection system
         let enableLifeDetection = false;
@@ -3259,32 +3276,49 @@ button:hover {
         }
 
         function drawStatusAndFPS() {
-            // Rysuj tylko FPS
-            let fpsColor;
-            if (fps <= 16) {
-                fpsColor = '#FF006E';
-            } else if (fps <= 23) {
-                fpsColor = '#FFBE0B';
-            } else {
-                fpsColor = '#00FF00';
+            let yPos = 20;
+            
+            // Rysuj numer próbki/seed
+            if (enableSeedDisplay && CURRENT_SEED !== null) {
+                ctx.fillStyle = '#FFBE0B';
+                ctx.font = 'bold 12px Orbitron, Arial, sans-serif';
+                ctx.shadowBlur = 2;
+                ctx.shadowColor = '#FFBE0B';
+                
+                const seedText = `Seed: ${CURRENT_SEED}`;
+                ctx.fillText(seedText, 10, yPos);
+                ctx.shadowBlur = 0;
+                yPos += 18;
             }
             
-            ctx.fillStyle = fpsColor;
-            ctx.font = 'bold 20px Orbitron, Arial, sans-serif';
-            ctx.shadowBlur = 5;
-            ctx.shadowColor = fpsColor;
-            ctx.fillText('●', 10, 20);
-            ctx.shadowBlur = 0;
+            // Rysuj FPS
+            if (enableFpsDisplay) {
+                let fpsColor;
+                if (fps <= 16) {
+                    fpsColor = '#FF006E';
+                } else if (fps <= 23) {
+                    fpsColor = '#FFBE0B';
+                } else {
+                    fpsColor = '#00FF00';
+                }
+                
+                ctx.fillStyle = fpsColor;
+                ctx.font = 'bold 20px Orbitron, Arial, sans-serif';
+                ctx.shadowBlur = 5;
+                ctx.shadowColor = fpsColor;
+                ctx.fillText('●', 10, yPos);
+                ctx.shadowBlur = 0;
 
-            ctx.fillStyle = '#00F5FF';
-            ctx.font = 'bold 14px Orbitron, Arial, sans-serif';
-            ctx.shadowBlur = 2.5;
-            ctx.shadowColor = '#00F5FF';
-            
-            let statusText = `FPS: ${fps}`;
-            
-            ctx.fillText(statusText, 32, 20);
-            ctx.shadowBlur = 0;
+                ctx.fillStyle = '#00F5FF';
+                ctx.font = 'bold 14px Orbitron, Arial, sans-serif';
+                ctx.shadowBlur = 2.5;
+                ctx.shadowColor = '#00F5FF';
+                
+                let statusText = `FPS: ${fps}`;
+                
+                ctx.fillText(statusText, 32, yPos);
+                ctx.shadowBlur = 0;
+            }
         }
 
         function animate() {
@@ -3954,6 +3988,22 @@ button:hover {
                 bondsCount.textContent = '0';
             }
         });
+        
+        // FPS Display Toggle
+        const fpsDisplayCheckbox = document.getElementById('fpsDisplayCheckbox');
+        if (fpsDisplayCheckbox) {
+            fpsDisplayCheckbox.addEventListener('change', (e) => {
+                enableFpsDisplay = e.target.checked;
+            });
+        }
+        
+        // Seed Display Toggle
+        const seedDisplayCheckbox = document.getElementById('seedDisplayCheckbox');
+        if (seedDisplayCheckbox) {
+            seedDisplayCheckbox.addEventListener('change', (e) => {
+                enableSeedDisplay = e.target.checked;
+            });
+        }
         
         bondFormationTime.addEventListener('input', (e) => {
             BOND_FORMATION_TIME = parseInt(e.target.value);
