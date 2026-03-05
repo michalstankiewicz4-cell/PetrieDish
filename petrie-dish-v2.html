@@ -485,7 +485,55 @@ body {
     margin: 0;
 }
 
-/* Suwaki w lewym panelu używają globalnych stylów */
+/* Suwaki w lewym panelu - taki sam styl jak w prawym */
+.left-panel .seed-controls input[type="range"],
+.left-panel .size-controls input[type="range"] {
+    width: 150px;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.left-panel .seed-controls input[type="range"]::-webkit-slider-thumb,
+.left-panel .size-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.left-panel .seed-controls input[type="range"]::-moz-range-thumb,
+.left-panel .size-controls input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.left-panel .seed-controls input[type="range"]::-webkit-slider-thumb:hover,
+.left-panel .size-controls input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.8);
+}
+
+.left-panel .seed-controls input[type="range"]::-moz-range-thumb:hover,
+.left-panel .size-controls input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.8);
+}
 
 /* NAGŁÓWEK - USUNIĘTY, CSS ZACHOWANY DLA KOMPATYBILNOŚCI */
 h1 {
