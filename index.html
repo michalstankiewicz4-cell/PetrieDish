@@ -5784,15 +5784,21 @@ button:hover {
             if (isOpen) {
                 vfxPanel.classList.remove('open');
                 vfxBtn.classList.remove('open');
+                vfxBtn.style.opacity = '';
+                vfxBtn.style.pointerEvents = '';
             } else {
                 vfxPanel.classList.add('open');
                 vfxBtn.classList.add('open');
+                vfxBtn.style.opacity = '0';
+                vfxBtn.style.pointerEvents = 'none';
             }
         });
 
         vfxCloseBtn.addEventListener('click', () => {
             vfxPanel.classList.remove('open');
             vfxBtn.classList.remove('open');
+            vfxBtn.style.opacity = '';
+            vfxBtn.style.pointerEvents = '';
         });
 
         // VFX effect button clicks
