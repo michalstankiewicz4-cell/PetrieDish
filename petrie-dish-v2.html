@@ -3259,42 +3259,7 @@ button:hover {
         }
 
         function drawStatusAndFPS() {
-            // Półprzezroczyste tło dla kontrolek statusu
-            const statusWidth = 300;
-            const statusHeight = 60;
-            ctx.fillStyle = 'rgba(10, 10, 20, 0)'; // Półprzezroczyste czarne tło
-            ctx.fillRect(0, 0, statusWidth, statusHeight);
-            
-            let dotColor, statusLabel;
-            
-            if (!isRunning) {
-                // Czerwone - symulacja wyłączona
-                dotColor = '#FF006E';
-                statusLabel = 'Symulacja wyłączona';
-            } else if (SPEED_MULTIPLIER <= 0) {
-                // Żółte - symulacja wstrzymana (isRunning = true, ale speed = 0)
-                dotColor = '#FFBE0B';
-                statusLabel = 'Symulacja wstrzymana';
-            } else {
-                // Zielone - symulacja działa
-                dotColor = '#00FF00';
-                statusLabel = 'Symulacja uruchomiona';
-            }
-            
-            ctx.fillStyle = dotColor;
-            ctx.font = 'bold 20px Orbitron, Arial, sans-serif';
-            ctx.shadowBlur = 5;
-            ctx.shadowColor = dotColor;
-            ctx.fillText('●', 10, 20);
-            ctx.shadowBlur = 0;
-            
-            ctx.fillStyle = '#00F5FF';
-            ctx.font = 'bold 14px Orbitron, Arial, sans-serif';
-            ctx.shadowBlur = 2.5;
-            ctx.shadowColor = '#00F5FF';
-            ctx.fillText(statusLabel, 32, 20);
-            ctx.shadowBlur = 0;
-
+            // Rysuj tylko FPS
             let fpsColor;
             if (fps <= 16) {
                 fpsColor = '#FF006E';
@@ -3308,7 +3273,7 @@ button:hover {
             ctx.font = 'bold 20px Orbitron, Arial, sans-serif';
             ctx.shadowBlur = 5;
             ctx.shadowColor = fpsColor;
-            ctx.fillText('●', 10, 42);
+            ctx.fillText('●', 10, 20);
             ctx.shadowBlur = 0;
 
             ctx.fillStyle = '#00F5FF';
@@ -3316,9 +3281,9 @@ button:hover {
             ctx.shadowBlur = 2.5;
             ctx.shadowColor = '#00F5FF';
             
-            let statusText = `FPS: ${fps} | Cząstki: ${PARTICLE_COUNT}`;
+            let statusText = `FPS: ${fps}`;
             
-            ctx.fillText(statusText, 32, 42);
+            ctx.fillText(statusText, 32, 20);
             ctx.shadowBlur = 0;
         }
 
