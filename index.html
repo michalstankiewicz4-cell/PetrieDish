@@ -4951,37 +4951,49 @@ button:hover {
         // RESTORE SETTINGS FROM LOCALSTORAGE
         // ══════════════════════════════════════════
         function restoreSettings() {
+            console.log('🔄 Restoring settings from localStorage...');
+            
             // Restore FPS Display
             const savedFpsDisplay = localStorage.getItem('fpsDisplayEnabled');
+            console.log('  FPS Display saved:', savedFpsDisplay, 'element:', fpsDisplayCheckbox ? 'exists' : 'missing');
             if (savedFpsDisplay !== null && fpsDisplayCheckbox) {
                 const isEnabled = savedFpsDisplay === 'true';
                 fpsDisplayCheckbox.checked = isEnabled;
                 enableFpsDisplay = isEnabled;
+                console.log('  ✓ FPS Display restored:', isEnabled);
             }
             
             // Restore Seed Display
             const savedSeedDisplay = localStorage.getItem('seedDisplayEnabled');
+            console.log('  Seed Display saved:', savedSeedDisplay, 'element:', seedDisplayCheckbox ? 'exists' : 'missing');
             if (savedSeedDisplay !== null && seedDisplayCheckbox) {
                 const isEnabled = savedSeedDisplay === 'true';
                 seedDisplayCheckbox.checked = isEnabled;
                 enableSeedDisplay = isEnabled;
+                console.log('  ✓ Seed Display restored:', isEnabled);
             }
             
             // Restore Life Scanner Display
             const savedLifeScannerDisplay = localStorage.getItem('lifeScannerDisplayEnabled');
+            console.log('  Life Scanner saved:', savedLifeScannerDisplay, 'element:', lifeScannerDisplayCheckbox ? 'exists' : 'missing');
             if (savedLifeScannerDisplay !== null && lifeScannerDisplayCheckbox && lifeScannerPanel) {
                 const isEnabled = savedLifeScannerDisplay === 'true';
                 lifeScannerDisplayCheckbox.checked = isEnabled;
                 lifeScannerPanel.style.display = isEnabled ? 'block' : 'none';
+                console.log('  ✓ Life Scanner restored:', isEnabled);
             }
             
             // Restore Auto-hide Buttons
             const savedAutoHide = localStorage.getItem('autoHideButtonsEnabled');
+            console.log('  Auto-hide Buttons saved:', savedAutoHide, 'element:', autoHideCheckbox ? 'exists' : 'missing');
             if (savedAutoHide !== null && autoHideCheckbox) {
                 const isEnabled = savedAutoHide === 'true';
                 autoHideCheckbox.checked = isEnabled;
                 autoHideEnabled = isEnabled;
+                console.log('  ✓ Auto-hide Buttons restored:', isEnabled);
             }
+            
+            console.log('✅ Settings restore complete');
         }
         
         // FPS Display Toggle
