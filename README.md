@@ -3,7 +3,7 @@ Thats one of my first projects with vibecoding that visualizes the physical and 
 Just run it and have fun.
 You only need one file to run it.
 Some options don't work correctly, but there are no critical bugs.
-The project is in Polish language, but you'll manage ;D I hope.
+
 Feel free to use
 
 <img width="1916" height="944" alt="image" src="https://github.com/user-attachments/assets/5243612c-ebdc-418a-b24e-13eb4f4b31ca" />
