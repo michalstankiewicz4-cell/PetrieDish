@@ -95,8 +95,262 @@ body {
 }
 
 /* ═══════════════════════════════════════════
-   HAMBURGER BUTTONS
+   VISUAL FX BUTTON & PANEL
    ═══════════════════════════════════════════ */
+
+.vfx-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    background: rgba(16, 16, 30, 0.85);
+    border: 2px solid rgba(0, 245, 255, 0.4);
+    border-radius: 30px;
+    color: #00F5FF;
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.15);
+}
+
+.vfx-btn:hover {
+    background: rgba(0, 245, 255, 0.15);
+    border-color: #00F5FF;
+    box-shadow: 0 0 30px rgba(0, 245, 255, 0.4);
+    transform: translateX(-50%) translateY(-2px);
+}
+.vfx-btn.open {
+    background: rgba(0, 245, 255, 0.2);
+    border-color: #00F5FF;
+    box-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
+}
+
+.vfx-btn-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+}
+
+.vfx-panel {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) translateY(110%);
+    width: 700px;
+    max-width: 95vw;
+    background: rgba(10, 10, 20, 0.97);
+    border: 2px solid rgba(0, 245, 255, 0.35);
+    border-radius: 16px 16px 0 0;
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(20px);
+    box-shadow: 0 -10px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 245, 255, 0.1);
+    overflow: hidden;
+}
+
+.vfx-panel.open {
+    transform: translateX(-50%) translateY(0);
+}
+
+.vfx-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(0, 245, 255, 0.2);
+    background: rgba(0, 245, 255, 0.05);
+}
+
+.vfx-panel-title {
+    color: #00F5FF;
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.vfx-close-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 0, 110, 0.15);
+    border: 1px solid rgba(255, 0, 110, 0.4);
+    border-radius: 50%;
+    color: #FF006E;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    padding: 0;
+    line-height: 1;
+}
+
+.vfx-close-btn:hover {
+    background: rgba(255, 0, 110, 0.3);
+    transform: rotate(90deg);
+}
+
+.vfx-panel-content {
+    padding: 16px 20px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.vfx-group {
+    flex: 1 1 140px;
+    min-width: 140px;
+}
+
+.vfx-group-label {
+    color: #8892b0;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.vfx-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.vfx-effect-btn {
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(220, 240, 255, 0.2);
+    border-radius: 6px;
+    color: #8892b0;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    letter-spacing: 0.3px;
+}
+
+.vfx-effect-btn:hover {
+    background: rgba(0, 245, 255, 0.08);
+    border-color: rgba(0, 245, 255, 0.4);
+    color: #dcefff;
+}
+
+.vfx-effect-btn.active {
+    background: rgba(0, 245, 255, 0.12);
+    border-color: rgba(0, 245, 255, 0.6);
+    color: #00F5FF;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.15);
+}
+
+.vfx-group-presets {
+    flex-basis: 100%;
+    border-top: 1px solid rgba(0, 245, 255, 0.1);
+    padding-top: 12px;
+    margin-top: 4px;
+}
+
+.vfx-group-presets .vfx-buttons {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vfx-preset-btn {
+    padding: 8px 16px;
+    background: rgba(131, 56, 236, 0.12);
+    border: 1px solid rgba(131, 56, 236, 0.45);
+    border-radius: 20px;
+    color: #c084fc;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.5px;
+}
+
+.vfx-preset-btn:hover {
+    background: rgba(131, 56, 236, 0.25);
+    border-color: #c084fc;
+    box-shadow: 0 0 12px rgba(131, 56, 236, 0.3);
+}
+
+.vfx-preset-btn.active {
+    background: rgba(131, 56, 236, 0.3);
+    border-color: #c084fc;
+    color: #fff;
+    box-shadow: 0 0 16px rgba(131, 56, 236, 0.5);
+}
+
+
+/* HUD OVERLAY - FPS & Seed, outside canvas so VFX filters don't affect them */
+.hud-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    pointer-events: none;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hud-seed {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    color: #FFBE0B;
+    text-shadow: 0 0 4px #FFBE0B;
+    line-height: 1.4;
+}
+
+.hud-fps {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+.hud-fps-dot {
+    font-size: 16px;
+    line-height: 1;
+}
+
+#hudFpsText {
+    color: #00F5FF;
+    text-shadow: 0 0 4px #00F5FF;
+}
+
+/* AUTO-HIDE BUTTONS */
+.hamburger-btn,
+.vfx-btn {
+    transition: opacity 0.6s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.ui-hidden .hamburger-btn,
+.ui-hidden .vfx-btn {
+    opacity: 0;
+    pointer-events: none;
+}
+
 .hamburger-btn {
     position: fixed;
     bottom: 20px;
@@ -1954,10 +2208,10 @@ button:hover {
     <div class="side-panel left-panel" id="leftPanel">
         <div class="panel-header">
             <div class="panel-title-wrap">
-                <h2>⚙️ Ustawienia</h2>
+                <h2>⚙️ Settings</h2>
                 <label class="panel-lock-toggle" for="leftPanelLockCheckbox">
                     <input type="checkbox" id="leftPanelLockCheckbox">
-                    <span>Zablokuj</span>
+                    <span>Lock</span>
                 </label>
             </div>
             <button class="close-btn" id="closeLeftPanel">×</button>
@@ -1974,10 +2228,10 @@ button:hover {
     <div class="side-panel right-panel" id="rightPanel">
         <div class="panel-header">
             <div class="panel-title-wrap">
-                <h2>🧬 Mechaniki</h2>
+                <h2>🧬 Mechanics</h2>
                 <label class="panel-lock-toggle" for="rightPanelLockCheckbox">
                     <input type="checkbox" id="rightPanelLockCheckbox">
-                    <span>Zablokuj</span>
+                    <span>Lock</span>
                 </label>
             </div>
             <button class="close-btn" id="closeRightPanel">×</button>
@@ -1989,10 +2243,10 @@ button:hover {
     
     <div class="seed-controls">
         <div class="row">
-            <label for="seedInput">Próbka:</label>
+            <label for="seedInput">Sample:</label>
             <select id="seedSelect">
-                <option value="">-- Wybierz próbkę --</option>
-                <option value="custom">Własna próbka...</option>
+                <option value="">-- Select a sample --</option>
+                <option value="custom">Custom sample...</option>
                 <option value="42">The Answer (42)</option>
                 <option value="144714130">Colorful Colonies</option>
                 <option value="387363571">Colonies and Vortex</option>
@@ -2011,75 +2265,82 @@ button:hover {
                 <option value="423640366">They Are Hungry</option>
                 <option value="19595201">Hungry But Too Slow</option>
             </select>
-            <input type="text" id="seedInput" placeholder="Wpisz numer próbki" style="display: none;">
-            <button id="loadSeedBtn" class="btn-small load-seed-btn" style="display: none;">📥 Załaduj Próbkę</button>
-            <span class="current-seed">Aktualna: <span id="currentSeedDisplay">-</span></span>
+            <input type="text" id="seedInput" placeholder="Enter sample number" style="display: none;">
+            <button id="loadSeedBtn" class="btn-small load-seed-btn" style="display: none;">📥 Load Sample</button>
+            <span class="current-seed">Current: <span id="currentSeedDisplay">-</span></span>
         </div>
         
         <div class="row">
-            <label for="initModeSelect">Starter cząstek:</label>
+            <label for="initModeSelect">Particle starter:</label>
             <select id="initModeSelect">
-                <option value="random">Losowe (domyślne)</option>
+                <option value="random">Random (default)</option>
                 <option value="bigbang">Big Bang Theory 💥</option>
-                <option value="gradient">Mass Gradient > (duże→małe)</option>
+                <option value="gradient">Mass Gradient > (heavy→light)</option>
             </select>
         </div>
         
         <div class="row">
-            <label for="boundaryModeSelect">Granice:</label>
+            <label for="boundaryModeSelect">Boundaries:</label>
             <select id="boundaryModeSelect">
-                <option value="warp">Warp (torus/obwarzanek)</option>
-                <option value="wall">Wall (odbicie od ścian)</option>
-                <option value="endless">Endless (znikają) 💀</option>
+                <option value="warp">Warp (torus/donut)</option>
+                <option value="wall">Wall (bounce off walls)</option>
+                <option value="endless">Endless (disappear) 💀</option>
             </select>
         </div>
         
         <div class="row">
-            <label for="widthInput">Szerokość:</label>
+            <label for="widthInput">Width:</label>
             <input type="number" id="widthInput" value="1000" min="200" max="5000" step="50">
-            <label for="heightInput">Wysokość:</label>
+            <label for="heightInput">Height:</label>
             <input type="number" id="heightInput" value="500" min="150" max="5000" step="50">
         </div>
         
         <div class="row density-group">
-            <label for="densityInput">Ilość cząsteczek:</label>
+            <label for="densityInput">Particle count:</label>
             <input type="range" id="densityInput" min="75" max="3000" value="300" step="25">
             <span class="density-value" id="densityValue">300</span>
         </div>
         
         <div class="row species-group">
-            <label for="speciesInput">Ilość gatunków:</label>
+            <label for="speciesInput">Species count:</label>
             <input type="range" id="speciesInput" min="1" max="15" value="6" step="1">
             <span class="species-value" id="speciesValue">6</span>
         </div>
         
-        <button id="applySpeciesBtn" class="btn-small apply-size-btn">✅ Zastosuj</button>
+        <button id="applySpeciesBtn" class="btn-small apply-size-btn">✅ Apply</button>
         
         <div class="row checkbox-row" style="margin-top: 20px; border-top: 1px solid rgba(131, 56, 236, 0.2); padding-top: 15px;">
             <label>
                 <input type="checkbox" id="fpsDisplayCheckbox" checked>
-                Wyświetl licznik FPS
+                Show FPS counter
             </label>
         </div>
         
         <div class="row checkbox-row">
             <label>
                 <input type="checkbox" id="seedDisplayCheckbox" checked>
-                Wyświetl numer próbki/seed
+                Show seed number
             </label>
         </div>
         
         <div class="row checkbox-row">
             <label>
                 <input type="checkbox" id="lifeScannerDisplayCheckbox" checked>
-                Wyświetl Life Scanner
+                Show Life Scanner
+            </label>
+        </div>
+
+        <div class="row checkbox-row">
+            <label>
+                <input type="checkbox" id="autoHideButtonsCheckbox">
+                Auto-hide buttons after 2s inactivity
             </label>
         </div>
     </div>
 
     <div class="size-controls">
         <div class="row speed-group">
-            <label for="speedInput">Szybkość:</label>
+            <label for="speedInput">Speed:</label>
             <input type="range" id="speedInput" min="0" max="200" value="100" step="10">
             <span class="speed-value" id="speedValue">100%</span>
         </div>
@@ -2087,6 +2348,15 @@ button:hover {
 
     <div class="canvas-container">
         <canvas id="canvas" width="1000" height="500"></canvas>
+
+        <!-- HUD overlay - outside canvas, immune to VFX filters -->
+        <div id="hudOverlay" class="hud-overlay">
+            <div id="hudSeed" class="hud-seed" style="display:none;"></div>
+            <div id="hudFps" class="hud-fps" style="display:none;">
+                <span id="hudFpsDot" class="hud-fps-dot">●</span>
+                <span id="hudFpsText">FPS: 0</span>
+            </div>
+        </div>
         
         <!-- LIFE SCANNER - Floating Panel -->
         <div class="life-scanner-panel" id="lifeScannerPanel">
@@ -2154,10 +2424,93 @@ button:hover {
         </div>
     </div>
 
+    <!-- VISUAL FX BUTTON - bottom center -->
+    <button class="vfx-btn" id="vfxBtn">
+        <span>✨</span>
+        <span class="vfx-btn-label">VISUAL FX</span>
+    </button>
+
+    <!-- VISUAL FX PANEL - slides up from bottom -->
+    <div class="vfx-panel" id="vfxPanel">
+        <div class="vfx-panel-header">
+            <span class="vfx-panel-title">✨ VISUAL FX</span>
+            <button class="vfx-close-btn" id="vfxCloseBtn">×</button>
+        </div>
+        <div class="vfx-panel-content">
+
+            <!-- BACKGROUND effects -->
+            <div class="vfx-group">
+                <div class="vfx-group-label">🎨 BACKGROUND</div>
+                <div class="vfx-buttons">
+                    <button class="vfx-effect-btn active" data-effect="bg" data-value="dark" id="vfxBgDark">🌑 Dark</button>
+                    <button class="vfx-effect-btn" data-effect="bg" data-value="white" id="vfxBgWhite">☀️ White</button>
+                    <button class="vfx-effect-btn" data-effect="bg" data-value="deep-space" id="vfxBgDeepSpace">🌌 Deep Space</button>
+                    <button class="vfx-effect-btn" data-effect="bg" data-value="matrix" id="vfxBgMatrix">💚 Matrix</button>
+                </div>
+            </div>
+
+            <!-- TRAIL effects -->
+            <div class="vfx-group">
+                <div class="vfx-group-label">💫 TRAILS</div>
+                <div class="vfx-buttons">
+                    <button class="vfx-effect-btn active" data-effect="trail" data-value="normal" id="vfxTrailNormal">🔵 Normal</button>
+                    <button class="vfx-effect-btn" data-effect="trail" data-value="long" id="vfxTrailLong">🌠 Long Trails</button>
+                    <button class="vfx-effect-btn" data-effect="trail" data-value="sharp" id="vfxTrailSharp">⚡ Sharp / No Trails</button>
+                    <button class="vfx-effect-btn" data-effect="trail" data-value="ghost" id="vfxTrailGhost">👻 Ghost</button>
+                </div>
+            </div>
+
+            <!-- PARTICLE STYLE effects -->
+            <div class="vfx-group">
+                <div class="vfx-group-label">🔮 PARTICLE STYLE</div>
+                <div class="vfx-buttons">
+                    <button class="vfx-effect-btn active" data-effect="style" data-value="circle" id="vfxStyleCircle">⚪ Circle</button>
+                    <button class="vfx-effect-btn" data-effect="style" data-value="star" id="vfxStyleStar">⭐ Stars</button>
+                    <button class="vfx-effect-btn" data-effect="style" data-value="ring" id="vfxStyleRing">💍 Rings</button>
+                    <button class="vfx-effect-btn" data-effect="style" data-value="glow" id="vfxStyleGlow">🌟 Neon Glow</button>
+                </div>
+            </div>
+
+            <!-- OVERLAY effects -->
+            <div class="vfx-group">
+                <div class="vfx-group-label">🌈 OVERLAY</div>
+                <div class="vfx-buttons">
+                    <button class="vfx-effect-btn active" data-effect="overlay" data-value="none" id="vfxOverlayNone">🚫 None</button>
+                    <button class="vfx-effect-btn" data-effect="overlay" data-value="scanlines" id="vfxOverlayScanlines">📺 Scanlines</button>
+                    <button class="vfx-effect-btn" data-effect="overlay" data-value="vignette" id="vfxOverlayVignette">🔲 Vignette</button>
+                    <button class="vfx-effect-btn" data-effect="overlay" data-value="rainbow" id="vfxOverlayRainbow">🌈 Rainbow Tint</button>
+                </div>
+            </div>
+
+            <!-- FILTER effects -->
+            <div class="vfx-group">
+                <div class="vfx-group-label">🎞️ FILTER</div>
+                <div class="vfx-buttons">
+                    <button class="vfx-effect-btn active" data-effect="filter" data-value="none" id="vfxFilterNone">🚫 None</button>
+                    <button class="vfx-effect-btn" data-effect="filter" data-value="bw" id="vfxFilterBW">⬛ B&amp;W</button>
+                    <button class="vfx-effect-btn" data-effect="filter" data-value="sepia" id="vfxFilterSepia">🟫 Sepia</button>
+                    <button class="vfx-effect-btn" data-effect="filter" data-value="invert" id="vfxFilterInvert">🔄 Invert</button>
+                </div>
+            </div>
+
+            <!-- PRESETS -->
+            <div class="vfx-group vfx-group-presets">
+                <div class="vfx-group-label">🧪 PRESETS</div>
+                <div class="vfx-buttons">
+                    <button class="vfx-preset-btn" id="vfxPresetMicroscope">🔬 Microscope</button>
+                    <button class="vfx-preset-btn" id="vfxPresetNeon">🌃 Neon City</button>
+                    <button class="vfx-preset-btn" id="vfxPresetVoid">🕳️ Deep Void</button>
+                    <button class="vfx-preset-btn" id="vfxPresetReset">↩️ Reset All</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <div class="controls">
         <button id="startStopBtn" class="btn-small apply-size-btn">▶️ Start</button>
         <button id="resetBtn" class="btn-small apply-size-btn">🔄 Reset</button>
-        <button id="randomizeBtn" class="btn-small apply-size-btn">🎲 Losowa próbka</button>
+        <button id="randomizeBtn" class="btn-small apply-size-btn">🎲 Random sample</button>
     </div>
 
 <div class="legend">
@@ -2166,9 +2519,9 @@ button:hover {
         <div class="legend-item mech-attraction">
             <label>
                 <input type="checkbox" id="attractionCheckbox" checked>
-                <span class="text">Przyciąganie/odpychanie kolorów</span>
+                <span class="text">Color attraction/repulsion</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Każda para kolorów ma siłę interakcji z macierzy. Wartości dodatnie przyciągają, ujemne odpychają. Edytuj macierz 6x6 klikając przycisk poniżej!</span>
+                    <span class="tooltip-text">Each color pair has an interaction force from the matrix. Positive values attract, negative values repel. Edit the 6x6 matrix by clicking the button below!</span>
                 </span>
             </label>
             
@@ -2186,7 +2539,7 @@ button:hover {
                 
                 <!-- Macierz interakcji (ukryta domyślnie) -->
                 <div id="interactionMatrixContainer" class="matrix-container" style="display: none;">
-                    <div class="matrix-hint">📊 Wiersz (Y↓) = FROM | Kolumna (X→) = TO | Wartość: -1.0 (odpycha) ... 0.0 (neutral) ... +1.0 (przyciąga)</div>
+                    <div class="matrix-hint">📊 Row (Y↓) = FROM | Column (X→) = TO | Value: -1.0 (repels) ... 0.0 (neutral) ... +1.0 (attracts)</div>
                     <div id="interactionMatrix" class="interaction-matrix">
                         <!-- Wygenerowane dynamicznie przez JS -->
                     </div>
@@ -2194,7 +2547,7 @@ button:hover {
                 
                 <!-- Color Properties Table (ukryta domyślnie) -->
                 <div id="colorPropertiesContainer" class="matrix-container" style="display: none;">
-                    <div class="matrix-hint">🎨 Właściwości każdego koloru z seed (read-only - zmieni się przy nowym seed)</div>
+                    <div class="matrix-hint">🎨 Properties of each color from seed (read-only – changes with new seed)</div>
                     <div id="colorPropertiesTable" class="color-properties-table">
                         <!-- Wygenerowane dynamicznie przez JS -->
                     </div>
@@ -2206,9 +2559,9 @@ button:hover {
             <label>
                 <input type="checkbox" id="chargesCheckbox">
                 <span class="color-dot" style="color: #00F5FF;">●</span>
-                <span class="text">Ładunki magnetyczne (+/-)</span>
+                <span class="text">Magnetic charges (+/-)</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Każdy kolor ma ładunek +1 lub -1. Jednakowe ładunki odpychają się, przeciwne przyciągają (jak magnesy). Tworzy elektryczno-magnetyczne efekty!</span>
+                    <span class="tooltip-text">Each color has a charge of +1 or -1. Like charges repel, opposite charges attract (like magnets). Creates electro-magnetic effects!</span>
                 </span>
             </label>
             
@@ -2226,9 +2579,9 @@ button:hover {
             <label>
                 <input type="checkbox" id="massCheckbox" checked>
                 <span class="color-dot" style="color: #FFBE0B;">●</span>
-                <span class="text">Różne masy wpływają na ruch</span>
+                <span class="text">Different masses affect movement</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Każdy kolor ma masę (0.5-1.5). Cięższe cząstki poruszają się wolniej, lżejsze szybciej. Black może być najcięższy, white najlżejszy (z Mass Hierarchy).</span>
+                    <span class="tooltip-text">Each color has a mass (0.5–1.5). Heavier particles move slower, lighter ones faster. Black can be heaviest, white lightest (with Mass Hierarchy).</span>
                 </span>
             </label>
             
@@ -2246,9 +2599,9 @@ button:hover {
             <label>
                 <input type="checkbox" id="massTransferCheckbox">
                 <span class="color-dot" style="color: #FFBE0B;">●</span>
-                <span class="text">Mass Transfer - przekaz masy przy zderzeniach</span>
+                <span class="text">Mass Transfer - mass exchange on collision</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Podczas kolizji (<5px) cząstki przekazują sobie masę. Cięższe oddają, lżejsze zyskują. Transfer Rate kontroluje tempo wyrównywania mas. Tworzy dynamiczną ewolucję!</span>
+                    <span class="tooltip-text">During collisions (&lt;5px) particles exchange mass. Heavier ones give away mass, lighter ones gain it. Transfer Rate controls the equalization speed. Creates dynamic evolution!</span>
                 </span>
             </label>
             
@@ -2266,9 +2619,9 @@ button:hover {
             <label>
                 <input type="checkbox" id="massHierarchyCheckbox">
                 <span class="color-dot" style="color: #888888;">●</span>
-                <span class="text">Mass Hierarchy - black najcięższy, white najlżejszy</span>
+                <span class="text">Mass Hierarchy - black heaviest, white lightest</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Automatycznie przypisuje masy na podstawie jasności koloru. Czarne = najcięższe (1.5-2.0), białe = najlżejsze (0.3-0.5). Tworzy naturalne hierarchie!</span>
+                    <span class="tooltip-text">Automatically assigns masses based on color brightness. Black = heaviest (1.5–2.0), white = lightest (0.3–0.5). Creates natural hierarchies!</span>
                 </span>
             </label>
             
@@ -2286,9 +2639,9 @@ button:hover {
             <label>
                 <input type="checkbox" id="mixingCheckbox">
                 <span class="color-dot" style="color: #8338EC;">●</span>
-                <span class="text">Mieszanie kolorów przy zderzeniach</span>
+                <span class="text">Color mixing on collision</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Podczas bliskiego kontaktu (<8px) kolory mogą się mieszać tworząc nowe odcienie. Wyższy Blend Rate = szybsze mieszanie!</span>
+                    <span class="tooltip-text">During close contact (&lt;8px) colors can mix, creating new shades. Higher Blend Rate = faster mixing!</span>
                 </span>
             </label>
             
@@ -2305,9 +2658,9 @@ button:hover {
         <div class="legend-item mech-vortex">
             <label>
                 <input type="checkbox" id="vortexCheckbox">
-                <span class="text">Vortex - siła rotacyjna</span>
+                <span class="text">Vortex - rotational force</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Każdy kolor ma vorticness (0.0-1.0) tworzący efekty rotacyjne. Cząstki wirują wokół siebie tworząc spirale i wiry. Wyższe vorticness = silniejsze wiry!</span>
+                    <span class="tooltip-text">Each color has a vorticness (0.0–1.0) creating rotational effects. Particles swirl around each other forming spirals and vortices. Higher vorticness = stronger swirls!</span>
                 </span>
             </label>
             
@@ -2324,9 +2677,9 @@ button:hover {
         <div class="legend-item mech-swarm">
             <label>
                 <input type="checkbox" id="swarmCheckbox">
-                <span class="text">Swarm - grupowanie tego samego koloru</span>
+                <span class="text">Swarm - same-color grouping</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Cząstki tego samego koloru przyciągają się do centrum masy swojej grupy. Tworzy zachowania stadne, kolonie i klastry. Range określa zasięg grupowania!</span>
+                    <span class="tooltip-text">Particles of the same color are attracted to the center of mass of their group. Creates flocking behavior, colonies and clusters. Range controls the grouping radius!</span>
                 </span>
             </label>
             
@@ -2348,21 +2701,21 @@ button:hover {
         <div class="legend-item mech-viscosity">
             <label>
                 <input type="checkbox" id="viscosityCheckbox" checked>
-                <span class="text">💧 Viscosity - lepkość przestrzeni</span>
+                <span class="text">💧 Viscosity - space resistance</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Określa opór przestrzeni. 0.90 = energetyczne ruchy, długie trajektorie. 0.98 = płynne, realistyczne. 0.99 = lepkie, wolne, "underwater". Wyłączone = cząstki bez oporu!</span>
+                    <span class="tooltip-text">Defines the resistance of space. 0.90 = energetic movement, long trajectories. 0.98 = smooth, realistic. 0.99 = sticky, slow, "underwater". Disabled = particles with no resistance!</span>
                 </span>
             </label>
             
             <!-- Opcje viscosity -->
             <div class="mech-options" id="viscosityOptions" style="display: block;">
                 <div class="option-row">
-                    <label>Lepkość:</label>
+                    <label>Viscosity:</label>
                     <input type="range" id="viscosityInput" min="90" max="99" value="98" step="1">
                     <span class="option-value" id="viscosityValueSpan">0.98</span>
                 </div>
                 <div class="option-hint">
-                    0.90 = energetyczne | 0.98 = płynne | 0.99 = lepkie
+                    0.90 = energetic | 0.98 = smooth | 0.99 = sticky
                 </div>
             </div>
         </div>
@@ -2370,9 +2723,9 @@ button:hover {
         <div class="legend-item mech-intelligent">
             <label>
                 <input type="checkbox" id="intelligentCheckbox">
-                <span class="text">🧠 Intelligent Life - cząstki widzą przyszłość</span>
+                <span class="text">🧠 Intelligent Life - particles see the future</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Time-Loop Particles! Cząstki symulują N kroków w przyszłość i unikają samych siebie. Prawy przycisk myszy dodaje inteligentną cząstkę. Future Frames = jak daleko w przyszłość!</span>
+                    <span class="tooltip-text">Time-Loop Particles! Particles simulate N steps into the future and avoid themselves. Right-click adds an intelligent particle. Future Frames = how far ahead to look!</span>
                 </span>
             </label>
             
@@ -2390,7 +2743,7 @@ button:hover {
                     </label>
                 </div>
                 <div class="option-hint">
-                    💡 <span id="intelligentCount">0</span> cząstek | 🖱️ Prawy przycisk = dodaj
+                    💡 <span id="intelligentCount">0</span> particles | 🖱️ Right-click = add
                 </div>
             </div>
         </div>
@@ -2399,9 +2752,9 @@ button:hover {
             <label>
                 <input type="checkbox" id="bondsCheckbox">
                 <span class="color-dot" style="color: #FFBE0B;">●</span>
-                <span class="text">🔗 Molecular Bonds - tworzenie wiązań</span>
+                <span class="text">🔗 Molecular Bonds - forming bonds</span>
                 <span class="tooltip-icon">?
-                    <span class="tooltip-text">Cząstki RÓŻNYCH kolorów które są stabilne obok siebie przez określony czas tworzą trwałe wiązania. Identyczne kolory NIE wiążą się! Max Bonds: 3-5 | Bond Length: stała długość wiązania!</span>
+                    <span class="tooltip-text">Particles of DIFFERENT colors that are stable next to each other for a set time form permanent bonds. Same colors do NOT bond! Max Bonds: 3–5 | Bond Length: fixed bond distance!</span>
                 </span>
             </label>
             
@@ -2428,7 +2781,7 @@ button:hover {
                     <span class="option-value" id="bondLengthValue">10px</span>
                 </div>
                 <div class="option-hint">
-                    🔗 <span id="bondsCount">0</span> aktywnych wiązań
+                    🔗 <span id="bondsCount">0</span> active bonds
                 </div>
             </div>
         </div>
@@ -3269,17 +3622,58 @@ button:hover {
 
             draw(ctx) {
                 const drawRadius = this.colorData.mass * 2.0;
-                
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.colorData.hex;
-                
-                ctx.fillStyle = this.colorData.hex;
-                ctx.globalAlpha = this.alpha;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, drawRadius, 0, Math.PI * 2);
-                ctx.fill();
+                const color = this.colorData.hex;
 
-                ctx.shadowBlur = 0;
+                ctx.globalAlpha = this.alpha;
+
+                if (VFX_PARTICLE_STYLE === 'glow') {
+                    ctx.shadowBlur = 30;
+                    ctx.shadowColor = color;
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, drawRadius * 1.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                } else if (VFX_PARTICLE_STYLE === 'ring') {
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = color;
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, drawRadius + 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                } else if (VFX_PARTICLE_STYLE === 'star') {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = color;
+                    ctx.fillStyle = color;
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.beginPath();
+                    for (let i = 0; i < 5; i++) {
+                        const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+                        const r = drawRadius * 1.8;
+                        const ir = drawRadius * 0.7;
+                        const iAngle = ((i * 4 + 2) * Math.PI) / 5 - Math.PI / 2;
+                        if (i === 0) ctx.moveTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                        else ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                        ctx.lineTo(Math.cos(iAngle) * ir, Math.sin(iAngle) * ir);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                    ctx.shadowBlur = 0;
+                } else {
+                    // Default circle
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = color;
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, drawRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+
                 ctx.globalAlpha = 1;
             }
         }
@@ -3778,48 +4172,31 @@ button:hover {
         }
 
         function drawStatusAndFPS() {
-            let yPos = 20;
-            
-            // Rysuj numer próbki/seed
-            if (enableSeedDisplay) {
-                ctx.fillStyle = '#FFBE0B';
-                ctx.font = 'bold 14px Orbitron, Arial, sans-serif';
-                ctx.shadowBlur = 2.5;
-                ctx.shadowColor = '#FFBE0B';
-                
-                const seedText = CURRENT_SEED !== null ? `Seed: ${CURRENT_SEED}` : 'Seed: Domyślne';
-                ctx.fillText(seedText, 10, yPos);
-                ctx.shadowBlur = 0;
-                yPos += 18;
-            }
-            
-            // Rysuj FPS
-            if (enableFpsDisplay) {
-                let fpsColor;
-                if (fps <= 16) {
-                    fpsColor = '#FF006E';
-                } else if (fps <= 23) {
-                    fpsColor = '#FFBE0B';
+            // Seed
+            const hudSeed = document.getElementById('hudSeed');
+            if (hudSeed) {
+                if (enableSeedDisplay) {
+                    const seedText = CURRENT_SEED !== null ? `Seed: ${CURRENT_SEED}` : 'Seed: Default';
+                    hudSeed.textContent = seedText;
+                    hudSeed.style.display = 'block';
                 } else {
-                    fpsColor = '#00FF00';
+                    hudSeed.style.display = 'none';
                 }
-                
-                ctx.fillStyle = fpsColor;
-                ctx.font = 'bold 20px Orbitron, Arial, sans-serif';
-                ctx.shadowBlur = 5;
-                ctx.shadowColor = fpsColor;
-                ctx.fillText('●', 10, yPos);
-                ctx.shadowBlur = 0;
+            }
 
-                ctx.fillStyle = '#00F5FF';
-                ctx.font = 'bold 14px Orbitron, Arial, sans-serif';
-                ctx.shadowBlur = 2.5;
-                ctx.shadowColor = '#00F5FF';
-                
-                let statusText = `FPS: ${fps}`;
-                
-                ctx.fillText(statusText, 32, yPos);
-                ctx.shadowBlur = 0;
+            // FPS
+            const hudFps = document.getElementById('hudFps');
+            const hudFpsDot = document.getElementById('hudFpsDot');
+            const hudFpsText = document.getElementById('hudFpsText');
+            if (hudFps) {
+                if (enableFpsDisplay) {
+                    let fpsColor = fps <= 16 ? '#FF006E' : fps <= 23 ? '#FFBE0B' : '#00FF00';
+                    if (hudFpsDot) hudFpsDot.style.color = fpsColor;
+                    if (hudFpsText) hudFpsText.textContent = `FPS: ${fps}`;
+                    hudFps.style.display = 'flex';
+                } else {
+                    hudFps.style.display = 'none';
+                }
             }
         }
 
@@ -3833,7 +4210,8 @@ button:hover {
             }
             
             // ZAWSZE czyść canvas (nawet jeśli symulacja zatrzymana)
-            ctx.fillStyle = 'rgba(10, 10, 20, 0.15)';
+            // VFX: background color/alpha is controlled by VFX system
+            ctx.fillStyle = VFX_BG_COLOR;
             ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
             // Tylko jeśli symulacja jest uruchomiona ORAZ szybkość > 0
@@ -3932,6 +4310,9 @@ button:hover {
 
             // ZAWSZE rysuj wskaźnik statusu (nawet jeśli symulacja zatrzymana)
             drawStatusAndFPS();
+            
+            // VFX: draw overlay effects on top of everything
+            drawVfxOverlay();
 
             if (mousePressed) {
                 ctx.strokeStyle = 'rgba(0, 245, 255, 0.5)';
@@ -4043,7 +4424,7 @@ button:hover {
                 COLORS = JSON.parse(JSON.stringify(DEFAULT_COLORS));
                 INTERACTION_MATRIX = JSON.parse(JSON.stringify(DEFAULT_INTERACTION_MATRIX));
                 CURRENT_SEED = null;
-                currentSeedDisplay.textContent = 'Domyślne';
+                currentSeedDisplay.textContent = 'Default';
                 
                 attractionCheckbox.checked = true;
                 chargesCheckbox.checked = false;
@@ -4104,7 +4485,7 @@ button:hover {
         function loadSeedWithValue(seedValue) {
             const seed = parseInt(seedValue);
             if (isNaN(seed)) {
-                alert('Próbka musi być liczbą całkowitą');
+                alert('Sample must be an integer');
                 return false;
             }
             
@@ -4203,7 +4584,7 @@ button:hover {
         function loadSeed() {
             const seedValue = seedInput.value.trim();
             if (!seedValue) {
-                alert('Proszę wpisać numer próbki');
+                alert('Please enter a sample number');
                 return;
             }
             
@@ -4244,7 +4625,7 @@ button:hover {
             const newHeight = parseInt(heightInput.value);
             
             if (newWidth < 200 || newWidth > 5000 || newHeight < 150 || newHeight > 5000) {
-                alert('Szerokość: 200-5000, Wysokość: 150-5000');
+                alert('Width: 200-5000, Height: 150-5000');
                 return;
             }
             
@@ -4540,6 +4921,49 @@ button:hover {
                 }
             });
         }
+
+        // AUTO-HIDE BUTTONS
+        let autoHideEnabled = false;
+        let autoHideTimer = null;
+
+        function showUiButtons() {
+            document.body.classList.remove('ui-hidden');
+        }
+
+        function scheduleHide() {
+            clearTimeout(autoHideTimer);
+            showUiButtons();
+            autoHideTimer = setTimeout(() => {
+                // Don't hide if any panel is open
+                const leftOpen = document.getElementById('leftPanel').classList.contains('open');
+                const rightOpen = document.getElementById('rightPanel').classList.contains('open');
+                const vfxOpen = document.getElementById('vfxPanel').classList.contains('open');
+                if (!leftOpen && !rightOpen && !vfxOpen) {
+                    document.body.classList.add('ui-hidden');
+                }
+            }, 2000);
+        }
+
+        const autoHideCheckbox = document.getElementById('autoHideButtonsCheckbox');
+        if (autoHideCheckbox) {
+            autoHideCheckbox.addEventListener('change', (e) => {
+                autoHideEnabled = e.target.checked;
+                if (!autoHideEnabled) {
+                    clearTimeout(autoHideTimer);
+                    showUiButtons();
+                } else {
+                    scheduleHide();
+                }
+            });
+        }
+
+        document.addEventListener('mousemove', () => {
+            if (autoHideEnabled) scheduleHide();
+        });
+
+        document.addEventListener('mousedown', () => {
+            if (autoHideEnabled) scheduleHide();
+        });
         
         bondFormationTime.addEventListener('input', (e) => {
             BOND_FORMATION_TIME = parseInt(e.target.value);
@@ -4719,34 +5143,34 @@ button:hover {
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
             
-            // Prawy przycisk (button === 2) - dodaj inteligentną cząstkę
+            // Right button (button === 2) - add intelligent particle
             if (e.button === 2) {
                 e.preventDefault();  // Prevent context menu
                 
-                // Sprawdź czy Intelligent Life jest włączone
+                // Check if Intelligent Life is enabled
                 if (!intelligentCheckbox.checked) {
-                    console.log('⚠️ Włącz "Intelligent Life" aby dodawać inteligentne cząstki');
+                    console.log('⚠️ Enable "Intelligent Life" to add intelligent particles');
                     return false;
                 }
                 
-                // Generuj unikalny kolor dla inteligentnej cząstki
+                // Generate unique color for intelligent particle
                 const hue = (nextIntelligentColor * 137.5) % 360;  // Golden angle
                 const intelligentColor = `hsl(${hue}, 80%, 60%)`;
                 
-                // Utwórz inteligentną cząstkę
+                // Create intelligent particle
                 const intel = new IntelligentParticle(clickX, clickY, intelligentColor);
                 particles.push(intel);
                 intelligentParticles.push(intel);
                 
-                // Aktualizuj licznik
+                // Update counter
                 document.getElementById('intelligentCount').textContent = intelligentParticles.length;
                 
-                console.log(`🧠 Inteligentna cząstka #${intelligentParticles.length} dodana na (${Math.floor(clickX)}, ${Math.floor(clickY)})`);
+                console.log(`🧠 Intelligent particle #${intelligentParticles.length} added at (${Math.floor(clickX)}, ${Math.floor(clickY)})`);
                 
                 return false;
             }
             
-            // Lewy przycisk - normalnie (przyciąganie)
+            // Left button - normal (attraction)
             mousePressed = true;
             mouseX = clickX;
             mouseY = clickY;
@@ -4938,6 +5362,202 @@ button:hover {
             });
         }
 
+        // ═══════════════════════════════════════════
+        // VISUAL FX SYSTEM
+        // ═══════════════════════════════════════════
+
+        // VFX State
+        let VFX_BG_PRESET = 'dark';
+        let VFX_TRAIL_PRESET = 'normal';
+        let VFX_PARTICLE_STYLE = 'circle';
+        let VFX_OVERLAY = 'none';
+        let VFX_FILTER = 'none';
+
+        // BG color/alpha derived from preset (recalculated when preset changes)
+        let VFX_BG_COLOR = 'rgba(10, 10, 20, 0.15)';
+
+        // Rainbow tint phase
+        let vfxRainbowPhase = 0;
+
+        function applyVfxBgPreset(preset) {
+            VFX_BG_PRESET = preset;
+            switch (preset) {
+                case 'dark':       VFX_BG_COLOR = 'rgba(10, 10, 20, 0.15)'; break;
+                case 'white':      VFX_BG_COLOR = 'rgba(255, 255, 255, 0.25)'; break;
+                case 'deep-space': VFX_BG_COLOR = 'rgba(0, 0, 8, 0.18)'; break;
+                case 'matrix':     VFX_BG_COLOR = 'rgba(0, 10, 0, 0.18)'; break;
+            }
+        }
+
+        function applyVfxTrailPreset(preset) {
+            VFX_TRAIL_PRESET = preset;
+            switch (preset) {
+                case 'normal': VFX_BG_COLOR = getBgColorForPreset(VFX_BG_PRESET, 0.15); break;
+                case 'long':   VFX_BG_COLOR = getBgColorForPreset(VFX_BG_PRESET, 0.04); break;
+                case 'sharp':  VFX_BG_COLOR = getBgColorForPreset(VFX_BG_PRESET, 1.0);  break;
+                case 'ghost':  VFX_BG_COLOR = getBgColorForPreset(VFX_BG_PRESET, 0.008); break;
+            }
+        }
+
+        function getBgColorForPreset(bgPreset, alpha) {
+            switch (bgPreset) {
+                case 'dark':       return `rgba(10, 10, 20, ${alpha})`;
+                case 'white':      return `rgba(255, 255, 255, ${alpha})`;
+                case 'deep-space': return `rgba(0, 0, 8, ${alpha})`;
+                case 'matrix':     return `rgba(0, 10, 0, ${alpha})`;
+                default:           return `rgba(10, 10, 20, ${alpha})`;
+            }
+        }
+
+        function getTrailAlpha() {
+            switch (VFX_TRAIL_PRESET) {
+                case 'normal': return 0.15;
+                case 'long':   return 0.04;
+                case 'sharp':  return 1.0;
+                case 'ghost':  return 0.008;
+                default:       return 0.15;
+            }
+        }
+
+        function syncVfxBgColor() {
+            VFX_BG_COLOR = getBgColorForPreset(VFX_BG_PRESET, getTrailAlpha());
+        }
+
+        function drawVfxOverlay() {
+            // CSS filter on canvas element (B&W, sepia, invert)
+            if (VFX_FILTER === 'bw') {
+                canvas.style.filter = 'grayscale(1)';
+            } else if (VFX_FILTER === 'sepia') {
+                canvas.style.filter = 'sepia(0.85)';
+            } else if (VFX_FILTER === 'invert') {
+                canvas.style.filter = 'invert(1)';
+            } else {
+                canvas.style.filter = 'none';
+            }
+
+            if (VFX_OVERLAY === 'none') return;
+
+            if (VFX_OVERLAY === 'scanlines') {
+                ctx.globalAlpha = 0.08;
+                ctx.fillStyle = '#000000';
+                for (let y = 0; y < HEIGHT; y += 4) {
+                    ctx.fillRect(0, y, WIDTH, 2);
+                }
+                ctx.globalAlpha = 1;
+            }
+            else if (VFX_OVERLAY === 'vignette') {
+                const grad = ctx.createRadialGradient(
+                    WIDTH / 2, HEIGHT / 2, HEIGHT * 0.3,
+                    WIDTH / 2, HEIGHT / 2, HEIGHT * 0.85
+                );
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.65)');
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+            }
+            else if (VFX_OVERLAY === 'rainbow') {
+                vfxRainbowPhase = (vfxRainbowPhase + 0.5) % 360;
+                ctx.globalAlpha = 0.07;
+                ctx.fillStyle = `hsl(${vfxRainbowPhase}, 100%, 60%)`;
+                ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // VFX Panel toggle logic
+        const vfxBtn = document.getElementById('vfxBtn');
+        const vfxPanel = document.getElementById('vfxPanel');
+        const vfxCloseBtn = document.getElementById('vfxCloseBtn');
+
+        vfxBtn.addEventListener('click', () => {
+            const isOpen = vfxPanel.classList.contains('open');
+            if (isOpen) {
+                vfxPanel.classList.remove('open');
+                vfxBtn.classList.remove('open');
+            } else {
+                vfxPanel.classList.add('open');
+                vfxBtn.classList.add('open');
+            }
+        });
+
+        vfxCloseBtn.addEventListener('click', () => {
+            vfxPanel.classList.remove('open');
+            vfxBtn.classList.remove('open');
+        });
+
+        // VFX effect button clicks
+        document.querySelectorAll('.vfx-effect-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const effect = btn.dataset.effect;
+                const value = btn.dataset.value;
+
+                // Deactivate siblings
+                document.querySelectorAll(`.vfx-effect-btn[data-effect="${effect}"]`).forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                if (effect === 'bg') {
+                    applyVfxBgPreset(value);
+                    syncVfxBgColor();
+                    // Clear canvas immediately for instant feedback
+                    ctx.fillStyle = getBgColorForPreset(value, 1.0);
+                    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+                } else if (effect === 'trail') {
+                    applyVfxTrailPreset(value);
+                    syncVfxBgColor();
+                } else if (effect === 'style') {
+                    VFX_PARTICLE_STYLE = value;
+                } else if (effect === 'overlay') {
+                    VFX_OVERLAY = value;
+                } else if (effect === 'filter') {
+                    VFX_FILTER = value;
+                }
+            });
+        });
+
+        // Helper: set a VFX button active by effect+value
+        function setVfxActive(effect, value) {
+            document.querySelectorAll(`.vfx-effect-btn[data-effect="${effect}"]`).forEach(b => b.classList.remove('active'));
+            const btn = document.querySelector(`.vfx-effect-btn[data-effect="${effect}"][data-value="${value}"]`);
+            if (btn) btn.classList.add('active');
+        }
+
+        // Helper: apply a full preset
+        function applyVfxPreset(bg, trail, style, overlay, filter) {
+            applyVfxBgPreset(bg);     setVfxActive('bg', bg);
+            applyVfxTrailPreset(trail); setVfxActive('trail', trail);
+            VFX_PARTICLE_STYLE = style; setVfxActive('style', style);
+            VFX_OVERLAY = overlay;     setVfxActive('overlay', overlay);
+            VFX_FILTER = filter;       setVfxActive('filter', filter);
+            syncVfxBgColor();
+            ctx.fillStyle = getBgColorForPreset(bg, 1.0);
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+        }
+
+        // Preset buttons
+        document.getElementById('vfxPresetMicroscope').addEventListener('click', () => {
+            applyVfxPreset('white', 'sharp', 'ring', 'vignette', 'bw');
+            document.querySelectorAll('.vfx-preset-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('vfxPresetMicroscope').classList.add('active');
+        });
+
+        document.getElementById('vfxPresetNeon').addEventListener('click', () => {
+            applyVfxPreset('dark', 'long', 'glow', 'vignette', 'none');
+            document.querySelectorAll('.vfx-preset-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('vfxPresetNeon').classList.add('active');
+        });
+
+        document.getElementById('vfxPresetVoid').addEventListener('click', () => {
+            applyVfxPreset('deep-space', 'ghost', 'circle', 'none', 'none');
+            document.querySelectorAll('.vfx-preset-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('vfxPresetVoid').classList.add('active');
+        });
+
+        document.getElementById('vfxPresetReset').addEventListener('click', () => {
+            applyVfxPreset('dark', 'normal', 'circle', 'none', 'none');
+            document.querySelectorAll('.vfx-preset-btn').forEach(b => b.classList.remove('active'));
+        });
+
         async function init() {
             try {
                 await document.fonts.ready;
@@ -4946,7 +5566,7 @@ button:hover {
             initParticles();
             ctx.fillStyle = '#0a0a14';
             ctx.fillRect(0, 0, WIDTH, HEIGHT);
-            currentSeedDisplay.textContent = 'Domyślne';
+            currentSeedDisplay.textContent = 'Default';
             
             updateButtonState();
             drawStatusAndFPS();
