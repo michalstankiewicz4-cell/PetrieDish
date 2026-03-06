@@ -2958,7 +2958,8 @@ button:hover {
             <div class="matrix-hint">
                 Row (Y↓) = FROM | Column (X→) = TO | Value: -1.0 (repels) ... 0.0 (neutral) ... +1.0 (attracts)
                 <button id="randomizeMatrixBtn" class="edit-matrix-btn" style="margin-left: 12px; padding: 4px 12px; font-size: 11px;">🎲 Randomize</button>
-                <button id="gradientMatrixBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient</button>
+                <button id="gradientMatrixBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient →</button>
+                <button id="gradientVMatrixBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient ↓</button>
             </div>
             <div id="interactionMatrix" class="interaction-matrix"></div>
         </div>
@@ -5785,6 +5786,20 @@ button:hover {
             generateInteractionMatrixUI();
         }
         document.getElementById('gradientMatrixBtn').addEventListener('click', gradientInteractionMatrix);
+
+        function gradientVInteractionMatrix() {
+            const colorNames = COLORS.slice(0, SPECIES_COUNT).map(c => c.name);
+            const n = colorNames.length;
+            colorNames.forEach((from, ri) => {
+                if (!INTERACTION_MATRIX[from]) INTERACTION_MATRIX[from] = {};
+                colorNames.forEach((to, ci) => {
+                    const val = n > 1 ? 1 - (2 * ci / (n - 1)) : 0;
+                    INTERACTION_MATRIX[from][to] = Math.round(val * 10) / 10;
+                });
+            });
+            generateInteractionMatrixUI();
+        }
+        document.getElementById('gradientVMatrixBtn').addEventListener('click', gradientVInteractionMatrix);
 
         // COLOR PROPERTIES TABLE GENERATOR
         function generateColorPropertiesTable() {
