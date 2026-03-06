@@ -2678,7 +2678,7 @@ button:hover {
     <div class="legend-content">
 
         <div class="mech-group">
-            <div class="mech-group-label"><span class="section-icon">⚛️</span> Particle</div>
+            <div class="mech-group-label"><span class="section-icon">🔗</span> Dependencies</div>
 
         <div class="legend-item mech-attraction">
             <label>
@@ -2833,6 +2833,55 @@ button:hover {
             <div class="mech-options" id="initialSpeedOptions" style="display: none;">
                 <div class="option-row">
                     <button id="editSpeedBtn" class="edit-matrix-btn">🚀 Edit Initial Speeds</button>
+                </div>
+            </div>
+        </div>
+
+        </div>
+
+        <div class="mech-group">
+            <div class="mech-group-label"><span class="section-icon">⚙️</span> Properties</div>
+
+        <div class="legend-item mech-initial-speed">
+            <label>
+                <span class="text">🚀 Initial Speed per Color</span>
+            </label>
+            <div class="mech-options" style="display: block;">
+                <div class="option-row">
+                    <button id="editSpeedBtn2" class="edit-matrix-btn">🚀 Edit Initial Speeds</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend-item mech-mass">
+            <label>
+                <span class="text">⚖️ Mass per Color</span>
+            </label>
+            <div class="mech-options" style="display: block;">
+                <div class="option-row">
+                    <button id="editMassBtn" class="edit-matrix-btn">⚖️ Edit Mass per Color</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend-item mech-charges">
+            <label>
+                <span class="text">⚡ Charge per Color</span>
+            </label>
+            <div class="mech-options" style="display: block;">
+                <div class="option-row">
+                    <button id="editChargeBtn" class="edit-matrix-btn">⚡ Edit Charge per Color</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend-item mech-attraction">
+            <label>
+                <span class="text">📎 Interaction Range per Color</span>
+            </label>
+            <div class="mech-options" style="display: block;">
+                <div class="option-row">
+                    <button id="editRangeBtn" class="edit-matrix-btn">📎 Edit Interaction Range</button>
                 </div>
             </div>
         </div>
@@ -3005,6 +3054,51 @@ button:hover {
                 <button id="speedGradientBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient</button>
             </div>
             <div id="speedTable" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 0;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Mass per Color -->
+<div id="massModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="massModalClose">✕</button>
+        <div class="modal-title">⚖️ Mass per Color</div>
+        <div class="matrix-container">
+            <div class="matrix-hint">Set mass for each color (0.3 = light/fast, 1.0 = default, 2.0 = heavy/slow). Changes apply immediately!
+                <button id="massRandomBtn" class="edit-matrix-btn" style="margin-left: 12px; padding: 4px 12px; font-size: 11px;">🎲 Randomize</button>
+                <button id="massGradientBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient</button>
+            </div>
+            <div id="massTable" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 0;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Charge per Color -->
+<div id="chargeModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="chargeModalClose">✕</button>
+        <div class="modal-title">⚡ Charge per Color</div>
+        <div class="matrix-container">
+            <div class="matrix-hint">Set charge for each color (-1 = negative, 0 = neutral, +1 = positive). Like charges repel, opposite attract!
+                <button id="chargeRandomBtn" class="edit-matrix-btn" style="margin-left: 12px; padding: 4px 12px; font-size: 11px;">🎲 Randomize</button>
+                <button id="chargeGradientBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient</button>
+            </div>
+            <div id="chargeTable" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 0;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Interaction Range per Color -->
+<div id="rangeModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="rangeModalClose">✕</button>
+        <div class="modal-title">📎 Interaction Range per Color</div>
+        <div class="matrix-container">
+            <div class="matrix-hint">Set interaction range for each color (10–200 px). Larger = wider area of influence!
+                <button id="rangeRandomBtn" class="edit-matrix-btn" style="margin-left: 12px; padding: 4px 12px; font-size: 11px;">🎲 Randomize</button>
+                <button id="rangeGradientBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient</button>
+            </div>
+            <div id="rangeTable" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 0;"></div>
         </div>
     </div>
 </div>
@@ -5371,6 +5465,10 @@ button:hover {
             generateSpeedTableUI();
             speedModal.classList.add('active');
         });
+        document.getElementById('editSpeedBtn2').addEventListener('click', () => {
+            generateSpeedTableUI();
+            speedModal.classList.add('active');
+        });
         speedModalClose.addEventListener('click', () => speedModal.classList.remove('active'));
         speedModal.addEventListener('click', (e) => { if (e.target === speedModal) speedModal.classList.remove('active'); });
 
@@ -5396,6 +5494,183 @@ button:hover {
                 particles.forEach(p => { if (p.colorData === color) { p.vx *= scale; p.vy *= scale; } });
             }
             generateSpeedTableUI();
+        });
+
+        // Mass per Color modal
+        const massModal = document.getElementById('massModal');
+        const massModalClose = document.getElementById('massModalClose');
+        const massTableEl = document.getElementById('massTable');
+
+        function generateMassTableUI() {
+            massTableEl.innerHTML = '';
+            COLORS.slice(0, SPECIES_COUNT).forEach(color => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:10px;';
+                const label = document.createElement('span');
+                label.style.cssText = 'min-width:70px; font-weight:700; font-size:12px; color:' + color.hex + ';';
+                label.textContent = color.name.toUpperCase();
+                const slider = document.createElement('input');
+                slider.type = 'range'; slider.min = '30'; slider.max = '200'; slider.step = '5';
+                slider.value = Math.round(color.mass * 100);
+                slider.style.cssText = 'flex:1; height:4px;';
+                const val = document.createElement('span');
+                val.style.cssText = 'min-width:40px; font-size:11px; color:#8892b0; text-align:right;';
+                val.textContent = color.mass.toFixed(2);
+                slider.addEventListener('input', () => {
+                    const newMass = parseInt(slider.value) / 100;
+                    color.mass = newMass;
+                    val.textContent = newMass.toFixed(2);
+                    particles.forEach(p => { if (p.colorData === color) p._mass = newMass; });
+                });
+                row.appendChild(label);
+                row.appendChild(slider);
+                row.appendChild(val);
+                massTableEl.appendChild(row);
+            });
+        }
+
+        document.getElementById('editMassBtn').addEventListener('click', () => {
+            generateMassTableUI();
+            massModal.classList.add('active');
+        });
+        massModalClose.addEventListener('click', () => massModal.classList.remove('active'));
+        massModal.addEventListener('click', (e) => { if (e.target === massModal) massModal.classList.remove('active'); });
+
+        document.getElementById('massRandomBtn').addEventListener('click', () => {
+            COLORS.slice(0, SPECIES_COUNT).forEach(color => {
+                const newMass = Math.round((0.3 + Math.random() * 1.7) * 20) / 20;
+                color.mass = newMass;
+                particles.forEach(p => { if (p.colorData === color) p._mass = newMass; });
+            });
+            generateMassTableUI();
+        });
+        document.getElementById('massGradientBtn').addEventListener('click', () => {
+            const count = Math.min(SPECIES_COUNT, COLORS.length);
+            for (let i = 0; i < count; i++) {
+                const color = COLORS[i];
+                const newMass = count > 1 ? Math.round((0.3 + (1.7 * i / (count - 1))) * 100) / 100 : 1.0;
+                color.mass = newMass;
+                particles.forEach(p => { if (p.colorData === color) p._mass = newMass; });
+            }
+            generateMassTableUI();
+        });
+
+        // Charge per Color modal
+        const chargeModal = document.getElementById('chargeModal');
+        const chargeModalClose = document.getElementById('chargeModalClose');
+        const chargeTableEl = document.getElementById('chargeTable');
+
+        function generateChargeTableUI() {
+            chargeTableEl.innerHTML = '';
+            COLORS.slice(0, SPECIES_COUNT).forEach(color => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:10px;';
+                const label = document.createElement('span');
+                label.style.cssText = 'min-width:70px; font-weight:700; font-size:12px; color:' + color.hex + ';';
+                label.textContent = color.name.toUpperCase();
+                const slider = document.createElement('input');
+                slider.type = 'range'; slider.min = '-100'; slider.max = '100'; slider.step = '10';
+                slider.value = Math.round(color.charge * 100);
+                slider.style.cssText = 'flex:1; height:4px;';
+                const val = document.createElement('span');
+                val.style.cssText = 'min-width:40px; font-size:11px; color:#8892b0; text-align:right;';
+                val.textContent = color.charge > 0 ? '+' + color.charge.toFixed(1) : color.charge.toFixed(1);
+                slider.addEventListener('input', () => {
+                    const newCharge = parseInt(slider.value) / 100;
+                    color.charge = newCharge;
+                    val.textContent = newCharge > 0 ? '+' + newCharge.toFixed(1) : newCharge.toFixed(1);
+                    particles.forEach(p => { if (p.colorData === color) p._charge = newCharge; });
+                });
+                row.appendChild(label);
+                row.appendChild(slider);
+                row.appendChild(val);
+                chargeTableEl.appendChild(row);
+            });
+        }
+
+        document.getElementById('editChargeBtn').addEventListener('click', () => {
+            generateChargeTableUI();
+            chargeModal.classList.add('active');
+        });
+        chargeModalClose.addEventListener('click', () => chargeModal.classList.remove('active'));
+        chargeModal.addEventListener('click', (e) => { if (e.target === chargeModal) chargeModal.classList.remove('active'); });
+
+        document.getElementById('chargeRandomBtn').addEventListener('click', () => {
+            COLORS.slice(0, SPECIES_COUNT).forEach(color => {
+                const newCharge = Math.random() < 0.5 ? -1 : 1;
+                color.charge = newCharge;
+                particles.forEach(p => { if (p.colorData === color) p._charge = newCharge; });
+            });
+            generateChargeTableUI();
+        });
+        document.getElementById('chargeGradientBtn').addEventListener('click', () => {
+            const count = Math.min(SPECIES_COUNT, COLORS.length);
+            for (let i = 0; i < count; i++) {
+                const color = COLORS[i];
+                const newCharge = count > 1 ? Math.round((-1 + (2 * i / (count - 1))) * 10) / 10 : 0;
+                color.charge = newCharge;
+                particles.forEach(p => { if (p.colorData === color) p._charge = newCharge; });
+            }
+            generateChargeTableUI();
+        });
+
+        // Interaction Range per Color modal
+        const rangeModal = document.getElementById('rangeModal');
+        const rangeModalClose = document.getElementById('rangeModalClose');
+        const rangeTableEl = document.getElementById('rangeTable');
+
+        function generateRangeTableUI() {
+            rangeTableEl.innerHTML = '';
+            COLORS.slice(0, SPECIES_COUNT).forEach(color => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:10px;';
+                const label = document.createElement('span');
+                label.style.cssText = 'min-width:70px; font-weight:700; font-size:12px; color:' + color.hex + ';';
+                label.textContent = color.name.toUpperCase();
+                const slider = document.createElement('input');
+                slider.type = 'range'; slider.min = '10'; slider.max = '200'; slider.step = '5';
+                slider.value = color.interactionRange;
+                slider.style.cssText = 'flex:1; height:4px;';
+                const val = document.createElement('span');
+                val.style.cssText = 'min-width:40px; font-size:11px; color:#8892b0; text-align:right;';
+                val.textContent = color.interactionRange + 'px';
+                slider.addEventListener('input', () => {
+                    const newRange = parseInt(slider.value);
+                    color.interactionRange = newRange;
+                    val.textContent = newRange + 'px';
+                    particles.forEach(p => { if (p.colorData === color) p._range = newRange; });
+                });
+                row.appendChild(label);
+                row.appendChild(slider);
+                row.appendChild(val);
+                rangeTableEl.appendChild(row);
+            });
+        }
+
+        document.getElementById('editRangeBtn').addEventListener('click', () => {
+            generateRangeTableUI();
+            rangeModal.classList.add('active');
+        });
+        rangeModalClose.addEventListener('click', () => rangeModal.classList.remove('active'));
+        rangeModal.addEventListener('click', (e) => { if (e.target === rangeModal) rangeModal.classList.remove('active'); });
+
+        document.getElementById('rangeRandomBtn').addEventListener('click', () => {
+            COLORS.slice(0, SPECIES_COUNT).forEach(color => {
+                const newRange = Math.round((10 + Math.random() * 190) / 5) * 5;
+                color.interactionRange = newRange;
+                particles.forEach(p => { if (p.colorData === color) p._range = newRange; });
+            });
+            generateRangeTableUI();
+        });
+        document.getElementById('rangeGradientBtn').addEventListener('click', () => {
+            const count = Math.min(SPECIES_COUNT, COLORS.length);
+            for (let i = 0; i < count; i++) {
+                const color = COLORS[i];
+                const newRange = count > 1 ? Math.round((10 + (190 * i / (count - 1))) / 5) * 5 : 100;
+                color.interactionRange = newRange;
+                particles.forEach(p => { if (p.colorData === color) p._range = newRange; });
+            }
+            generateRangeTableUI();
         });
         
         // Intelligent Life checkbox - toggle opcji
