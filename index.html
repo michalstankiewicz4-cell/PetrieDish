@@ -3439,8 +3439,10 @@ button:hover {
                 this.cells[idx].push(particle);
             }
 
+            // OPT2: allocation-free getNearby using reusable buffer
             getNearby(particle, range) {
-                const nearby = [];
+                if (!this._nearbyBuf) this._nearbyBuf = new Array(256);
+                let len = 0;
                 const col = (particle.x / this.cellSize) | 0;
                 const row = (particle.y / this.cellSize) | 0;
                 const cellRadius = Math.ceil(range / this.cellSize);
@@ -3451,10 +3453,16 @@ button:hover {
                         const wCol = (col + i + cols) % cols;
                         const wRow = (row + j + rows) % rows;
                         const cell = this.cells[wRow * cols + wCol];
-                        for (let k = 0; k < cell.length; k++) nearby.push(cell[k]);
+                        for (let k = 0; k < cell.length; k++) {
+                            if (len >= this._nearbyBuf.length) {
+                                this._nearbyBuf.length = this._nearbyBuf.length * 2;
+                            }
+                            this._nearbyBuf[len++] = cell[k];
+                        }
                     }
                 }
-                return nearby;
+                this._nearbyLen = len;
+                return this._nearbyBuf;
             }
         }
 
@@ -3645,8 +3653,16 @@ button:hover {
                 if (enableSwarm) {
                     let centerX = 0, centerY = 0, count = 0;
                     const swarmRangeSq = SWARM_RANGE * SWARM_RANGE;
-                    const nearbyForSwarm = spatialGrid ? spatialGrid.getNearby(this, SWARM_RANGE) : particles;
-                    for (let i = 0; i < nearbyForSwarm.length; i++) {
+                    let nearbyForSwarm, nearbySwarmLen;
+                    if (spatialGrid) {
+                        spatialGrid.getNearby(this, SWARM_RANGE);
+                        nearbyForSwarm = spatialGrid._nearbyBuf;
+                        nearbySwarmLen = spatialGrid._nearbyLen;
+                    } else {
+                        nearbyForSwarm = particles;
+                        nearbySwarmLen = particles.length;
+                    }
+                    for (let i = 0; i < nearbySwarmLen; i++) {
                         const other = nearbyForSwarm[i];
                         if (other._name !== this._name) continue;
                         const dx = torusDelta(this.x, other.x, WIDTH);
@@ -3674,9 +3690,17 @@ button:hover {
 
                 const effectiveRange = this._range;
                 const effectiveRangeSq = this._rangeSq;
-                const nearbyParticles = spatialGrid ? spatialGrid.getNearby(this, effectiveRange) : particles;
+                let nearbyParticles, nearbyPartLen;
+                if (spatialGrid) {
+                    spatialGrid.getNearby(this, effectiveRange);
+                    nearbyParticles = spatialGrid._nearbyBuf;
+                    nearbyPartLen = spatialGrid._nearbyLen;
+                } else {
+                    nearbyParticles = particles;
+                    nearbyPartLen = particles.length;
+                }
 
-                for (let i = 0; i < nearbyParticles.length; i++) {
+                for (let i = 0; i < nearbyPartLen; i++) {
                     const other = nearbyParticles[i];
                     if (other === this) continue;
 
@@ -3891,10 +3915,13 @@ button:hover {
                     // Interakcje z innymi cząstkami (tylko widocznymi, nie ghost)
                     // Używamy spatial grid - przekazujemy temporary particle object
                     const tempParticle = {x: futureX, y: futureY};
-                    const neighbors = spatialGrid.getNearby(tempParticle, this.colorData.interactionRange);
+                    spatialGrid.getNearby(tempParticle, this.colorData.interactionRange);
+                    const neighbors = spatialGrid._nearbyBuf;
+                    const neighborsLen = spatialGrid._nearbyLen;
                     
-                    neighbors.forEach(other => {
-                        if (other === this || other.isIntelligent) return;
+                    for (let ni = 0; ni < neighborsLen; ni++) {
+                        const other = neighbors[ni];
+                        if (other === this || other.isIntelligent) continue;
                         
                         const dx = torusDelta(other.x, futureX, WIDTH);
                         const dy = torusDelta(other.y, futureY, HEIGHT);
@@ -3909,7 +3936,7 @@ button:hover {
                                 futureVY += (dy / dist) * force;
                             }
                         }
-                    });
+                    }
                     
                     // Update position
                     const massEffect = enableMass ? (2 / this.colorData.mass * MASS_EFFECT_MULTIPLIER) : 2;
@@ -4029,7 +4056,8 @@ button:hover {
                 
                 // OPT: use spatial grid instead of O(N²)
                 const nearby = spatialGrid.getNearby(p1, BOND_MAX_DISTANCE);
-                for (let n = 0; n < nearby.length; n++) {
+                const nearbyLen = spatialGrid._nearbyLen;
+                for (let n = 0; n < nearbyLen; n++) {
                     const p2 = nearby[n];
                     if (p2 === p1) continue;
                     if (p2.bonds.length >= MAX_BONDS_PER_PARTICLE) continue;
@@ -4145,6 +4173,9 @@ button:hover {
             const speedToSq   = LIFE_MAX_SPEED_DIFF_TO   * LIFE_MAX_SPEED_DIFF_TO;
             const searchRange = LIFE_MAX_DISTANCE_TO;
 
+            // OPT1: assign ._idx so we avoid O(N) indexOf calls
+            for (let i = 0; i < particles.length; i++) particles[i]._idx = i;
+
             for (let i = 0; i < particles.length; i++) {
                 if (visited.has(i)) continue;
                 const cluster = [];
@@ -4167,10 +4198,12 @@ button:hover {
 
                     // OPT: use spatial grid if available
                     if (spatialGrid) {
-                        const nearby = spatialGrid.getNearby(current, searchRange);
-                        for (let n = 0; n < nearby.length; n++) {
+                        spatialGrid.getNearby(current, searchRange);
+                        const nearby = spatialGrid._nearbyBuf;
+                        const nearbyLen = spatialGrid._nearbyLen;
+                        for (let n = 0; n < nearbyLen; n++) {
                             const neighbor = nearby[n];
-                            const nIdx = particles.indexOf(neighbor);
+                            const nIdx = neighbor._idx;
                             if (visited.has(nIdx)) continue;
                             const dx = neighbor.x - current.x;
                             const dy = neighbor.y - current.y;
@@ -4215,56 +4248,59 @@ button:hover {
             detectedLifeForms = clusters;
         }
         
+        // OPT6: cached dash pattern for drawLifeForms
+        const _lifeDash = [5, 5];
+        const _lifeDashEmpty = [];
         function drawLifeForms(ctx) {
             if (!enableLifeDetection || detectedLifeForms.length === 0) return;
             
             ctx.strokeStyle = '#00FF88';
             ctx.lineWidth = 2;
             ctx.globalAlpha = 0.8;
-            ctx.setLineDash([5, 5]); // Dashed line
+            ctx.setLineDash(_lifeDash);
             
-            detectedLifeForms.forEach((cluster, index) => {
-                // Calculate bounding box
+            for (let index = 0; index < detectedLifeForms.length; index++) {
+                const cluster = detectedLifeForms[index];
                 let minX = Infinity, minY = Infinity;
                 let maxX = -Infinity, maxY = -Infinity;
                 let avgVx = 0, avgVy = 0;
                 
-                cluster.forEach(p => {
-                    minX = Math.min(minX, p.x);
-                    minY = Math.min(minY, p.y);
-                    maxX = Math.max(maxX, p.x);
-                    maxY = Math.max(maxY, p.y);
+                for (let ci = 0; ci < cluster.length; ci++) {
+                    const p = cluster[ci];
+                    if (p.x < minX) minX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y > maxY) maxY = p.y;
                     avgVx += p.vx;
                     avgVy += p.vy;
-                });
+                }
                 
                 avgVx /= cluster.length;
                 avgVy /= cluster.length;
                 const avgSpeed = Math.sqrt(avgVx * avgVx + avgVy * avgVy);
                 
-                // Add padding to box
                 const padding = 10;
                 minX -= padding;
                 minY -= padding;
                 maxX += padding;
                 maxY += padding;
                 
-                // Draw rectangle
                 ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
                 
-                // Draw label
                 ctx.fillStyle = '#00FF88';
                 ctx.font = '10px Orbitron';
-                ctx.fillText(`Life #${index + 1} | ${cluster.length} particles | ${avgSpeed.toFixed(1)} speed`, 
+                ctx.fillText('Life #' + (index + 1) + ' | ' + cluster.length + ' particles | ' + avgSpeed.toFixed(1) + ' speed', 
                             minX, minY - 5);
-            });
+            }
             
             ctx.globalAlpha = 1;
-            ctx.setLineDash([]); // Reset
+            ctx.setLineDash(_lifeDashEmpty);
         }
         
         // OPT7: shared particleMap built once per frame
         let _frameParticleMap = null;
+        // OPT8: pre-allocated bucket arrays
+        const _whiteP = [], _blackP = [], _otherP = [];
         function getParticleMap(particles) {
             if (!_frameParticleMap) {
                 _frameParticleMap = new Map();
@@ -4423,16 +4459,20 @@ button:hover {
                     }
                 }
 
-                particles.forEach(particle => {
-                    particle.update(particles);
-                });
+                // OPT7: plain for loop instead of forEach
+                for (let pi = 0; pi < particles.length; pi++) {
+                    particles[pi].update(particles);
+                }
 
                 // DONATE MODE - pull particles toward text target positions
                 if (donateMode && donateTargets.length > 0) {
-                    donateTargets.forEach(({ particle, tx, ty }) => {
-                        if (!particle || particle.dead) return;
-                        const dx = tx - particle.x;
-                        const dy = ty - particle.y;
+                    // OPT11: plain for loop + direct property access
+                    for (let di = 0; di < donateTargets.length; di++) {
+                        const dt = donateTargets[di];
+                        const particle = dt.particle;
+                        if (!particle || particle.dead) continue;
+                        const dx = dt.tx - particle.x;
+                        const dy = dt.ty - particle.y;
                         const dist = Math.sqrt(dx * dx + dy * dy);
                         if (dist > 1) {
                             const force = Math.min(dist * 0.012, 1.8);
@@ -4441,7 +4481,7 @@ button:hover {
                             particle.vx *= 0.78;
                             particle.vy *= 0.78;
                         }
-                    });
+                    }
                 }
                 
                 // Molecular Bonds - detect and create
@@ -4455,15 +4495,15 @@ button:hover {
 
                 } // end STEPS_PER_FRAME loop
 
-                // OPT6: bucket partition O(n) instead of sort O(n log n)
-                const whiteP = [], blackP = [], otherP = [];
+                // OPT6+8: bucket partition O(n) with pre-allocated arrays
+                _whiteP.length = 0; _blackP.length = 0; _otherP.length = 0;
                 for (let i = 0; i < particles.length; i++) {
                     const p = particles[i];
-                    if (p._name === 'white') whiteP.push(p);
-                    else if (p._name === 'black') blackP.push(p);
-                    else otherP.push(p);
+                    if (p._name === 'white') _whiteP.push(p);
+                    else if (p._name === 'black') _blackP.push(p);
+                    else _otherP.push(p);
                 }
-                const sortedForDrawing = whiteP.concat(blackP, otherP);
+                const sortedForDrawing = _whiteP.concat(_blackP, _otherP);
 
                 // Draw bonds BEFORE particles
                 drawBonds(ctx, sortedForDrawing);
@@ -4480,12 +4520,15 @@ button:hover {
                 // Draw life forms AFTER particles
                 drawLifeForms(ctx);
                 
+                // OPT16: in-place compaction instead of .filter()
                 if (BOUNDARY_MODE === 'endless') {
-                    const beforeCount = particles.length;
-                    particles = particles.filter(p => !p.dead);
-                    const afterCount = particles.length;
-                    if (beforeCount !== afterCount) {
-                        PARTICLE_COUNT = afterCount;
+                    let writeIdx = 0;
+                    for (let ri = 0; ri < particles.length; ri++) {
+                        if (!particles[ri].dead) particles[writeIdx++] = particles[ri];
+                    }
+                    if (writeIdx < particles.length) {
+                        particles.length = writeIdx;
+                        PARTICLE_COUNT = writeIdx;
                     }
                 }
 
@@ -4512,18 +4555,18 @@ button:hover {
                     }
                     
                     if (hasOther) {
-                        
+                        // OPT14: plain for loops instead of forEach
                         const blackMass = Math.min(2.0, maxOtherMass + 0.1);
-                        blackParticles.forEach(p => {
-                            p.colorData.mass = blackMass;
-                            p._mass = blackMass; // OPT3: sync cache
-                        });
+                        for (let bi = 0; bi < blackParticles.length; bi++) {
+                            blackParticles[bi].colorData.mass = blackMass;
+                            blackParticles[bi]._mass = blackMass;
+                        }
                         
                         const whiteMass = Math.max(0.3, minOtherMass - 0.1);
-                        whiteParticles.forEach(p => {
-                            p.colorData.mass = whiteMass;
-                            p._mass = whiteMass; // OPT3: sync cache
-                        });
+                        for (let wi = 0; wi < whiteParticles.length; wi++) {
+                            whiteParticles[wi].colorData.mass = whiteMass;
+                            whiteParticles[wi]._mass = whiteMass;
+                        }
                     }
                 }
             } else if (isRunning && SPEED_MULTIPLIER === 0) {
@@ -5823,6 +5866,9 @@ button:hover {
         let _scanlineCanvas = null;
         let _scanlineW = 0, _scanlineH = 0;
         let _prevVfxFilter = null;
+        // OPT10: cached vignette gradient
+        let _vignetteGrad = null;
+        let _vignetteW = 0, _vignetteH = 0;
 
         function ensureScanlineCanvas() {
             if (_scanlineCanvas && _scanlineW === WIDTH && _scanlineH === HEIGHT) return;
@@ -5858,14 +5904,19 @@ button:hover {
                 ctx.globalAlpha = 1;
             }
             else if (VFX_OVERLAY === 'vignette') {
-                const grad = ctx.createRadialGradient(
-                    WIDTH / 2, HEIGHT / 2, HEIGHT * 0.3,
-                    WIDTH / 2, HEIGHT / 2, HEIGHT * 0.85
-                );
-                grad.addColorStop(0, 'rgba(0,0,0,0)');
-                grad.addColorStop(1, 'rgba(0,0,0,0.65)');
+                // OPT10: cache vignette gradient, rebuild only on resize
+                if (!_vignetteGrad || _vignetteW !== WIDTH || _vignetteH !== HEIGHT) {
+                    _vignetteGrad = ctx.createRadialGradient(
+                        WIDTH / 2, HEIGHT / 2, HEIGHT * 0.3,
+                        WIDTH / 2, HEIGHT / 2, HEIGHT * 0.85
+                    );
+                    _vignetteGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                    _vignetteGrad.addColorStop(1, 'rgba(0,0,0,0.65)');
+                    _vignetteW = WIDTH;
+                    _vignetteH = HEIGHT;
+                }
                 ctx.globalAlpha = 1;
-                ctx.fillStyle = grad;
+                ctx.fillStyle = _vignetteGrad;
                 ctx.fillRect(0, 0, WIDTH, HEIGHT);
             }
             else if (VFX_OVERLAY === 'rainbow') {
