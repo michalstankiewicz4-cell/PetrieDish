@@ -1278,9 +1278,9 @@ button:hover {
 
 /* LEGENDA — BLOK */
 .legend {
-    border: 1px solid rgba(131, 56, 236, 0.3);
-    border-radius: 8px;
-    padding: 20px 30px;
+    border: none;
+    border-radius: 0;
+    padding: 10px 15px;
     max-width: 320px;
     animation: slideDown 1.2s ease-out 0.4s backwards;
 }
@@ -1453,36 +1453,30 @@ button:hover {
 .mech-intelligent { color: var(--color-purple); }
 .mech-life-detection { color: var(--color-green); }
 
-/* Sekcje mechanik - nagłówki grup */
-.mech-section-label {
+/* Sekcje mechanik - grupy z ramką */
+.mech-group {
+    border: 1px solid rgba(131, 56, 236, 0.25);
+    border-radius: 8px;
+    padding: 14px 12px 10px 12px;
+    margin-bottom: 12px;
+    position: relative;
+}
+.mech-group-label {
+    position: absolute;
+    top: -9px;
+    left: 12px;
     font-size: 10px;
     font-family: 'Orbitron', sans-serif;
     text-transform: uppercase;
     letter-spacing: 2px;
-    color: #4a5568;
-    padding: 6px 0 4px 0;
-    margin-top: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    color: #5a6a8a;
+    background: rgba(16, 16, 30, 1);
+    padding: 0 8px;
+    line-height: 1;
 }
-.mech-section-label::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, rgba(100,120,160,0.4), transparent);
-}
-.mech-section-label:first-child {
-    margin-top: 0;
-}
-.mech-section-label .section-icon {
-    font-size: 12px;
-}
-.mech-section-divider {
-    border: none;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(100,120,160,0.3), transparent);
-    margin: 10px 0 4px 0;
+.mech-group-label .section-icon {
+    font-size: 11px;
+    margin-right: 2px;
 }
 
 /* Opcje mechanik (ukryte domyślnie) */
@@ -2683,7 +2677,8 @@ button:hover {
 <div class="legend">
     <div class="legend-content">
 
-        <div class="mech-section-label"><span class="section-icon">⚛️</span> Particle Mechanics</div>
+        <div class="mech-group">
+            <div class="mech-group-label"><span class="section-icon">⚛️</span> Particle</div>
 
         <div class="legend-item mech-attraction">
             <label>
@@ -2827,8 +2822,10 @@ button:hover {
             </div>
         </div>
 
-        <hr class="mech-section-divider">
-        <div class="mech-section-label"><span class="section-icon">🌍</span> Environment</div>
+        </div>
+
+        <div class="mech-group">
+            <div class="mech-group-label"><span class="section-icon">🌍</span> Environment</div>
 
         <div class="legend-item mech-swarm">
             <label>
@@ -2876,8 +2873,10 @@ button:hover {
             </div>
         </div>
 
-        <hr class="mech-section-divider">
-        <div class="mech-section-label"><span class="section-icon">🧪</span> Experimental</div>
+        </div>
+
+        <div class="mech-group">
+            <div class="mech-group-label"><span class="section-icon">🧪</span> Experimental</div>
 
         <div class="legend-item mech-intelligent">
             <label>
@@ -2943,6 +2942,8 @@ button:hover {
                     🔗 <span id="bondsCount">0</span> active bonds
                 </div>
             </div>
+        </div>
+
         </div>
 
     </div>
