@@ -2588,9 +2588,9 @@ button:hover {
             <div class="vfx-group">
                 <div class="vfx-group-label">💫 TRAILS</div>
                 <div class="vfx-buttons">
-                    <button class="vfx-effect-btn active" data-effect="trail" data-value="normal" id="vfxTrailNormal">🔵 Normal</button>
+                    <button class="vfx-effect-btn active" data-effect="trail" data-value="sharp" id="vfxTrailSharp">⚡ Sharp / No Trails</button>
+                    <button class="vfx-effect-btn" data-effect="trail" data-value="normal" id="vfxTrailNormal">🔵 Trails</button>
                     <button class="vfx-effect-btn" data-effect="trail" data-value="long" id="vfxTrailLong">🌠 Long Trails</button>
-                    <button class="vfx-effect-btn" data-effect="trail" data-value="sharp" id="vfxTrailSharp">⚡ Sharp / No Trails</button>
                     <button class="vfx-effect-btn" data-effect="trail" data-value="ghost" id="vfxTrailGhost">👻 Ghost</button>
                 </div>
             </div>
@@ -5707,13 +5707,13 @@ button:hover {
 
         // VFX State
         let VFX_BG_PRESET = 'dark';
-        let VFX_TRAIL_PRESET = 'normal';
+        let VFX_TRAIL_PRESET = 'sharp';
         let VFX_PARTICLE_STYLE = 'circle';
         let VFX_OVERLAY = 'none';
         let VFX_FILTER = 'none';
 
         // BG color/alpha derived from preset (recalculated when preset changes)
-        let VFX_BG_COLOR = 'rgba(10, 10, 20, 0.15)';
+        let VFX_BG_COLOR = 'rgba(10, 10, 20, 1.0)';
 
         // Rainbow tint phase
         let vfxRainbowPhase = 0;
