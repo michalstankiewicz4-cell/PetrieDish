@@ -4016,30 +4016,40 @@ button:hover {
 
         // MOLECULAR BONDS FUNCTIONS
         function detectAndCreateBonds(particles) {
-            if (!enableBonds) return;
+            if (!enableBonds || !spatialGrid) return;
             
             const targetFPS = 60;
             const requiredFrames = BOND_FORMATION_TIME * targetFPS;
             const bondMaxDistSq = BOND_MAX_DISTANCE * BOND_MAX_DISTANCE;
+            const checked = new Set();
             
             for (let i = 0; i < particles.length; i++) {
                 const p1 = particles[i];
                 if (p1.bonds.length >= MAX_BONDS_PER_PARTICLE) continue;
                 
-                for (let j = i + 1; j < particles.length; j++) {
-                    const p2 = particles[j];
+                // OPT: use spatial grid instead of O(N²)
+                const nearby = spatialGrid.getNearby(p1, BOND_MAX_DISTANCE);
+                for (let n = 0; n < nearby.length; n++) {
+                    const p2 = nearby[n];
+                    if (p2 === p1) continue;
                     if (p2.bonds.length >= MAX_BONDS_PER_PARTICLE) continue;
-                if (p1._name === p2._name) continue;
+                    if (p1._name === p2._name) continue;
+                    
+                    // OPT: numeric pair key instead of string template
+                    const lo = p1.id < p2.id ? p1.id : p2.id;
+                    const hi = p1.id < p2.id ? p2.id : p1.id;
+                    const pairKey = lo * 100000 + hi;
+                    if (checked.has(pairKey)) continue;
+                    checked.add(pairKey);
+                    
                     if (p1.bonds.includes(p2.id)) continue;
                     
                     const dx = p2.x - p1.x;
                     const dy = p2.y - p1.y;
                     const distSq = dx * dx + dy * dy;
                     
-                    // OPT2: dist² check first
                     if (distSq < bondMaxDistSq) {
                         const dist = Math.sqrt(distSq);
-                        const pairKey = p1.id < p2.id ? `${p1.id}-${p2.id}` : `${p2.id}-${p1.id}`;
                         
                         if (!bondCandidates.has(pairKey)) {
                             bondCandidates.set(pairKey, { frames: 0, distance: dist });
@@ -4065,7 +4075,6 @@ button:hover {
                             candidate.distance = dist;
                         }
                     } else {
-                        const pairKey = p1.id < p2.id ? `${p1.id}-${p2.id}` : `${p2.id}-${p1.id}`;
                         bondCandidates.delete(pairKey);
                     }
                 }
@@ -4125,7 +4134,6 @@ button:hover {
                 detectedLifeForms = [];
                 return;
             }
-            // OPT4: only run life detection every 3 frames (not every physics step)
             _lifeDetectFrame++;
             if (_lifeDetectFrame % 3 !== 0) return;
 
@@ -4135,40 +4143,70 @@ button:hover {
             const distToSq   = LIFE_MAX_DISTANCE_TO   * LIFE_MAX_DISTANCE_TO;
             const speedFromSq = LIFE_MAX_SPEED_DIFF_FROM * LIFE_MAX_SPEED_DIFF_FROM;
             const speedToSq   = LIFE_MAX_SPEED_DIFF_TO   * LIFE_MAX_SPEED_DIFF_TO;
+            const searchRange = LIFE_MAX_DISTANCE_TO;
 
             for (let i = 0; i < particles.length; i++) {
                 if (visited.has(i)) continue;
                 const cluster = [];
                 const queue = [i];
+                let qHead = 0;
                 visited.add(i);
+                let uniqueColorCount = 0;
+                const colorSeen = {};
 
-                while (queue.length > 0) {
-                    const currentIdx = queue.shift();
+                while (qHead < queue.length) {
+                    const currentIdx = queue[qHead++];
                     const current = particles[currentIdx];
                     cluster.push(current);
 
-                    for (let j = 0; j < particles.length; j++) {
-                        if (visited.has(j)) continue;
-                        const neighbor = particles[j];
-                        const dx = neighbor.x - current.x;
-                        const dy = neighbor.y - current.y;
-                        // OPT2: dist² check
-                        const distSq = dx * dx + dy * dy;
-                        if (distSq >= distFromSq && distSq <= distToSq) {
-                            const dvx = neighbor.vx - current.vx;
-                            const dvy = neighbor.vy - current.vy;
-                            const speedSq = dvx * dvx + dvy * dvy;
-                            if (speedSq >= speedFromSq && speedSq <= speedToSq) {
-                                visited.add(j);
-                                queue.push(j);
+                    // Count unique colors during BFS
+                    if (!colorSeen[current._name]) {
+                        colorSeen[current._name] = true;
+                        uniqueColorCount++;
+                    }
+
+                    // OPT: use spatial grid if available
+                    if (spatialGrid) {
+                        const nearby = spatialGrid.getNearby(current, searchRange);
+                        for (let n = 0; n < nearby.length; n++) {
+                            const neighbor = nearby[n];
+                            const nIdx = particles.indexOf(neighbor);
+                            if (visited.has(nIdx)) continue;
+                            const dx = neighbor.x - current.x;
+                            const dy = neighbor.y - current.y;
+                            const distSq = dx * dx + dy * dy;
+                            if (distSq >= distFromSq && distSq <= distToSq) {
+                                const dvx = neighbor.vx - current.vx;
+                                const dvy = neighbor.vy - current.vy;
+                                const speedSq = dvx * dvx + dvy * dvy;
+                                if (speedSq >= speedFromSq && speedSq <= speedToSq) {
+                                    visited.add(nIdx);
+                                    queue.push(nIdx);
+                                }
+                            }
+                        }
+                    } else {
+                        for (let j = 0; j < particles.length; j++) {
+                            if (visited.has(j)) continue;
+                            const neighbor = particles[j];
+                            const dx = neighbor.x - current.x;
+                            const dy = neighbor.y - current.y;
+                            const distSq = dx * dx + dy * dy;
+                            if (distSq >= distFromSq && distSq <= distToSq) {
+                                const dvx = neighbor.vx - current.vx;
+                                const dvy = neighbor.vy - current.vy;
+                                const speedSq = dvx * dvx + dvy * dvy;
+                                if (speedSq >= speedFromSq && speedSq <= speedToSq) {
+                                    visited.add(j);
+                                    queue.push(j);
+                                }
                             }
                         }
                     }
                 }
 
                 if (cluster.length >= LIFE_MIN_PARTICLES_FROM && cluster.length <= LIFE_MIN_PARTICLES_TO) {
-                    const uniqueColors = new Set(cluster.map(p => p.colorData.name));
-                    if (uniqueColors.size >= LIFE_MIN_COLORS_FROM && uniqueColors.size <= LIFE_MIN_COLORS_TO) {
+                    if (uniqueColorCount >= LIFE_MIN_COLORS_FROM && uniqueColorCount <= LIFE_MIN_COLORS_TO) {
                         clusters.push(cluster);
                     }
                 }
