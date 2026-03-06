@@ -2955,7 +2955,11 @@ button:hover {
         <button class="modal-close-btn" id="matrixModalClose">✕</button>
         <div class="modal-title">📊 Edit Interaction Matrix</div>
         <div id="interactionMatrixContainer" class="matrix-container">
-            <div class="matrix-hint">Row (Y↓) = FROM | Column (X→) = TO | Value: -1.0 (repels) ... 0.0 (neutral) ... +1.0 (attracts)</div>
+            <div class="matrix-hint">
+                Row (Y↓) = FROM | Column (X→) = TO | Value: -1.0 (repels) ... 0.0 (neutral) ... +1.0 (attracts)
+                <button id="randomizeMatrixBtn" class="edit-matrix-btn" style="margin-left: 12px; padding: 4px 12px; font-size: 11px;">🎲 Randomize</button>
+                <button id="gradientMatrixBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient</button>
+            </div>
             <div id="interactionMatrix" class="interaction-matrix"></div>
         </div>
     </div>
@@ -5752,6 +5756,36 @@ button:hover {
             });
         }
         
+        // COLOR PROPERTIES TABLE GENERATOR
+        function randomizeInteractionMatrix() {
+            const colorNames = COLORS.slice(0, SPECIES_COUNT).map(c => c.name);
+            colorNames.forEach(from => {
+                if (!INTERACTION_MATRIX[from]) INTERACTION_MATRIX[from] = {};
+                colorNames.forEach(to => {
+                    INTERACTION_MATRIX[from][to] = Math.round((Math.random() * 2 - 1) * 10) / 10;
+                });
+            });
+            generateInteractionMatrixUI();
+        }
+
+        document.getElementById('randomizeMatrixBtn').addEventListener('click', randomizeInteractionMatrix);
+
+        function gradientInteractionMatrix() {
+            const colorNames = COLORS.slice(0, SPECIES_COUNT).map(c => c.name);
+            const n = colorNames.length;
+            const total = n * n - 1;
+            colorNames.forEach((from, ri) => {
+                if (!INTERACTION_MATRIX[from]) INTERACTION_MATRIX[from] = {};
+                colorNames.forEach((to, ci) => {
+                    const idx = ri * n + ci;
+                    const val = total > 0 ? 1 - (2 * idx / total) : 0;
+                    INTERACTION_MATRIX[from][to] = Math.round(val * 10) / 10;
+                });
+            });
+            generateInteractionMatrixUI();
+        }
+        document.getElementById('gradientMatrixBtn').addEventListener('click', gradientInteractionMatrix);
+
         // COLOR PROPERTIES TABLE GENERATOR
         function generateColorPropertiesTable() {
             if (!colorPropertiesTable) return;
