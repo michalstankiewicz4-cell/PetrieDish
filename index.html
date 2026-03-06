@@ -1453,6 +1453,38 @@ button:hover {
 .mech-intelligent { color: var(--color-purple); }
 .mech-life-detection { color: var(--color-green); }
 
+/* Sekcje mechanik - nagłówki grup */
+.mech-section-label {
+    font-size: 10px;
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #4a5568;
+    padding: 6px 0 4px 0;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.mech-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(100,120,160,0.4), transparent);
+}
+.mech-section-label:first-child {
+    margin-top: 0;
+}
+.mech-section-label .section-icon {
+    font-size: 12px;
+}
+.mech-section-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(100,120,160,0.3), transparent);
+    margin: 10px 0 4px 0;
+}
+
 /* Opcje mechanik (ukryte domyślnie) */
 .mech-options {
     margin-top: 10px;
@@ -2651,6 +2683,8 @@ button:hover {
 <div class="legend">
     <div class="legend-content">
 
+        <div class="mech-section-label"><span class="section-icon">⚛️</span> Particle Mechanics</div>
+
         <div class="legend-item mech-attraction">
             <label>
                 <input type="checkbox" id="attractionCheckbox" checked>
@@ -2793,6 +2827,9 @@ button:hover {
             </div>
         </div>
 
+        <hr class="mech-section-divider">
+        <div class="mech-section-label"><span class="section-icon">🌍</span> Environment</div>
+
         <div class="legend-item mech-swarm">
             <label>
                 <input type="checkbox" id="swarmCheckbox">
@@ -2838,6 +2875,9 @@ button:hover {
                 </div>
             </div>
         </div>
+
+        <hr class="mech-section-divider">
+        <div class="mech-section-label"><span class="section-icon">🧪</span> Experimental</div>
 
         <div class="legend-item mech-intelligent">
             <label>
