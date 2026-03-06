@@ -2509,7 +2509,7 @@ button:hover {
             <div id="hudSeed" class="hud-seed" style="display:none;"></div>
             <div id="hudFps" class="hud-fps" style="display:none;">
                 <span id="hudFpsDot" class="hud-fps-dot">●</span>
-                <span id="hudFpsText">FPS: 0</span>
+                <span id="hudFpsText">Render: 0 | Physics: 0</span>
             </div>
         </div>
 
@@ -3537,9 +3537,13 @@ button:hover {
         let activeBonds = []; // Array<{ p1, p2, angle1, angle2 }>
         let particleIDCounter = 0; // Global counter for unique IDs
         
-        let fps = 0;
-        let frameCount = 0;
-        let lastFpsUpdate = performance.now();
+        let renderFps = 0;
+        let renderFrameCount = 0;
+        let lastRenderFpsUpdate = performance.now();
+        
+        let physicsFps = 0;
+        let physicsUpdateCount = 0;
+        let lastPhysicsFpsUpdate = performance.now();
         
         function torusDelta(a, b, size) {
             let d = b - a;
@@ -4581,7 +4585,8 @@ button:hover {
         const _hudFps = document.getElementById('hudFps');
         const _hudFpsDot = document.getElementById('hudFpsDot');
         const _hudFpsText = document.getElementById('hudFpsText');
-        let _prevFps = -1;
+        let _prevRenderFps = -1;
+        let _prevPhysicsFps = -1;
         let _prevSeed = null;
         let _prevBondsCount = -1;
         let _prevLifeCount = -1;
@@ -4603,11 +4608,13 @@ button:hover {
             // FPS - only update DOM when value changes
             if (_hudFps) {
                 if (enableFpsDisplay) {
-                    if (fps !== _prevFps) {
-                        _prevFps = fps;
-                        const fpsColor = fps <= 16 ? '#FF006E' : fps <= 23 ? '#FFBE0B' : '#00FF00';
+                    if (renderFps !== _prevRenderFps || physicsFps !== _prevPhysicsFps) {
+                        _prevRenderFps = renderFps;
+                        _prevPhysicsFps = physicsFps;
+                        // Color based on render FPS
+                        const fpsColor = renderFps <= 16 ? '#FF006E' : renderFps <= 23 ? '#FFBE0B' : '#00FF00';
                         if (_hudFpsDot) _hudFpsDot.style.color = fpsColor;
-                        if (_hudFpsText) _hudFpsText.textContent = `FPS: ${fps}`;
+                        if (_hudFpsText) _hudFpsText.textContent = `Render: ${renderFps} | Physics: ${physicsFps}`;
                     }
                     _hudFps.style.display = 'flex';
                 } else {
@@ -4617,12 +4624,21 @@ button:hover {
         }
 
         function animate() {
-            frameCount++;
+            renderFrameCount++;
             const now = performance.now();
-            if (now - lastFpsUpdate >= 1000) {
-                fps = Math.round(frameCount * 1000 / (now - lastFpsUpdate));
-                frameCount = 0;
-                lastFpsUpdate = now;
+            
+            // Update render FPS every second
+            if (now - lastRenderFpsUpdate >= 1000) {
+                renderFps = Math.round(renderFrameCount * 1000 / (now - lastRenderFpsUpdate));
+                renderFrameCount = 0;
+                lastRenderFpsUpdate = now;
+            }
+            
+            // Update physics FPS every second
+            if (now - lastPhysicsFpsUpdate >= 1000) {
+                physicsFps = Math.round(physicsUpdateCount * 1000 / (now - lastPhysicsFpsUpdate));
+                physicsUpdateCount = 0;
+                lastPhysicsFpsUpdate = now;
             }
             
             // ZAWSZE czyść canvas (nawet jeśli symulacja zatrzymana)
@@ -4639,6 +4655,7 @@ button:hover {
                 const shouldUpdatePhysics = physicsStepsThisFrame > 0;
                 if (shouldUpdatePhysics) {
                 PHYSICS_ACCUMULATOR -= physicsStepsThisFrame;
+                physicsUpdateCount += physicsStepsThisFrame; // Track physics updates
                 for (let step = 0; step < physicsStepsThisFrame; step++) {
 
                 if (spatialGrid) {
