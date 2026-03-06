@@ -1451,7 +1451,7 @@ button:hover {
 .mech-warp { color: var(--color-blue); }
 .mech-bonds { color: var(--color-cyan); }
 .mech-intelligent { color: var(--color-purple); }
-.mech-life-detection { color: var(--color-green); }
+.mech-life-detection { color: var(--color-green); }\n.mech-initial-speed { color: var(--color-orange); }
 
 /* Sekcje mechanik - grupy z ramką */
 .mech-group {
@@ -2873,6 +2873,25 @@ button:hover {
             </div>
         </div>
 
+        <div class="legend-item mech-initial-speed">
+            <label>
+                <span class="text">🚀 Initial Speed - spawn velocity</span>
+                <span class="tooltip-icon">?
+                    <span class="tooltip-text">Sets the initial random velocity of particles when spawned. 0 = particles start stationary. 1 = default. 2 = fast start. Applied on next Reset/Random!</span>
+                </span>
+            </label>
+            <div class="mech-options" style="display: block;">
+                <div class="option-row">
+                    <label>Speed:</label>
+                    <input type="range" id="initialSpeedInput" min="0" max="200" value="100" step="10">
+                    <span class="option-value" id="initialSpeedValue">1.0</span>
+                </div>
+                <div class="option-hint">
+                    0 = stationary | 1.0 = default | 2.0 = fast
+                </div>
+            </div>
+        </div>
+
         </div>
 
         <div class="mech-group">
@@ -3298,6 +3317,7 @@ button:hover {
         let SPEED_BEFORE_PAUSE = 1.0;
         let STEPS_PER_FRAME = 1; // fixed timestep multiplier (timescale test)
         let VISCOSITY = 0.98;
+        let INITIAL_SPEED = 1.0;
         let VORTICNESS_MULTIPLIER = 0.025;
         let CURRENT_SEED = null;
         let INIT_MODE = 'random';
@@ -3646,8 +3666,8 @@ button:hover {
                 this.id = particleIDCounter++;
                 this.x = initX !== null ? initX : Math.random() * WIDTH;
                 this.y = initY !== null ? initY : Math.random() * HEIGHT;
-                this.vx = (Math.random() - 0.5) * 2;
-                this.vy = (Math.random() - 0.5) * 2;
+                this.vx = (Math.random() - 0.5) * 2 * INITIAL_SPEED;
+                this.vy = (Math.random() - 0.5) * 2 * INITIAL_SPEED;
                 this.colorData = COLORS[Math.floor(Math.random() * SPECIES_COUNT)];
                 this.radius = 2;
                 this.alpha = 1;
@@ -5275,6 +5295,14 @@ button:hover {
         viscosityInput.addEventListener('input', (e) => {
             VISCOSITY = parseInt(e.target.value) / 100;  // 90-99 -> 0.90-0.99
             viscosityValueSpan.textContent = (parseInt(e.target.value) / 100).toFixed(2);
+        });
+        
+        // Initial Speed slider
+        const initialSpeedInput = document.getElementById('initialSpeedInput');
+        const initialSpeedValue = document.getElementById('initialSpeedValue');
+        initialSpeedInput.addEventListener('input', (e) => {
+            INITIAL_SPEED = parseInt(e.target.value) / 100;
+            initialSpeedValue.textContent = INITIAL_SPEED.toFixed(1);
         });
         
         // Intelligent Life checkbox - toggle opcji
