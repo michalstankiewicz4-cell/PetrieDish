@@ -3423,9 +3423,9 @@ button:hover {
         let SPECIES_COUNT = 6;
         let SPEED_MULTIPLIER = 1.0;
         let SPEED_BEFORE_PAUSE = 1.0;
-        let STEPS_PER_FRAME = 1; // fixed timestep multiplier (timescale test)
-        let TIMESCALE_VALUE = 1.0; // actual timescale value (can be < 1 for slowdown)
-        let FRAME_SKIP_COUNTER = 0; // counter for slowdown mode
+        let TIMESCALE_VALUE = 1.0; // 1.0 = normal speed, <1 slows physics
+        let PHYSICS_ACCUMULATOR = 0; // fractional physics step accumulator for smooth slowdown
+        const MAX_PHYSICS_STEPS_PER_FRAME = 2; // safety cap to avoid heavy catch-up spikes
         let VISCOSITY = 0.98;
         let VORTICNESS_MULTIPLIER = 0.025;
         let CURRENT_SEED = null;
@@ -4633,22 +4633,13 @@ button:hover {
             // Tylko jeśli symulacja jest uruchomiona ORAZ szybkość > 0
             if (isRunning && SPEED_MULTIPLIER > 0) {
 
-                // TIMESCALE SLOWDOWN: skip physics updates if timescale < 1
-                let shouldUpdatePhysics = true;
-                if (TIMESCALE_VALUE < 1) {
-                    FRAME_SKIP_COUNTER++;
-                    const frameInterval = Math.round(1 / TIMESCALE_VALUE);
-                    if (FRAME_SKIP_COUNTER >= frameInterval) {
-                        FRAME_SKIP_COUNTER = 0;
-                        shouldUpdatePhysics = true;
-                    } else {
-                        shouldUpdatePhysics = false;
-                    }
-                }
-
-                // FIXED TIMESTEP: run multiple physics steps per frame (only if not skipping)
+                // Smooth slowdown: accumulate fractional simulation time and execute whole steps only.
+                PHYSICS_ACCUMULATOR += TIMESCALE_VALUE;
+                const physicsStepsThisFrame = Math.min(MAX_PHYSICS_STEPS_PER_FRAME, Math.floor(PHYSICS_ACCUMULATOR));
+                const shouldUpdatePhysics = physicsStepsThisFrame > 0;
                 if (shouldUpdatePhysics) {
-                for (let step = 0; step < STEPS_PER_FRAME; step++) {
+                PHYSICS_ACCUMULATOR -= physicsStepsThisFrame;
+                for (let step = 0; step < physicsStepsThisFrame; step++) {
 
                 if (spatialGrid) {
                     spatialGrid.clear();
@@ -4691,7 +4682,7 @@ button:hover {
                 // Life Detection - detect clusters
                 detectLifeForms(particles);
 
-                } // end STEPS_PER_FRAME loop
+                } // end physicsStepsThisFrame loop
                 } // end shouldUpdatePhysics
 
                 // OPT6+8: bucket partition O(n) with pre-allocated arrays
@@ -5312,13 +5303,26 @@ button:hover {
         const timescaleInput = document.getElementById('timescaleInput');
         const timescaleValue = document.getElementById('timescaleValue');
         if (timescaleInput) {
+            // Load saved FPS Booster value from localStorage
+            const savedBoosterValue = localStorage.getItem('fpsBoosterValue');
+            if (savedBoosterValue !== null) {
+                timescaleInput.value = savedBoosterValue;
+                // Trigger the value update to sync TIMESCALE_VALUE
+                const boosterPercent = parseInt(savedBoosterValue, 10) / 100;
+                TIMESCALE_VALUE = 1 - (boosterPercent * 0.999);
+                const precision = TIMESCALE_VALUE < 0.1 ? 3 : 2;
+                timescaleValue.textContent = TIMESCALE_VALUE.toFixed(precision) + 'x';
+                PHYSICS_ACCUMULATOR = 0;
+            }
+            
             timescaleInput.addEventListener('input', (e) => {
                 const boosterPercent = parseInt(e.target.value, 10) / 100;
                 TIMESCALE_VALUE = 1 - (boosterPercent * 0.999); // 1.000 -> 0.001
-                STEPS_PER_FRAME = 1;
                 const precision = TIMESCALE_VALUE < 0.1 ? 3 : 2;
                 timescaleValue.textContent = TIMESCALE_VALUE.toFixed(precision) + 'x';
-                FRAME_SKIP_COUNTER = 0; // reset counter when value changes
+                PHYSICS_ACCUMULATOR = 0; // reset accumulator when value changes
+                // Save current value to localStorage
+                localStorage.setItem('fpsBoosterValue', e.target.value);
             });
         }
         
