@@ -2998,7 +2998,11 @@ button:hover {
         <button class="modal-close-btn" id="speedModalClose">✕</button>
         <div class="modal-title">🚀 Initial Speed per Color</div>
         <div class="matrix-container">
-            <div class="matrix-hint">Set spawn velocity for each color (0% = stationary, 100% = full speed). Changes apply immediately!</div>
+            <div class="matrix-hint">Set spawn velocity for each color (0% = stationary, 100% = full speed). Changes apply immediately!
+                <button id="speedAllZeroBtn" class="edit-matrix-btn" style="margin-left: 12px; padding: 4px 12px; font-size: 11px;">⏹ All 0%</button>
+                <button id="speedAllMaxBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">⏩ All 100%</button>
+                <button id="speedGradientBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient</button>
+            </div>
             <div id="speedTable" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 0;"></div>
         </div>
     </div>
@@ -5353,6 +5357,30 @@ button:hover {
         });
         speedModalClose.addEventListener('click', () => speedModal.classList.remove('active'));
         speedModal.addEventListener('click', (e) => { if (e.target === speedModal) speedModal.classList.remove('active'); });
+
+        function applySpeedToAll(newSpeed) {
+            COLORS.slice(0, SPECIES_COUNT).forEach(color => {
+                const oldSpeed = color.initialSpeed !== undefined ? color.initialSpeed : 1.0;
+                color.initialSpeed = newSpeed;
+                const scale = oldSpeed > 0.001 ? newSpeed / oldSpeed : newSpeed;
+                particles.forEach(p => { if (p.colorData === color) { p.vx *= scale; p.vy *= scale; } });
+            });
+            generateSpeedTableUI();
+        }
+        document.getElementById('speedAllZeroBtn').addEventListener('click', () => applySpeedToAll(0));
+        document.getElementById('speedAllMaxBtn').addEventListener('click', () => applySpeedToAll(1.0));
+        document.getElementById('speedGradientBtn').addEventListener('click', () => {
+            const count = Math.min(SPECIES_COUNT, COLORS.length);
+            for (let i = 0; i < count; i++) {
+                const color = COLORS[i];
+                const oldSpeed = color.initialSpeed !== undefined ? color.initialSpeed : 1.0;
+                const newSpeed = count > 1 ? Math.round((1 - i / (count - 1)) * 20) * 5 / 100 : 1.0;
+                color.initialSpeed = newSpeed;
+                const scale = oldSpeed > 0.001 ? newSpeed / oldSpeed : newSpeed;
+                particles.forEach(p => { if (p.colorData === color) { p.vx *= scale; p.vy *= scale; } });
+            }
+            generateSpeedTableUI();
+        });
         
         // Intelligent Life checkbox - toggle opcji
         intelligentCheckbox.addEventListener('change', (e) => {
