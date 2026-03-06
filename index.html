@@ -2998,9 +2998,9 @@ button:hover {
         <button class="modal-close-btn" id="speedModalClose">✕</button>
         <div class="modal-title">🚀 Initial Speed per Color</div>
         <div class="matrix-container">
-            <div class="matrix-hint">Set spawn velocity for each color (0% = stationary, 100% = full speed). Changes apply immediately!
-                <button id="speedAllZeroBtn" class="edit-matrix-btn" style="margin-left: 12px; padding: 4px 12px; font-size: 11px;">⏹ All 0%</button>
-                <button id="speedAllMaxBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">⏩ All 100%</button>
+            <div class="matrix-hint">Set spawn velocity for each color (0.0 = stationary, 1.0 = default, 2.0 = fast). Changes apply immediately!
+                <button id="speedAllZeroBtn" class="edit-matrix-btn" style="margin-left: 12px; padding: 4px 12px; font-size: 11px;">⏹ All 0.0</button>
+                <button id="speedAllMaxBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">⏩ All 1.0</button>
                 <button id="speedGradientBtn" class="edit-matrix-btn" style="margin-left: 6px; padding: 4px 12px; font-size: 11px;">📐 Gradient</button>
             </div>
             <div id="speedTable" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 0;"></div>
@@ -5323,18 +5323,18 @@ button:hover {
                 label.style.cssText = 'min-width:70px; font-weight:700; font-size:12px; color:' + color.hex + ';';
                 label.textContent = color.name.toUpperCase();
                 const slider = document.createElement('input');
-                slider.type = 'range'; slider.min = '0'; slider.max = '100'; slider.step = '5';
+                slider.type = 'range'; slider.min = '0'; slider.max = '200'; slider.step = '5';
                 slider.value = Math.round((color.initialSpeed !== undefined ? color.initialSpeed : 1.0) * 100);
                 slider.style.cssText = 'flex:1; height:4px;';
                 slider.className = 'speed-slider';
                 const val = document.createElement('span');
                 val.style.cssText = 'min-width:40px; font-size:11px; color:#8892b0; text-align:right;';
-                val.textContent = slider.value + '%';
+                val.textContent = (parseInt(slider.value) / 100).toFixed(2);
                 slider.addEventListener('input', () => {
                     const oldSpeed = color.initialSpeed !== undefined ? color.initialSpeed : 1.0;
                     const newSpeed = parseInt(slider.value) / 100;
                     color.initialSpeed = newSpeed;
-                    val.textContent = slider.value + '%';
+                    val.textContent = newSpeed.toFixed(2);
                     // Scale existing particles' velocities
                     const scale = oldSpeed > 0.001 ? newSpeed / oldSpeed : newSpeed;
                     particles.forEach(p => {
@@ -5374,7 +5374,7 @@ button:hover {
             for (let i = 0; i < count; i++) {
                 const color = COLORS[i];
                 const oldSpeed = color.initialSpeed !== undefined ? color.initialSpeed : 1.0;
-                const newSpeed = count > 1 ? Math.round((1 - i / (count - 1)) * 20) * 5 / 100 : 1.0;
+                const newSpeed = count > 1 ? Math.round((1 - i / (count - 1)) * 200) / 100 : 1.0;
                 color.initialSpeed = newSpeed;
                 const scale = oldSpeed > 0.001 ? newSpeed / oldSpeed : newSpeed;
                 particles.forEach(p => { if (p.colorData === color) { p.vx *= scale; p.vy *= scale; } });
