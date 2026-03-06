@@ -3861,14 +3861,11 @@ button:hover {
                     ctx.restore();
                     ctx.shadowBlur = 0;
                 } else {
-                    // Default circle
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = color;
+                    // Default circle - no shadow (FX effects only via VFX styles)
                     ctx.fillStyle = color;
                     ctx.beginPath();
                     ctx.arc(this.x, this.y, drawRadius, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.shadowBlur = 0;
                 }
 
                 ctx.globalAlpha = 1;
@@ -3997,18 +3994,24 @@ button:hover {
             }
             
             draw(ctx) {
+                const color = this.colorData.hex;
+                const useGlow = VFX_PARTICLE_STYLE === 'glow' || VFX_PARTICLE_STYLE === 'star' || VFX_PARTICLE_STYLE === 'ring';
+
                 // Najpierw rysuj ghost (jeśli włączony)
                 if (SHOW_FUTURE_GHOST && FUTURE_FRAMES > 0) {
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = this.colorData.hex;
-                    ctx.fillStyle = this.colorData.hex;
-                    ctx.globalAlpha = 0.3;  // Przezroczysty duch
+                    if (useGlow) {
+                        ctx.shadowBlur = 20;
+                        ctx.shadowColor = color;
+                    }
+                    ctx.fillStyle = color;
+                    ctx.globalAlpha = 0.3;
                     ctx.beginPath();
                     ctx.arc(this.futureX, this.futureY, this.radius, 0, Math.PI * 2);
                     ctx.fill();
+                    if (useGlow) ctx.shadowBlur = 0;
                     
                     // Linia łącząca teraźniejszość z przyszłością
-                    ctx.strokeStyle = this.colorData.hex;
+                    ctx.strokeStyle = color;
                     ctx.globalAlpha = 0.2;
                     ctx.lineWidth = 1;
                     ctx.setLineDash([3, 3]);
@@ -4019,24 +4022,26 @@ button:hover {
                     ctx.setLineDash([]);
                 }
                 
-                // Potem rysuj obecną cząstkę (jaśniejsza, większa)
-                ctx.shadowBlur = 20;
-                ctx.shadowColor = this.colorData.hex;
-                ctx.fillStyle = this.colorData.hex;
+                // Potem rysuj obecną cząstkę
+                if (useGlow) {
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = color;
+                }
+                ctx.fillStyle = color;
                 ctx.globalAlpha = 0.9;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fill();
                 
                 // Ring around (oznaczenie inteligentnej)
-                ctx.strokeStyle = this.colorData.hex;
+                ctx.strokeStyle = color;
                 ctx.globalAlpha = 0.6;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius + 3, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                ctx.shadowBlur = 0;
+                if (useGlow) ctx.shadowBlur = 0;
                 ctx.globalAlpha = 1;
             }
         }
