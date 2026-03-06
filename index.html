@@ -4094,9 +4094,8 @@ button:hover {
         function applyBondConstraints(particles) {
             if (!enableBonds || activeBonds.length === 0) return;
             
-            // OPT3: build particle lookup once per frame
-            const particleMap = new Map();
-            for (let i = 0; i < particles.length; i++) particleMap.set(particles[i].id, particles[i]);
+            // OPT7: reuse shared particleMap
+            const particleMap = getParticleMap(particles);
             
             for (let b = 0; b < activeBonds.length; b++) {
                 const bond = activeBonds[b];
@@ -4226,41 +4225,41 @@ button:hover {
             ctx.setLineDash([]); // Reset
         }
         
+        // OPT7: shared particleMap built once per frame
+        let _frameParticleMap = null;
+        function getParticleMap(particles) {
+            if (!_frameParticleMap) {
+                _frameParticleMap = new Map();
+                for (let i = 0; i < particles.length; i++) _frameParticleMap.set(particles[i].id, particles[i]);
+            }
+            return _frameParticleMap;
+        }
+
         function drawBonds(ctx, particles) {
             if (!enableBonds || activeBonds.length === 0) return;
             
-            const particleMap = new Map();
-            particles.forEach(p => particleMap.set(p.id, p));
+            const particleMap = getParticleMap(particles);
             
-            ctx.lineWidth = 2.5; // Grubsze (było 1px)
-            ctx.globalAlpha = 0.6; // Trochę bardziej widoczne
+            ctx.lineWidth = 2.5;
+            ctx.globalAlpha = 0.6;
+            ctx.shadowBlur = 0;
             
-            activeBonds.forEach(bond => {
+            for (let b = 0; b < activeBonds.length; b++) {
+                const bond = activeBonds[b];
                 const p1 = particleMap.get(bond.p1);
                 const p2 = particleMap.get(bond.p2);
                 
-                if (!p1 || !p2) return;
+                if (!p1 || !p2) continue;
                 
-                // GRADIENT od koloru p1 do koloru p2! 🌈
-                const gradient = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
-                gradient.addColorStop(0, p1.colorData.hex);   // Start = kolor p1
-                gradient.addColorStop(1, p2.colorData.hex);   // End = kolor p2
-                ctx.strokeStyle = gradient;
-                
-                // Glow effect (średnia obu kolorów)
-                ctx.shadowBlur = 8;
-                // Używamy koloru p1 dla glow (można też zrobić blend, ale to prostsze)
-                ctx.shadowColor = p1.colorData.hex;
+                ctx.strokeStyle = p1.colorData.hex;
                 
                 ctx.beginPath();
                 ctx.moveTo(p1.x, p1.y);
                 ctx.lineTo(p2.x, p2.y);
                 ctx.stroke();
-            });
+            }
             
-            // Reset
             ctx.globalAlpha = 1;
-            ctx.shadowBlur = 0;
         }
         
         function initParticles() {
@@ -4319,31 +4318,42 @@ button:hover {
             spatialGrid = new SpatialGrid(WIDTH, HEIGHT, maxRange);
         }
 
+        // OPT5: cache HUD DOM refs once
+        const _hudSeed = document.getElementById('hudSeed');
+        const _hudFps = document.getElementById('hudFps');
+        const _hudFpsDot = document.getElementById('hudFpsDot');
+        const _hudFpsText = document.getElementById('hudFpsText');
+        let _prevFps = -1;
+        let _prevSeed = null;
+        let _prevBondsCount = -1;
+        let _prevLifeCount = -1;
+
         function drawStatusAndFPS() {
-            // Seed
-            const hudSeed = document.getElementById('hudSeed');
-            if (hudSeed) {
+            // Seed - only update DOM when value changes
+            if (_hudSeed) {
                 if (enableSeedDisplay) {
-                    const seedText = CURRENT_SEED !== null ? `Seed: ${CURRENT_SEED}` : 'Seed: Default';
-                    hudSeed.textContent = seedText;
-                    hudSeed.style.display = 'block';
+                    if (CURRENT_SEED !== _prevSeed) {
+                        _prevSeed = CURRENT_SEED;
+                        _hudSeed.textContent = CURRENT_SEED !== null ? `Seed: ${CURRENT_SEED}` : 'Seed: Default';
+                    }
+                    _hudSeed.style.display = 'block';
                 } else {
-                    hudSeed.style.display = 'none';
+                    _hudSeed.style.display = 'none';
                 }
             }
 
-            // FPS
-            const hudFps = document.getElementById('hudFps');
-            const hudFpsDot = document.getElementById('hudFpsDot');
-            const hudFpsText = document.getElementById('hudFpsText');
-            if (hudFps) {
+            // FPS - only update DOM when value changes
+            if (_hudFps) {
                 if (enableFpsDisplay) {
-                    let fpsColor = fps <= 16 ? '#FF006E' : fps <= 23 ? '#FFBE0B' : '#00FF00';
-                    if (hudFpsDot) hudFpsDot.style.color = fpsColor;
-                    if (hudFpsText) hudFpsText.textContent = `FPS: ${fps}`;
-                    hudFps.style.display = 'flex';
+                    if (fps !== _prevFps) {
+                        _prevFps = fps;
+                        const fpsColor = fps <= 16 ? '#FF006E' : fps <= 23 ? '#FFBE0B' : '#00FF00';
+                        if (_hudFpsDot) _hudFpsDot.style.color = fpsColor;
+                        if (_hudFpsText) _hudFpsText.textContent = `FPS: ${fps}`;
+                    }
+                    _hudFps.style.display = 'flex';
                 } else {
-                    hudFps.style.display = 'none';
+                    _hudFps.style.display = 'none';
                 }
             }
         }
@@ -4407,14 +4417,15 @@ button:hover {
 
                 } // end STEPS_PER_FRAME loop
 
-                // OPT4: cache sorted array, only re-sort when species changes
-                const sortedForDrawing = [...particles].sort((a, b) => {
-                    if (a._name === 'white') return -1;
-                    if (b._name === 'white') return 1;
-                    if (a._name === 'black') return -1;
-                    if (b._name === 'black') return 1;
-                    return 0;
-                });
+                // OPT6: bucket partition O(n) instead of sort O(n log n)
+                const whiteP = [], blackP = [], otherP = [];
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    if (p._name === 'white') whiteP.push(p);
+                    else if (p._name === 'black') blackP.push(p);
+                    else otherP.push(p);
+                }
+                const sortedForDrawing = whiteP.concat(blackP, otherP);
 
                 // Draw bonds BEFORE particles
                 drawBonds(ctx, sortedForDrawing);
@@ -4441,23 +4452,28 @@ button:hover {
                 }
 
                 if (enableMassHierarchy && SPECIES_COUNT >= 2) {
-                    const otherMasses = [];
+                    // OPT8: single-pass min/max without array allocation
                     const blackParticles = [];
                     const whiteParticles = [];
+                    let maxOtherMass = -Infinity;
+                    let minOtherMass = Infinity;
+                    let hasOther = false;
                     
-                    particles.forEach(particle => {
+                    for (let i = 0; i < particles.length; i++) {
+                        const particle = particles[i];
                         if (particle._name === 'black') {
                             blackParticles.push(particle);
                         } else if (particle._name === 'white') {
                             whiteParticles.push(particle);
                         } else {
-                            otherMasses.push(particle._mass);
+                            const m = particle._mass;
+                            if (m > maxOtherMass) maxOtherMass = m;
+                            if (m < minOtherMass) minOtherMass = m;
+                            hasOther = true;
                         }
-                    });
+                    }
                     
-                    if (otherMasses.length > 0) {
-                        const maxOtherMass = Math.max(...otherMasses);
-                        const minOtherMass = Math.min(...otherMasses);
+                    if (hasOther) {
                         
                         const blackMass = Math.min(2.0, maxOtherMass + 0.1);
                         blackParticles.forEach(p => {
@@ -4474,22 +4490,17 @@ button:hover {
                 }
             } else if (isRunning && SPEED_MULTIPLIER === 0) {
                 // Symulacja jest "wstrzymana" - pokaż cząstki w miejscu
-                const sortedForDrawing = [...particles].sort((a, b) => {
-                    if (a._name === 'white') return -1;
-                    if (b._name === 'white') return 1;
-                    if (a._name === 'black') return -1;
-                    if (b._name === 'black') return 1;
-                    return 0;
-                });
-
-                sortedForDrawing.forEach(particle => {
-                    particle.draw(ctx);
-                });
+                for (let i = 0; i < particles.length; i++) {
+                    particles[i].draw(ctx);
+                }
             }
 
             // ZAWSZE rysuj wskaźnik statusu (nawet jeśli symulacja zatrzymana)
             drawStatusAndFPS();
             
+            // OPT7: reset shared particleMap for next frame
+            _frameParticleMap = null;
+
             // VFX: draw overlay effects on top of everything
             drawVfxOverlay();
 
@@ -4506,14 +4517,22 @@ button:hover {
                 ctx.fill();
             }
             
-            // Update bonds count display
+            // Update bonds count display (only when changed)
             if (bondsCount) {
-                bondsCount.textContent = activeBonds.length.toString();
+                const bc = activeBonds.length;
+                if (bc !== _prevBondsCount) {
+                    _prevBondsCount = bc;
+                    bondsCount.textContent = bc.toString();
+                }
             }
             
-            // Update life forms count display
+            // Update life forms count display (only when changed)
             if (lifeFormsCount) {
-                lifeFormsCount.textContent = detectedLifeForms.length.toString();
+                const lc = detectedLifeForms.length;
+                if (lc !== _prevLifeCount) {
+                    _prevLifeCount = lc;
+                    lifeFormsCount.textContent = lc.toString();
+                }
             }
 
             // Kontynuuj animację jeśli symulacja jest uruchomiona LUB jest wstrzymana (szybkość 0%)
@@ -5762,26 +5781,42 @@ button:hover {
             VFX_BG_COLOR = getBgColorForPreset(VFX_BG_PRESET, getTrailAlpha());
         }
 
+        // OPT9: pre-render scanlines to offscreen canvas
+        let _scanlineCanvas = null;
+        let _scanlineW = 0, _scanlineH = 0;
+        let _prevVfxFilter = null;
+
+        function ensureScanlineCanvas() {
+            if (_scanlineCanvas && _scanlineW === WIDTH && _scanlineH === HEIGHT) return;
+            _scanlineCanvas = document.createElement('canvas');
+            _scanlineCanvas.width = WIDTH;
+            _scanlineCanvas.height = HEIGHT;
+            _scanlineW = WIDTH;
+            _scanlineH = HEIGHT;
+            const sctx = _scanlineCanvas.getContext('2d');
+            sctx.fillStyle = '#000000';
+            for (let y = 0; y < HEIGHT; y += 4) {
+                sctx.fillRect(0, y, WIDTH, 2);
+            }
+        }
+
         function drawVfxOverlay() {
-            // CSS filter on canvas element (B&W, sepia, invert)
-            if (VFX_FILTER === 'bw') {
-                canvas.style.filter = 'grayscale(1)';
-            } else if (VFX_FILTER === 'sepia') {
-                canvas.style.filter = 'sepia(0.85)';
-            } else if (VFX_FILTER === 'invert') {
-                canvas.style.filter = 'invert(1)';
-            } else {
-                canvas.style.filter = 'none';
+            // OPT9: CSS filter only set when changed
+            let targetFilter = 'none';
+            if (VFX_FILTER === 'bw') targetFilter = 'grayscale(1)';
+            else if (VFX_FILTER === 'sepia') targetFilter = 'sepia(0.85)';
+            else if (VFX_FILTER === 'invert') targetFilter = 'invert(1)';
+            if (targetFilter !== _prevVfxFilter) {
+                _prevVfxFilter = targetFilter;
+                canvas.style.filter = targetFilter;
             }
 
             if (VFX_OVERLAY === 'none') return;
 
             if (VFX_OVERLAY === 'scanlines') {
+                ensureScanlineCanvas();
                 ctx.globalAlpha = 0.08;
-                ctx.fillStyle = '#000000';
-                for (let y = 0; y < HEIGHT; y += 4) {
-                    ctx.fillRect(0, y, WIDTH, 2);
-                }
+                ctx.drawImage(_scanlineCanvas, 0, 0);
                 ctx.globalAlpha = 1;
             }
             else if (VFX_OVERLAY === 'vignette') {
