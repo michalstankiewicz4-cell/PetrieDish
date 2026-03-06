@@ -2495,9 +2495,9 @@ button:hover {
             <span class="speed-value" id="speedValue">100%</span>
         </div>
         <div class="row speed-group" style="margin-top: 6px;">
-            <label for="timescaleInput" style="color: #00FF88; font-size: 11px;">⚗️ Timescale (test):</label>
-            <input type="range" id="timescaleInput" min="1" max="32" value="1" step="1">
-            <span class="speed-value" id="timescaleValue" style="color: #00FF88;">1x</span>
+            <label for="timescaleInput" style="color: #00FF88; font-size: 11px;">⚡ FPS Booster:</label>
+            <input type="range" id="timescaleInput" min="0" max="100" value="0" step="1">
+            <span class="speed-value" id="timescaleValue" style="color: #00FF88;">1.00x</span>
         </div>
     </div>
 
@@ -3424,6 +3424,8 @@ button:hover {
         let SPEED_MULTIPLIER = 1.0;
         let SPEED_BEFORE_PAUSE = 1.0;
         let STEPS_PER_FRAME = 1; // fixed timestep multiplier (timescale test)
+        let TIMESCALE_VALUE = 1.0; // actual timescale value (can be < 1 for slowdown)
+        let FRAME_SKIP_COUNTER = 0; // counter for slowdown mode
         let VISCOSITY = 0.98;
         let VORTICNESS_MULTIPLIER = 0.025;
         let CURRENT_SEED = null;
@@ -4631,7 +4633,21 @@ button:hover {
             // Tylko jeśli symulacja jest uruchomiona ORAZ szybkość > 0
             if (isRunning && SPEED_MULTIPLIER > 0) {
 
-                // FIXED TIMESTEP: run multiple physics steps per frame
+                // TIMESCALE SLOWDOWN: skip physics updates if timescale < 1
+                let shouldUpdatePhysics = true;
+                if (TIMESCALE_VALUE < 1) {
+                    FRAME_SKIP_COUNTER++;
+                    const frameInterval = Math.round(1 / TIMESCALE_VALUE);
+                    if (FRAME_SKIP_COUNTER >= frameInterval) {
+                        FRAME_SKIP_COUNTER = 0;
+                        shouldUpdatePhysics = true;
+                    } else {
+                        shouldUpdatePhysics = false;
+                    }
+                }
+
+                // FIXED TIMESTEP: run multiple physics steps per frame (only if not skipping)
+                if (shouldUpdatePhysics) {
                 for (let step = 0; step < STEPS_PER_FRAME; step++) {
 
                 if (spatialGrid) {
@@ -4676,6 +4692,7 @@ button:hover {
                 detectLifeForms(particles);
 
                 } // end STEPS_PER_FRAME loop
+                } // end shouldUpdatePhysics
 
                 // OPT6+8: bucket partition O(n) with pre-allocated arrays
                 _whiteP.length = 0; _blackP.length = 0; _otherP.length = 0;
@@ -4690,12 +4707,20 @@ button:hover {
                 // Draw bonds BEFORE particles
                 drawBonds(ctx, sortedForDrawing);
 
-                // OPT4: draw only dirty particles (moved this frame)
-                for (let i = 0; i < sortedForDrawing.length; i++) {
-                    const p = sortedForDrawing[i];
-                    if (p._dirty) {
-                        p.draw(ctx);
-                        p._dirty = false;
+                // OPT4: draw particles (if in slowdown mode without physics update, draw all; otherwise only dirty)
+                if (!shouldUpdatePhysics && TIMESCALE_VALUE < 1) {
+                    // Slowdown mode - draw all particles even if not updated
+                    for (let i = 0; i < sortedForDrawing.length; i++) {
+                        sortedForDrawing[i].draw(ctx);
+                    }
+                } else {
+                    // Normal mode - draw only dirty particles (moved this frame)
+                    for (let i = 0; i < sortedForDrawing.length; i++) {
+                        const p = sortedForDrawing[i];
+                        if (p._dirty) {
+                            p.draw(ctx);
+                            p._dirty = false;
+                        }
                     }
                 }
 
@@ -5283,13 +5308,17 @@ button:hover {
             handleSpeedChange(speedPercent);
         });
 
-        // TIMESCALE (fixed timestep) slider
+        // FPS BOOSTER: slider inverts scale so moving right slows simulation
         const timescaleInput = document.getElementById('timescaleInput');
         const timescaleValue = document.getElementById('timescaleValue');
         if (timescaleInput) {
             timescaleInput.addEventListener('input', (e) => {
-                STEPS_PER_FRAME = parseInt(e.target.value);
-                timescaleValue.textContent = STEPS_PER_FRAME + 'x';
+                const boosterPercent = parseInt(e.target.value, 10) / 100;
+                TIMESCALE_VALUE = 1 - (boosterPercent * 0.999); // 1.000 -> 0.001
+                STEPS_PER_FRAME = 1;
+                const precision = TIMESCALE_VALUE < 0.1 ? 3 : 2;
+                timescaleValue.textContent = TIMESCALE_VALUE.toFixed(precision) + 'x';
+                FRAME_SKIP_COUNTER = 0; // reset counter when value changes
             });
         }
         
