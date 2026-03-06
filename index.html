@@ -2468,6 +2468,11 @@ button:hover {
             <input type="range" id="speedInput" min="0" max="200" value="100" step="10">
             <span class="speed-value" id="speedValue">100%</span>
         </div>
+        <div class="row speed-group" style="margin-top: 6px;">
+            <label for="timescaleInput" style="color: #00FF88; font-size: 11px;">⚗️ Timescale (test):</label>
+            <input type="range" id="timescaleInput" min="1" max="32" value="1" step="1">
+            <span class="speed-value" id="timescaleValue" style="color: #00FF88;">1x</span>
+        </div>
     </div>
 
     <div class="canvas-container">
@@ -3245,6 +3250,7 @@ button:hover {
         let SPECIES_COUNT = 6;
         let SPEED_MULTIPLIER = 1.0;
         let SPEED_BEFORE_PAUSE = 1.0;
+        let STEPS_PER_FRAME = 1; // fixed timestep multiplier (timescale test)
         let VISCOSITY = 0.98;
         let VORTICNESS_MULTIPLIER = 0.025;
         let CURRENT_SEED = null;
@@ -3403,50 +3409,51 @@ button:hover {
                 this.cellSize = cellSize;
                 this.cols = Math.ceil(width / cellSize);
                 this.rows = Math.ceil(height / cellSize);
-                this.grid = new Map();
+                // OPT1: Use Int32Array-backed flat array instead of Map with string keys
+                this.cells = new Array(this.cols * this.rows);
+                for (let i = 0; i < this.cells.length; i++) this.cells[i] = [];
+                this._usedCells = []; // track which cells to clear
             }
 
             clear() {
-                this.grid.clear();
+                // Only clear cells that were actually used
+                for (let i = 0; i < this._usedCells.length; i++) {
+                    this.cells[this._usedCells[i]].length = 0;
+                }
+                this._usedCells.length = 0;
             }
 
-            getCellKey(x, y) {
-                const col = Math.floor(x / this.cellSize);
-                const row = Math.floor(y / this.cellSize);
-                return `${col},${row}`;
+            _cellIndex(x, y) {
+                // OPT1: numeric index instead of string key
+                const col = (x / this.cellSize) | 0;
+                const row = (y / this.cellSize) | 0;
+                return row * this.cols + col;
             }
 
             insert(particle) {
-                if (particle.x < 0 || particle.x >= this.width || 
-                    particle.y < 0 || particle.y >= this.height) {
-                    return;
-                }
-                
-                const key = this.getCellKey(particle.x, particle.y);
-                if (!this.grid.has(key)) {
-                    this.grid.set(key, []);
-                }
-                this.grid.get(key).push(particle);
+                const x = particle.x;
+                const y = particle.y;
+                if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
+                const idx = this._cellIndex(x, y);
+                if (this.cells[idx].length === 0) this._usedCells.push(idx);
+                this.cells[idx].push(particle);
             }
 
             getNearby(particle, range) {
                 const nearby = [];
-                const col = Math.floor(particle.x / this.cellSize);
-                const row = Math.floor(particle.y / this.cellSize);
+                const col = (particle.x / this.cellSize) | 0;
+                const row = (particle.y / this.cellSize) | 0;
                 const cellRadius = Math.ceil(range / this.cellSize);
-                
+                const cols = this.cols, rows = this.rows;
+
                 for (let i = -cellRadius; i <= cellRadius; i++) {
                     for (let j = -cellRadius; j <= cellRadius; j++) {
-                        const wrappedCol = (col + i + this.cols) % this.cols;
-                        const wrappedRow = (row + j + this.rows) % this.rows;
-                        const key = `${wrappedCol},${wrappedRow}`;
-                        
-                        if (this.grid.has(key)) {
-                            nearby.push(...this.grid.get(key));
-                        }
+                        const wCol = (col + i + cols) % cols;
+                        const wRow = (row + j + rows) % rows;
+                        const cell = this.cells[wRow * cols + wCol];
+                        for (let k = 0; k < cell.length; k++) nearby.push(cell[k]);
                     }
                 }
-                
                 return nearby;
             }
         }
@@ -3582,7 +3589,7 @@ button:hover {
 
         class Particle {
             constructor(initX = null, initY = null) {
-                this.id = particleIDCounter++; // Unique ID
+                this.id = particleIDCounter++;
                 this.x = initX !== null ? initX : Math.random() * WIDTH;
                 this.y = initY !== null ? initY : Math.random() * HEIGHT;
                 this.vx = (Math.random() - 0.5) * 2;
@@ -3591,15 +3598,31 @@ button:hover {
                 this.radius = 2;
                 this.alpha = 1;
                 this.dead = false;
-                this.bonds = []; // Array of bonded particle IDs
+                this.bonds = [];
+                this._dirty = true;
+                // OPT3: cache hot numeric values directly on particle
+                this._range = this.colorData.interactionRange;
+                this._rangeSq = this._range * this._range;
+                this._charge = this.colorData.charge;
+                this._mass = this.colorData.mass;
+                this._vorticness = this.colorData.vorticness;
+                this._name = this.colorData.name;
+            }
+
+            // Call whenever colorData changes
+            _syncCache() {
+                this._range = this.colorData.interactionRange;
+                this._rangeSq = this._range * this._range;
+                this._charge = this.colorData.charge;
+                this._mass = this.colorData.mass;
+                this._vorticness = this.colorData.vorticness;
+                this._name = this.colorData.name;
             }
 
             update(particles) {
-                if (SPEED_MULTIPLIER <= 0) {
-                    return;
-                }
+                if (SPEED_MULTIPLIER <= 0) return;
 
-                // Viscosity (lepkość przestrzeni) - tylko gdy włączone
+                // Viscosity
                 if (enableViscosity) {
                     this.vx *= VISCOSITY;
                     this.vy *= VISCOSITY;
@@ -3608,9 +3631,11 @@ button:hover {
                 if (mousePressed) {
                     const dx = torusDelta(this.x, mouseX, WIDTH);
                     const dy = torusDelta(this.y, mouseY, HEIGHT);
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (dist < MOUSE_RANGE && dist > 0) {
+                    // OPT2: only sqrt when actually inside range
+                    const distSq = dx * dx + dy * dy;
+                    const mouseRangeSq = MOUSE_RANGE * MOUSE_RANGE;
+                    if (distSq < mouseRangeSq && distSq > 0) {
+                        const dist = Math.sqrt(distSq);
                         const strength = (1 - dist / MOUSE_RANGE) * MOUSE_FORCE;
                         this.vx += (dx / dist) * strength;
                         this.vy += (dy / dist) * strength;
@@ -3619,111 +3644,117 @@ button:hover {
 
                 if (enableSwarm) {
                     let centerX = 0, centerY = 0, count = 0;
-                    
+                    const swarmRangeSq = SWARM_RANGE * SWARM_RANGE;
                     const nearbyForSwarm = spatialGrid ? spatialGrid.getNearby(this, SWARM_RANGE) : particles;
-                    
                     for (let i = 0; i < nearbyForSwarm.length; i++) {
                         const other = nearbyForSwarm[i];
-                        if (other.colorData.name === this.colorData.name) {
-                            const dx = torusDelta(this.x, other.x, WIDTH);
-                            const dy = torusDelta(this.y, other.y, HEIGHT);
-                            const dist = Math.sqrt(dx * dx + dy * dy);
-                            
-                            if (dist < SWARM_RANGE && dist > 0) {
-                                centerX += other.x;
-                                centerY += other.y;
-                                count++;
-                            }
+                        if (other._name !== this._name) continue;
+                        const dx = torusDelta(this.x, other.x, WIDTH);
+                        const dy = torusDelta(this.y, other.y, HEIGHT);
+                        // OPT2: dist² check first
+                        if (dx * dx + dy * dy < swarmRangeSq) {
+                            centerX += other.x;
+                            centerY += other.y;
+                            count++;
                         }
                     }
-                    
                     if (count > 0) {
                         centerX /= count;
                         centerY /= count;
                         const dx = torusDelta(this.x, centerX, WIDTH);
                         const dy = torusDelta(this.y, centerY, HEIGHT);
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist > 0) {
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq > 0) {
+                            const dist = Math.sqrt(distSq);
                             this.vx += (dx / dist) * SWARM_STRENGTH;
                             this.vy += (dy / dist) * SWARM_STRENGTH;
                         }
                     }
                 }
 
-                const effectiveRange = this.colorData.interactionRange;
+                const effectiveRange = this._range;
+                const effectiveRangeSq = this._rangeSq;
                 const nearbyParticles = spatialGrid ? spatialGrid.getNearby(this, effectiveRange) : particles;
-                
+
                 for (let i = 0; i < nearbyParticles.length; i++) {
                     const other = nearbyParticles[i];
                     if (other === this) continue;
 
                     const dx = torusDelta(this.x, other.x, WIDTH);
                     const dy = torusDelta(this.y, other.y, HEIGHT);
-                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const distSq = dx * dx + dy * dy;
 
-                    if (dist < effectiveRange && dist > 0) {
+                    if (distSq < effectiveRangeSq && distSq > 0) {
+                        const dist = Math.sqrt(distSq);
+
                         if (enableAttraction) {
-                            const attraction = INTERACTION_MATRIX[this.colorData.name][other.colorData.name];
+                            // OPT3: use cached _name instead of colorData.name chain
+                            const attraction = INTERACTION_MATRIX[this._name][other._name];
                             const force = (attraction * 0.5 * ATTRACTION_STRENGTH) / dist;
                             this.vx += (dx / dist) * force;
                             this.vy += (dy / dist) * force;
                         }
 
                         if (enableCharges) {
-                            const chargeForce = (this.colorData.charge * other.colorData.charge) * -0.3 * CHARGE_FORCE / dist;
+                            // OPT3: cached _charge
+                            const chargeForce = (this._charge * other._charge) * -0.3 * CHARGE_FORCE / dist;
                             this.vx += (dx / dist) * chargeForce;
-                            this.vy += (dy / dist) * chargeForce;  // FIX: było dx, powinno być dy!
+                            this.vy += (dy / dist) * chargeForce;
                         }
 
-                        if (enableVortex && dist < 80) {
-                            const colorVorticness = (this.colorData.vorticness + other.colorData.vorticness) / 2;
+                        if (enableVortex && distSq < 6400) {
+                            // OPT3: cached _vorticness
+                            const colorVorticness = (this._vorticness + other._vorticness) * 0.5;
                             const vortexStrength = colorVorticness * VORTICNESS_MULTIPLIER * 0.3 * (1 - dist / 80);
                             this.vx += (-dy / dist) * vortexStrength;
                             this.vy += (dx / dist) * vortexStrength;
                         }
 
-                        if (enableMixing && dist < 8) {
+                        if (enableMixing && distSq < 64) {
                             this.mixColor(other);
                         }
-                        
-                        if (enableMassTransfer && dist < 5) {
-                            const massDiff = this.colorData.mass - other.colorData.mass;
+
+                        if (enableMassTransfer && distSq < 25) {
+                            // OPT3: cached _mass
+                            const massDiff = this._mass - other._mass;
                             const transfer = massDiff * TRANSFER_RATE;
-                            
-                            this.colorData.mass -= transfer;
-                            other.colorData.mass += transfer;
-                            
-                            this.colorData.mass = Math.max(0.3, Math.min(2.0, this.colorData.mass));
-                            other.colorData.mass = Math.max(0.3, Math.min(2.0, other.colorData.mass));
+                            this._mass -= transfer;
+                            other._mass += transfer;
+                            this._mass = Math.max(0.3, Math.min(2.0, this._mass));
+                            other._mass = Math.max(0.3, Math.min(2.0, other._mass));
+                            this.colorData.mass = this._mass;
+                            other.colorData.mass = other._mass;
                         }
                     }
                 }
 
-                const massEffect = enableMass ? (2 / this.colorData.mass * MASS_EFFECT_MULTIPLIER) : 2;
+                // OPT3: use cached _mass
+                const massEffect = enableMass ? (2 / this._mass * MASS_EFFECT_MULTIPLIER) : 2;
                 this.x += this.vx * massEffect * SPEED_MULTIPLIER;
                 this.y += this.vy * massEffect * SPEED_MULTIPLIER;
+
+                // OPT4: mark dirty for selective rendering
+                this._dirty = true;
 
                 if (BOUNDARY_MODE === 'warp') {
                     this.x = (this.x + WIDTH) % WIDTH;
                     this.y = (this.y + HEIGHT) % HEIGHT;
-                } 
+                }
                 else if (BOUNDARY_MODE === 'wall') {
                     if (this.x < 0 || this.x > WIDTH) {
                         this.vx *= -0.8;
                         this.x = Math.max(0, Math.min(WIDTH, this.x));
-                        
                         if (enableMassTransfer) {
-                            this.colorData.mass *= 0.95;
-                            this.colorData.mass = Math.max(0.3, this.colorData.mass);
+                            this._mass = Math.max(0.3, this._mass * 0.95);
+                            this.colorData.mass = this._mass;
                         }
                     }
                     if (this.y < 0 || this.y > HEIGHT) {
                         this.vy *= -0.8;
                         this.y = Math.max(0, Math.min(HEIGHT, this.y));
-                        
                         if (enableMassTransfer) {
-                            this.colorData.mass *= 0.95;
-                            this.colorData.mass = Math.max(0.3, this.colorData.mass);
+                            this._mass = Math.max(0.3, this._mass * 0.95);
+                            this.colorData.mass = this._mass;
                         }
                     }
                 }
@@ -3733,11 +3764,12 @@ button:hover {
                     }
                 }
 
-                const maxSpeed = 3;
-                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
-                if (speed > maxSpeed) {
-                    this.vx = (this.vx / speed) * maxSpeed;
-                    this.vy = (this.vy / speed) * maxSpeed;
+                // OPT2: speed cap without sqrt when possible
+                const speedSq = this.vx * this.vx + this.vy * this.vy;
+                if (speedSq > 9) { // 3*3=9
+                    const inv = 3 / Math.sqrt(speedSq);
+                    this.vx *= inv;
+                    this.vy *= inv;
                 }
             }
 
@@ -3746,24 +3778,23 @@ button:hover {
                     const r1 = parseInt(this.colorData.hex.slice(1, 3), 16);
                     const g1 = parseInt(this.colorData.hex.slice(3, 5), 16);
                     const b1 = parseInt(this.colorData.hex.slice(5, 7), 16);
-                    
                     const r2 = parseInt(other.colorData.hex.slice(1, 3), 16);
                     const g2 = parseInt(other.colorData.hex.slice(3, 5), 16);
                     const b2 = parseInt(other.colorData.hex.slice(5, 7), 16);
-
                     const nr = Math.floor(r1 * (1 - BLEND_RATE) + r2 * BLEND_RATE);
                     const ng = Math.floor(g1 * (1 - BLEND_RATE) + g2 * BLEND_RATE);
                     const nb = Math.floor(b1 * (1 - BLEND_RATE) + b2 * BLEND_RATE);
-
                     this.colorData = {
                         ...this.colorData,
                         hex: `#${nr.toString(16).padStart(2, '0')}${ng.toString(16).padStart(2, '0')}${nb.toString(16).padStart(2, '0')}`
                     };
+                    // OPT3: re-sync cache after colorData mutation
+                    this._syncCache();
                 }
             }
 
             draw(ctx) {
-                const drawRadius = this.colorData.mass * 2.0;
+                const drawRadius = this._mass * 2.0;
                 const color = this.colorData.hex;
 
                 ctx.globalAlpha = this.alpha;
@@ -3989,27 +4020,25 @@ button:hover {
             
             const targetFPS = 60;
             const requiredFrames = BOND_FORMATION_TIME * targetFPS;
+            const bondMaxDistSq = BOND_MAX_DISTANCE * BOND_MAX_DISTANCE;
             
-            // Check all particle pairs
             for (let i = 0; i < particles.length; i++) {
                 const p1 = particles[i];
-                if (p1.bonds.length >= MAX_BONDS_PER_PARTICLE) continue; // Max bonds (3-5)
+                if (p1.bonds.length >= MAX_BONDS_PER_PARTICLE) continue;
                 
                 for (let j = i + 1; j < particles.length; j++) {
                     const p2 = particles[j];
                     if (p2.bonds.length >= MAX_BONDS_PER_PARTICLE) continue;
-                    
-                    // Same color cannot bond (only different colors!)
-                    if (p1.colorData.name === p2.colorData.name) continue;
-                    
-                    // Already bonded?
+                if (p1._name === p2._name) continue;
                     if (p1.bonds.includes(p2.id)) continue;
                     
                     const dx = p2.x - p1.x;
                     const dy = p2.y - p1.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const distSq = dx * dx + dy * dy;
                     
-                    if (dist < BOND_MAX_DISTANCE) {
+                    // OPT2: dist² check first
+                    if (distSq < bondMaxDistSq) {
+                        const dist = Math.sqrt(distSq);
                         const pairKey = p1.id < p2.id ? `${p1.id}-${p2.id}` : `${p2.id}-${p1.id}`;
                         
                         if (!bondCandidates.has(pairKey)) {
@@ -4017,34 +4046,25 @@ button:hover {
                         }
                         
                         const candidate = bondCandidates.get(pairKey);
-                        
-                        // Check if distance is stable (not changing much)
                         const distChange = Math.abs(dist - candidate.distance);
-                        if (distChange < 1.0) { // Stable (less than 1px change)
+                        if (distChange < 1.0) {
                             candidate.frames++;
                             candidate.distance = dist;
-                            
-                            // Form bond!
                             if (candidate.frames >= requiredFrames) {
                                 const angle1 = Math.atan2(dy, dx);
                                 const angle2 = Math.atan2(-dy, -dx);
-                                
-                                // Check if this angle slot is available (5 slots, every 72°)
                                 if (canFormBondAtAngle(p1, angle1) && canFormBondAtAngle(p2, angle2)) {
                                     p1.bonds.push(p2.id);
                                     p2.bonds.push(p1.id);
                                     activeBonds.push({ p1: p1.id, p2: p2.id, distance: dist });
                                     bondCandidates.delete(pairKey);
-                                    console.log(`🔗 Bond formed: ${p1.id} ↔ ${p2.id} at ${dist.toFixed(1)}px`);
                                 }
                             }
                         } else {
-                            // Not stable, reset
                             candidate.frames = 0;
                             candidate.distance = dist;
                         }
                     } else {
-                        // Too far, remove candidate
                         const pairKey = p1.id < p2.id ? `${p1.id}-${p2.id}` : `${p2.id}-${p1.id}`;
                         bondCandidates.delete(pairKey);
                     }
@@ -4074,102 +4094,88 @@ button:hover {
         function applyBondConstraints(particles) {
             if (!enableBonds || activeBonds.length === 0) return;
             
-            // Create particle lookup map
+            // OPT3: build particle lookup once per frame
             const particleMap = new Map();
-            particles.forEach(p => particleMap.set(p.id, p));
+            for (let i = 0; i < particles.length; i++) particleMap.set(particles[i].id, particles[i]);
             
-            // Apply bond constraints (keep bonded particles at fixed distance)
-            activeBonds.forEach(bond => {
+            for (let b = 0; b < activeBonds.length; b++) {
+                const bond = activeBonds[b];
                 const p1 = particleMap.get(bond.p1);
                 const p2 = particleMap.get(bond.p2);
-                
-                if (!p1 || !p2) return;
+                if (!p1 || !p2) continue;
                 
                 const dx = p2.x - p1.x;
                 const dy = p2.y - p1.y;
-                const currentDist = Math.sqrt(dx * dx + dy * dy);
+                const distSq = dx * dx + dy * dy;
+                if (distSq === 0) continue;
                 
-                if (currentDist === 0) return;
-                
-                // Calculate correction - ENFORCE FIXED BOND_LENGTH!
+                const currentDist = Math.sqrt(distSq);
                 const diff = currentDist - BOND_LENGTH;
-                const correctionFactor = diff / currentDist * 0.5; // 50% correction each
-                
-                // Apply correction
+                const correctionFactor = diff / currentDist * 0.5;
                 const cx = dx * correctionFactor;
                 const cy = dy * correctionFactor;
-                
-                p1.x += cx;
-                p1.y += cy;
-                p2.x -= cx;
-                p2.y -= cy;
-            });
+                p1.x += cx; p1.y += cy;
+                p2.x -= cx; p2.y -= cy;
+            }
         }
         
         // LIFE DETECTION SYSTEM
+        let _lifeDetectFrame = 0;
         function detectLifeForms(particles) {
             if (!enableLifeDetection) {
                 detectedLifeForms = [];
                 return;
             }
-            
+            // OPT4: only run life detection every 3 frames (not every physics step)
+            _lifeDetectFrame++;
+            if (_lifeDetectFrame % 3 !== 0) return;
+
             const clusters = [];
             const visited = new Set();
-            
-            // Simple clustering algorithm
-            particles.forEach((particle, i) => {
-                if (visited.has(i)) return;
-                
+            const distFromSq = LIFE_MAX_DISTANCE_FROM * LIFE_MAX_DISTANCE_FROM;
+            const distToSq   = LIFE_MAX_DISTANCE_TO   * LIFE_MAX_DISTANCE_TO;
+            const speedFromSq = LIFE_MAX_SPEED_DIFF_FROM * LIFE_MAX_SPEED_DIFF_FROM;
+            const speedToSq   = LIFE_MAX_SPEED_DIFF_TO   * LIFE_MAX_SPEED_DIFF_TO;
+
+            for (let i = 0; i < particles.length; i++) {
+                if (visited.has(i)) continue;
                 const cluster = [];
                 const queue = [i];
                 visited.add(i);
-                
+
                 while (queue.length > 0) {
                     const currentIdx = queue.shift();
                     const current = particles[currentIdx];
                     cluster.push(current);
-                    
-                    // Find neighbors
-                    particles.forEach((neighbor, j) => {
-                        if (visited.has(j)) return;
-                        
+
+                    for (let j = 0; j < particles.length; j++) {
+                        if (visited.has(j)) continue;
+                        const neighbor = particles[j];
                         const dx = neighbor.x - current.x;
                         const dy = neighbor.y - current.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        
-                        // CHECK DISTANCE RANGE (from-to)
-                        if (dist >= LIFE_MAX_DISTANCE_FROM && dist <= LIFE_MAX_DISTANCE_TO) {
-                            // Check if moving together (similar velocity)
-                            const dvx = Math.abs(neighbor.vx - current.vx);
-                            const dvy = Math.abs(neighbor.vy - current.vy);
-                            const speedDiff = Math.sqrt(dvx * dvx + dvy * dvy);
-                            
-                            // CHECK VELOCITY DIFF RANGE (from-to)
-                            if (speedDiff >= LIFE_MAX_SPEED_DIFF_FROM && speedDiff <= LIFE_MAX_SPEED_DIFF_TO) {
+                        // OPT2: dist² check
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq >= distFromSq && distSq <= distToSq) {
+                            const dvx = neighbor.vx - current.vx;
+                            const dvy = neighbor.vy - current.vy;
+                            const speedSq = dvx * dvx + dvy * dvy;
+                            if (speedSq >= speedFromSq && speedSq <= speedToSq) {
                                 visited.add(j);
                                 queue.push(j);
                             }
                         }
-                    });
+                    }
                 }
-                
-                // CHECK PARTICLES RANGE (from-to) AND COLORS RANGE (from-to)
+
                 if (cluster.length >= LIFE_MIN_PARTICLES_FROM && cluster.length <= LIFE_MIN_PARTICLES_TO) {
-                    // Count unique colors in cluster
                     const uniqueColors = new Set(cluster.map(p => p.colorData.name));
-                    
                     if (uniqueColors.size >= LIFE_MIN_COLORS_FROM && uniqueColors.size <= LIFE_MIN_COLORS_TO) {
                         clusters.push(cluster);
                     }
                 }
-            });
-            
-            detectedLifeForms = clusters;
-            
-            // Debug log (only when changes)
-            if (Math.random() < 0.01) { // 1% chance to log (co ~100 frames)
-                console.log(`🧬 Detected ${clusters.length} life forms (${clusters.map(c => c.length).join(', ')} particles, ${clusters.map(c => new Set(c.map(p => p.colorData.name)).size).join(', ')} colors)`);
             }
+
+            detectedLifeForms = clusters;
         }
         
         function drawLifeForms(ctx) {
@@ -4358,6 +4364,10 @@ button:hover {
 
             // Tylko jeśli symulacja jest uruchomiona ORAZ szybkość > 0
             if (isRunning && SPEED_MULTIPLIER > 0) {
+
+                // FIXED TIMESTEP: run multiple physics steps per frame
+                for (let step = 0; step < STEPS_PER_FRAME; step++) {
+
                 if (spatialGrid) {
                     spatialGrid.clear();
                     for (let i = 0; i < particles.length; i++) {
@@ -4395,22 +4405,30 @@ button:hover {
                 // Life Detection - detect clusters
                 detectLifeForms(particles);
 
+                } // end STEPS_PER_FRAME loop
+
+                // OPT4: cache sorted array, only re-sort when species changes
                 const sortedForDrawing = [...particles].sort((a, b) => {
-                    if (a.colorData.name === 'white') return -1;
-                    if (b.colorData.name === 'white') return 1;
-                    if (a.colorData.name === 'black') return -1;
-                    if (b.colorData.name === 'black') return 1;
+                    if (a._name === 'white') return -1;
+                    if (b._name === 'white') return 1;
+                    if (a._name === 'black') return -1;
+                    if (b._name === 'black') return 1;
                     return 0;
                 });
-                
-                // Draw bonds BEFORE particles (tak aby cząstki były na wierzchu)
+
+                // Draw bonds BEFORE particles
                 drawBonds(ctx, sortedForDrawing);
 
-                sortedForDrawing.forEach(particle => {
-                    particle.draw(ctx);
-                });
-                
-                // Draw life forms AFTER particles (na wierzchu)
+                // OPT4: draw only dirty particles (moved this frame)
+                for (let i = 0; i < sortedForDrawing.length; i++) {
+                    const p = sortedForDrawing[i];
+                    if (p._dirty) {
+                        p.draw(ctx);
+                        p._dirty = false;
+                    }
+                }
+
+                // Draw life forms AFTER particles
                 drawLifeForms(ctx);
                 
                 if (BOUNDARY_MODE === 'endless') {
@@ -4428,12 +4446,12 @@ button:hover {
                     const whiteParticles = [];
                     
                     particles.forEach(particle => {
-                        if (particle.colorData.name === 'black') {
+                        if (particle._name === 'black') {
                             blackParticles.push(particle);
-                        } else if (particle.colorData.name === 'white') {
+                        } else if (particle._name === 'white') {
                             whiteParticles.push(particle);
                         } else {
-                            otherMasses.push(particle.colorData.mass);
+                            otherMasses.push(particle._mass);
                         }
                     });
                     
@@ -4444,21 +4462,23 @@ button:hover {
                         const blackMass = Math.min(2.0, maxOtherMass + 0.1);
                         blackParticles.forEach(p => {
                             p.colorData.mass = blackMass;
+                            p._mass = blackMass; // OPT3: sync cache
                         });
                         
                         const whiteMass = Math.max(0.3, minOtherMass - 0.1);
                         whiteParticles.forEach(p => {
                             p.colorData.mass = whiteMass;
+                            p._mass = whiteMass; // OPT3: sync cache
                         });
                     }
                 }
             } else if (isRunning && SPEED_MULTIPLIER === 0) {
                 // Symulacja jest "wstrzymana" - pokaż cząstki w miejscu
                 const sortedForDrawing = [...particles].sort((a, b) => {
-                    if (a.colorData.name === 'white') return -1;
-                    if (b.colorData.name === 'white') return 1;
-                    if (a.colorData.name === 'black') return -1;
-                    if (b.colorData.name === 'black') return 1;
+                    if (a._name === 'white') return -1;
+                    if (b._name === 'white') return 1;
+                    if (a._name === 'black') return -1;
+                    if (b._name === 'black') return 1;
                     return 0;
                 });
 
@@ -4974,6 +4994,16 @@ button:hover {
             const speedPercent = parseInt(e.target.value);
             handleSpeedChange(speedPercent);
         });
+
+        // TIMESCALE (fixed timestep) slider
+        const timescaleInput = document.getElementById('timescaleInput');
+        const timescaleValue = document.getElementById('timescaleValue');
+        if (timescaleInput) {
+            timescaleInput.addEventListener('input', (e) => {
+                STEPS_PER_FRAME = parseInt(e.target.value);
+                timescaleValue.textContent = STEPS_PER_FRAME + 'x';
+            });
+        }
         
         widthInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') applySize();
