@@ -2822,6 +2822,20 @@ button:hover {
             </div>
         </div>
 
+        <div class="legend-item mech-initial-speed">
+            <label>
+                <span class="text">🚀 Initial Speed - per color spawn velocity</span>
+                <span class="tooltip-icon">?
+                    <span class="tooltip-text">Each color has its own initial velocity (0–100%). 0% = stationary start. 100% = full speed. Applied on next Reset/Random!</span>
+                </span>
+            </label>
+            <div class="mech-options" style="display: block;">
+                <div class="option-row">
+                    <button id="editSpeedBtn" class="edit-matrix-btn">🚀 Edit Initial Speeds</button>
+                </div>
+            </div>
+        </div>
+
         </div>
 
         <div class="mech-group">
@@ -2869,25 +2883,6 @@ button:hover {
                 </div>
                 <div class="option-hint">
                     0.90 = energetic | 0.98 = smooth | 0.99 = sticky
-                </div>
-            </div>
-        </div>
-
-        <div class="legend-item mech-initial-speed">
-            <label>
-                <span class="text">🚀 Initial Speed - spawn velocity</span>
-                <span class="tooltip-icon">?
-                    <span class="tooltip-text">Sets the initial random velocity of particles when spawned. 0 = particles start stationary. 1 = default. 2 = fast start. Applied on next Reset/Random!</span>
-                </span>
-            </label>
-            <div class="mech-options" style="display: block;">
-                <div class="option-row">
-                    <label>Speed:</label>
-                    <input type="range" id="initialSpeedInput" min="0" max="200" value="100" step="10">
-                    <span class="option-value" id="initialSpeedValue">1.0</span>
-                </div>
-                <div class="option-hint">
-                    0 = stationary | 1.0 = default | 2.0 = fast
                 </div>
             </div>
         </div>
@@ -2993,6 +2988,18 @@ button:hover {
         <div id="colorPropertiesContainer" class="matrix-container">
             <div class="matrix-hint">Properties of each color from seed (read-only – changes with new seed)</div>
             <div id="colorPropertiesTable" class="color-properties-table"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Initial Speed per Color -->
+<div id="speedModal" class="modal-overlay">
+    <div class="modal-content">
+        <button class="modal-close-btn" id="speedModalClose">✕</button>
+        <div class="modal-title">🚀 Initial Speed per Color</div>
+        <div class="matrix-container">
+            <div class="matrix-hint">Set spawn velocity for each color (0% = stationary, 100% = full speed). Changes apply immediately!</div>
+            <div id="speedTable" style="display: flex; flex-direction: column; gap: 8px; padding: 10px 0;"></div>
         </div>
     </div>
 </div>
@@ -3317,7 +3324,6 @@ button:hover {
         let SPEED_BEFORE_PAUSE = 1.0;
         let STEPS_PER_FRAME = 1; // fixed timestep multiplier (timescale test)
         let VISCOSITY = 0.98;
-        let INITIAL_SPEED = 1.0;
         let VORTICNESS_MULTIPLIER = 0.025;
         let CURRENT_SEED = null;
         let INIT_MODE = 'random';
@@ -3584,7 +3590,8 @@ button:hover {
                     charge: settings.charges ? (rng.bool() ? 1 : -1) : 0,
                     mass: settings.mass ? rng.range(0.5, 1.5) : 1.0,
                     interactionRange: rng.int(30, 150),
-                    vorticness: settings.vortex ? rng.range(0.0, 1.0) : 0
+                    vorticness: settings.vortex ? rng.range(0.0, 1.0) : 0,
+                    initialSpeed: rng.range(0.2, 1.5)
                 };
             });
             
@@ -3618,18 +3625,18 @@ button:hover {
         }
 
         const DEFAULT_COLORS = [
-            { hex: '#FFFFFF', charge: -1, mass: 1.05, interactionRange: 50, vorticness: 0.25, name: 'white' },
-            { hex: '#000000', charge: 1, mass: 0.95, interactionRange: 50, vorticness: 0.35, name: 'black' },
-            { hex: '#FF0000', charge: 1, mass: 1.0, interactionRange: 50, vorticness: 0.3, name: 'red' },
-            { hex: '#00FF00', charge: -1, mass: 0.8, interactionRange: 50, vorticness: 0.2, name: 'green' },
-            { hex: '#0000FF', charge: 1, mass: 1.2, interactionRange: 50, vorticness: 0.5, name: 'blue' },
-            { hex: '#00FFFF', charge: -1, mass: 0.9, interactionRange: 50, vorticness: 0.1, name: 'cyan' },
-            { hex: '#FF00FF', charge: 1, mass: 1.1, interactionRange: 50, vorticness: 0.4, name: 'magenta' },
-            { hex: '#FFFF00', charge: -1, mass: 0.7, interactionRange: 50, vorticness: 0.6, name: 'yellow' },
-            { hex: '#FFBF00', charge: 1, mass: 0.85, interactionRange: 50, vorticness: 0.45, name: 'amber' },
-            { hex: '#8000FF', charge: -1, mass: 1.15, interactionRange: 50, vorticness: 0.15, name: 'purple' },
-            { hex: '#FF6600', charge: 1, mass: 0.75, interactionRange: 50, vorticness: 0.55, name: 'orange' },
-            { hex: '#FF69B4', charge: -1, mass: 1.25, interactionRange: 50, vorticness: 0.2, name: 'pink' },
+            { hex: '#FFFFFF', charge: -1, mass: 1.05, interactionRange: 50, vorticness: 0.25, initialSpeed: 1.0, name: 'white' },
+            { hex: '#000000', charge: 1, mass: 0.95, interactionRange: 50, vorticness: 0.35, initialSpeed: 1.0, name: 'black' },
+            { hex: '#FF0000', charge: 1, mass: 1.0, interactionRange: 50, vorticness: 0.3, initialSpeed: 1.0, name: 'red' },
+            { hex: '#00FF00', charge: -1, mass: 0.8, interactionRange: 50, vorticness: 0.2, initialSpeed: 1.0, name: 'green' },
+            { hex: '#0000FF', charge: 1, mass: 1.2, interactionRange: 50, vorticness: 0.5, initialSpeed: 1.0, name: 'blue' },
+            { hex: '#00FFFF', charge: -1, mass: 0.9, interactionRange: 50, vorticness: 0.1, initialSpeed: 1.0, name: 'cyan' },
+            { hex: '#FF00FF', charge: 1, mass: 1.1, interactionRange: 50, vorticness: 0.4, initialSpeed: 1.0, name: 'magenta' },
+            { hex: '#FFFF00', charge: -1, mass: 0.7, interactionRange: 50, vorticness: 0.6, initialSpeed: 1.0, name: 'yellow' },
+            { hex: '#FFBF00', charge: 1, mass: 0.85, interactionRange: 50, vorticness: 0.45, initialSpeed: 1.0, name: 'amber' },
+            { hex: '#8000FF', charge: -1, mass: 1.15, interactionRange: 50, vorticness: 0.15, initialSpeed: 1.0, name: 'purple' },
+            { hex: '#FF6600', charge: 1, mass: 0.75, interactionRange: 50, vorticness: 0.55, initialSpeed: 1.0, name: 'orange' },
+            { hex: '#FF69B4', charge: -1, mass: 1.25, interactionRange: 50, vorticness: 0.2, initialSpeed: 1.0, name: 'pink' },
             { hex: '#00FF88', charge: 1, mass: 0.9, interactionRange: 50, vorticness: 0.4, name: 'lime' },
             { hex: '#00CED1', charge: -1, mass: 1.1, interactionRange: 50, vorticness: 0.3, name: 'turquoise' },
             { hex: '#FF1493', charge: 1, mass: 0.8, interactionRange: 50, vorticness: 0.5, name: 'deeppink' }
@@ -3666,9 +3673,10 @@ button:hover {
                 this.id = particleIDCounter++;
                 this.x = initX !== null ? initX : Math.random() * WIDTH;
                 this.y = initY !== null ? initY : Math.random() * HEIGHT;
-                this.vx = (Math.random() - 0.5) * 2 * INITIAL_SPEED;
-                this.vy = (Math.random() - 0.5) * 2 * INITIAL_SPEED;
                 this.colorData = COLORS[Math.floor(Math.random() * SPECIES_COUNT)];
+                const spd = this.colorData.initialSpeed !== undefined ? this.colorData.initialSpeed : 1.0;
+                this.vx = (Math.random() - 0.5) * 2 * spd;
+                this.vy = (Math.random() - 0.5) * 2 * spd;
                 this.radius = 2;
                 this.alpha = 1;
                 this.dead = false;
@@ -5297,13 +5305,54 @@ button:hover {
             viscosityValueSpan.textContent = (parseInt(e.target.value) / 100).toFixed(2);
         });
         
-        // Initial Speed slider
-        const initialSpeedInput = document.getElementById('initialSpeedInput');
-        const initialSpeedValue = document.getElementById('initialSpeedValue');
-        initialSpeedInput.addEventListener('input', (e) => {
-            INITIAL_SPEED = parseInt(e.target.value) / 100;
-            initialSpeedValue.textContent = INITIAL_SPEED.toFixed(1);
+        // Initial Speed modal
+        const speedModal = document.getElementById('speedModal');
+        const speedModalClose = document.getElementById('speedModalClose');
+        const speedTable = document.getElementById('speedTable');
+
+        function generateSpeedTableUI() {
+            speedTable.innerHTML = '';
+            COLORS.slice(0, SPECIES_COUNT).forEach(color => {
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex; align-items:center; gap:10px;';
+                const label = document.createElement('span');
+                label.style.cssText = 'min-width:70px; font-weight:700; font-size:12px; color:' + color.hex + ';';
+                label.textContent = color.name.toUpperCase();
+                const slider = document.createElement('input');
+                slider.type = 'range'; slider.min = '0'; slider.max = '100'; slider.step = '5';
+                slider.value = Math.round((color.initialSpeed !== undefined ? color.initialSpeed : 1.0) * 100);
+                slider.style.cssText = 'flex:1; height:4px;';
+                slider.className = 'speed-slider';
+                const val = document.createElement('span');
+                val.style.cssText = 'min-width:40px; font-size:11px; color:#8892b0; text-align:right;';
+                val.textContent = slider.value + '%';
+                slider.addEventListener('input', () => {
+                    const oldSpeed = color.initialSpeed !== undefined ? color.initialSpeed : 1.0;
+                    const newSpeed = parseInt(slider.value) / 100;
+                    color.initialSpeed = newSpeed;
+                    val.textContent = slider.value + '%';
+                    // Scale existing particles' velocities
+                    const scale = oldSpeed > 0.001 ? newSpeed / oldSpeed : newSpeed;
+                    particles.forEach(p => {
+                        if (p.colorData === color) {
+                            p.vx *= scale;
+                            p.vy *= scale;
+                        }
+                    });
+                });
+                row.appendChild(label);
+                row.appendChild(slider);
+                row.appendChild(val);
+                speedTable.appendChild(row);
+            });
+        }
+
+        document.getElementById('editSpeedBtn').addEventListener('click', () => {
+            generateSpeedTableUI();
+            speedModal.classList.add('active');
         });
+        speedModalClose.addEventListener('click', () => speedModal.classList.remove('active'));
+        speedModal.addEventListener('click', (e) => { if (e.target === speedModal) speedModal.classList.remove('active'); });
         
         // Intelligent Life checkbox - toggle opcji
         intelligentCheckbox.addEventListener('change', (e) => {
