@@ -1,0 +1,285 @@
+/* Compact menu mode (overrides, loaded last) */
+
+/* MENU COMPACT MODE - wymuszone (przebija starsze style) */
+#leftPanel,
+#rightPanel {
+    width: 336px !important;
+}
+
+#leftPanel .panel-header,
+#rightPanel .panel-header {
+    padding: 13px !important;
+}
+
+#leftPanel .panel-header h2,
+#rightPanel .panel-header h2 {
+    font-size: 15px !important;
+    letter-spacing: 1.3px !important;
+}
+
+#leftPanel .panel-content,
+#rightPanel .panel-content {
+    padding: 13px !important;
+}
+
+#leftPanel .panel-title-wrap,
+#rightPanel .panel-title-wrap,
+#leftPanel .legend-item,
+#rightPanel .legend-item,
+#leftPanel .legend-item label,
+#rightPanel .legend-item label,
+#leftPanel .seed-controls .row,
+#rightPanel .seed-controls .row,
+#leftPanel .size-controls .row,
+#rightPanel .size-controls .row,
+#leftPanel .option-row,
+#rightPanel .option-row,
+#leftPanel .controls,
+#rightPanel .controls {
+    gap: 6px !important;
+}
+
+#leftPanel .seed-controls,
+#rightPanel .seed-controls,
+#leftPanel .size-controls,
+#rightPanel .size-controls,
+#leftPanel .controls,
+#rightPanel .controls,
+#leftPanel .legend,
+#rightPanel .legend {
+    margin-bottom: 13px !important;
+}
+
+#leftPanel .legend,
+#rightPanel .legend {
+    padding: 13px 19px !important;
+}
+
+#leftPanel .mech-options,
+#rightPanel .mech-options {
+    margin-top: 6px !important;
+    margin-left: 18px !important;
+    padding: 6px !important;
+}
+
+#leftPanel label,
+#rightPanel label,
+#leftPanel .text,
+#rightPanel .text,
+#leftPanel .panel-lock-toggle,
+#rightPanel .panel-lock-toggle,
+#leftPanel .legend-content,
+#rightPanel .legend-content,
+#leftPanel .option-row,
+#rightPanel .option-row,
+#leftPanel .option-row label,
+#rightPanel .option-row label,
+#leftPanel .option-value,
+#rightPanel .option-value,
+#leftPanel .future-value,
+#rightPanel .future-value,
+#leftPanel .matrix-hint,
+#rightPanel .matrix-hint,
+#leftPanel .intelligent-info,
+#rightPanel .intelligent-info,
+#leftPanel .option-hint,
+#rightPanel .option-hint,
+#leftPanel .control-value,
+#rightPanel .control-value,
+#leftPanel .current-seed,
+#rightPanel .current-seed,
+#leftPanel .density-value,
+#rightPanel .density-value,
+#leftPanel .species-value,
+#rightPanel .species-value,
+#leftPanel .speed-value,
+#rightPanel .speed-value {
+    font-size: 8px !important;
+}
+
+#leftPanel input[type="number"],
+#rightPanel input[type="number"],
+#leftPanel input[type="text"],
+#rightPanel input[type="text"],
+#leftPanel select,
+#rightPanel select {
+    font-size: 9px !important;
+    padding: 5px 8px !important;
+}
+
+#leftPanel .seed-controls select,
+#rightPanel .seed-controls select,
+#leftPanel .seed-controls input[type="number"],
+#rightPanel .seed-controls input[type="number"],
+#leftPanel .seed-controls input[type="text"],
+#rightPanel .seed-controls input[type="text"] {
+    min-height: 19px !important;
+}
+
+#leftPanel .btn-small,
+#rightPanel .btn-small,
+#leftPanel .edit-matrix-btn,
+#rightPanel .edit-matrix-btn,
+#leftPanel .controls button,
+#rightPanel .controls button,
+#leftPanel .load-seed-btn,
+#rightPanel .load-seed-btn,
+#leftPanel .apply-size-btn,
+#rightPanel .apply-size-btn {
+    font-size: 8px !important;
+    padding: 5px 9px !important;
+    letter-spacing: 0.2px !important;
+}
+
+#leftPanel .close-btn,
+#rightPanel .close-btn {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 19px !important;
+}
+
+#leftPanel .tooltip-icon,
+#rightPanel .tooltip-icon {
+    width: 10px !important;
+    height: 10px !important;
+    line-height: 10px !important;
+    font-size: 6px !important;
+    margin-left: 3px !important;
+}
+
+#leftPanel .tooltip-text,
+#rightPanel .tooltip-text {
+    width: 179px !important;
+    font-size: 7px !important;
+    padding: 6px 8px !important;
+}
+
+/* Dodatkowe -20% tylko dla rozmiarów kontrolek (bez zmiany tekstu) */
+#leftPanel input[type="checkbox"],
+#rightPanel input[type="checkbox"] {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+#leftPanel input[type="checkbox"]:checked::after,
+#rightPanel input[type="checkbox"]:checked::after {
+    font-size: 10px !important;
+}
+
+#leftPanel .panel-lock-toggle input[type="checkbox"],
+#rightPanel .panel-lock-toggle input[type="checkbox"] {
+    width: 13px !important;
+    height: 13px !important;
+}
+
+#leftPanel input[type="range"],
+#rightPanel input[type="range"] {
+    width: 120px !important;
+    height: 5px !important;
+}
+
+#leftPanel input[type="range"]::-webkit-slider-thumb,
+#rightPanel input[type="range"]::-webkit-slider-thumb {
+    width: 12px !important;
+    height: 12px !important;
+}
+
+#leftPanel input[type="range"]::-moz-range-thumb,
+#rightPanel input[type="range"]::-moz-range-thumb {
+    width: 12px !important;
+    height: 12px !important;
+}
+
+#leftPanel .option-row input[type="range"],
+#rightPanel .option-row input[type="range"] {
+    width: 96px !important;
+    height: 3px !important;
+}
+
+#leftPanel select,
+#rightPanel select {
+    width: 148px !important;
+    min-height: 15px !important;
+}
+
+#leftPanel #widthInput,
+#leftPanel #heightInput,
+#rightPanel #widthInput,
+#rightPanel #heightInput {
+    width: 56px !important;
+    min-height: 15px !important;
+}
+
+/* Compact control sizes for both side panels.
+   Previously injected from JS on DOMContentLoaded (#forcedCompactControlSizes). */
+#leftPanel .panel-content input[type="checkbox"],
+#rightPanel .panel-content input[type="checkbox"] {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+#leftPanel .panel-content input[type="checkbox"]:checked::after,
+#rightPanel .panel-content input[type="checkbox"]:checked::after {
+    font-size: 10px !important;
+}
+
+#leftPanel .panel-content .panel-lock-toggle input[type="checkbox"],
+#rightPanel .panel-content .panel-lock-toggle input[type="checkbox"] {
+    width: 13px !important;
+    height: 13px !important;
+}
+
+#leftPanel .panel-content input[type="range"],
+#rightPanel .panel-content input[type="range"] {
+    width: 120px !important;
+    height: 5px !important;
+    background: rgba(220, 240, 255, 0.4) !important;
+    border-radius: 3px !important;
+    outline: none !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+}
+
+#leftPanel .panel-content .option-row input[type="range"],
+#rightPanel .panel-content .option-row input[type="range"] {
+    width: 120px !important;
+    height: 5px !important;
+}
+
+#leftPanel .panel-content input[type="range"]::-webkit-slider-thumb,
+#rightPanel .panel-content input[type="range"]::-webkit-slider-thumb {
+    width: 12px !important;
+    height: 12px !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    background: linear-gradient(135deg, #FF006E, #8338EC) !important;
+    border: 2px solid #00F5FF !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5) !important;
+}
+
+#leftPanel .panel-content input[type="range"]::-moz-range-thumb,
+#rightPanel .panel-content input[type="range"]::-moz-range-thumb {
+    width: 12px !important;
+    height: 12px !important;
+    background: linear-gradient(135deg, #FF006E, #8338EC) !important;
+    border: 2px solid #00F5FF !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5) !important;
+}
+
+#leftPanel .panel-content select,
+#rightPanel .panel-content select {
+    width: 148px !important;
+    min-height: 15px !important;
+}
+
+#leftPanel .panel-content #widthInput,
+#leftPanel .panel-content #heightInput,
+#rightPanel .panel-content #widthInput,
+#rightPanel .panel-content #heightInput {
+    width: 56px !important;
+    min-height: 15px !important;
+}

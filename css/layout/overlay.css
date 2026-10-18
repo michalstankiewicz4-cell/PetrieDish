@@ -1,0 +1,182 @@
+/* Top buttons, HUD (FPS/seed), auto-hide, hamburger buttons */
+
+/* TOP BUTTONS ROW - Random + Donate side by side */
+.top-btn-row {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+.quick-random-btn {
+    padding: 8px 22px;
+    background: rgba(16, 16, 30, 0.75);
+    border: 1px solid rgba(255, 190, 11, 0.45);
+    border-radius: 24px;
+    color: #FFBE0B;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: opacity 0.6s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+    box-shadow: 0 0 16px rgba(255, 190, 11, 0.1);
+}
+
+.quick-random-btn:hover {
+    background: rgba(255, 190, 11, 0.15);
+    border-color: #FFBE0B;
+    box-shadow: 0 0 24px rgba(255, 190, 11, 0.35);
+    transform: translateY(-1px);
+}
+
+.quick-random-btn:active {
+    transform: translateY(1px);
+}
+
+.donate-btn {
+    padding: 8px 14px;
+    background: rgba(16, 16, 30, 0.75);
+    border: 1px solid rgba(255, 0, 110, 0.55);
+    border-radius: 24px;
+    color: #FF006E;
+    font-size: 16px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: opacity 0.6s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+    box-shadow: 0 0 16px rgba(255, 0, 110, 0.15);
+    line-height: 1;
+}
+
+.donate-btn:hover {
+    background: rgba(255, 0, 110, 0.15);
+    border-color: #FF006E;
+    box-shadow: 0 0 24px rgba(255, 0, 110, 0.4);
+    transform: translateY(-1px);
+}
+
+.donate-btn.active {
+    background: rgba(255, 0, 110, 0.2);
+    border-color: #FF006E;
+    box-shadow: 0 0 30px rgba(255, 0, 110, 0.5);
+}
+
+/* HUD OVERLAY - FPS & Seed, outside canvas so VFX filters don't affect them */
+.hud-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    pointer-events: none;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.hud-seed {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    color: #FFBE0B;
+    text-shadow: 0 0 4px #FFBE0B;
+    line-height: 1.4;
+}
+
+.hud-fps {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+.hud-fps-dot {
+    font-size: 16px;
+    line-height: 1;
+}
+
+#hudFpsText {
+    color: #00F5FF;
+    text-shadow: 0 0 4px #00F5FF;
+}
+
+/* AUTO-HIDE BUTTONS */
+.hamburger-btn,
+.vfx-btn,
+.top-btn-row {
+    transition: opacity 0.6s ease, background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.ui-hidden .hamburger-btn,
+.ui-hidden .vfx-btn,
+.ui-hidden .top-btn-row {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.hamburger-btn {
+    position: fixed;
+    bottom: 20px;
+    width: 50px;
+    height: 50px;
+    background: rgba(131, 56, 236, 0.3);
+    border: 2px solid rgba(131, 56, 236, 0.5);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.hamburger-btn:hover {
+    background: rgba(131, 56, 236, 0.5);
+    border-color: #00F5FF;
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.hamburger-btn span {
+    display: block;
+    width: 30px;
+    height: 3px;
+    background: #00F5FF;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+}
+
+.hamburger-btn:hover span {
+    background: #FFBE0B;
+}
+
+.left-hamburger {
+    left: 20px;
+}
+
+.right-hamburger {
+    right: 20px;
+}
+
+.hamburger-btn.active span:nth-child(1) {
+    transform: rotate(45deg) translate(8px, 8px);
+}
+
+.hamburger-btn.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-btn.active span:nth-child(3) {
+    transform: rotate(-45deg) translate(8px, -8px);
+}

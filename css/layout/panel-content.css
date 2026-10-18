@@ -1,0 +1,268 @@
+/* Panel content, left panel controls, number inputs */
+
+/* ═══════════════════════════════════════════
+   INFO PANEL - FPS i SEED
+   ═══════════════════════════════════════════ */
+.panel-content {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Zapewnij, że wszystkie dzieci .panel-content nie przekroczą szerokości */
+.panel-content > * {
+    max-width: 100%;
+}
+
+/* Scrollbar styling dla zawartości panelu */
+.panel-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.panel-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.panel-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 245, 255, 0.3);
+    border-radius: 3px;
+}
+
+.panel-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 245, 255, 0.5);
+}
+
+/* W panelach - pokaż kontrolki */
+.side-panel .seed-controls,
+.side-panel .size-controls,
+.side-panel .controls,
+.side-panel .legend {
+    display: flex;
+    margin-bottom: 20px;
+}
+
+.side-panel .legend {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+}
+
+/* Dostosowanie szerokości kontrolek w panelach */
+.side-panel .seed-controls,
+.side-panel .size-controls {
+    width: 100%;
+}
+
+/* UPROSZCZONY WYGLĄD LEWEGO PANELU (poza checkboxami) */
+.left-panel .seed-controls,
+.left-panel .size-controls,
+.left-panel .controls {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    margin-bottom: 14px;
+    animation: none;
+    box-shadow: none;
+}
+
+.left-panel .seed-controls .row,
+.left-panel .size-controls .row {
+    gap: 10px;
+}
+
+.left-panel label {
+    text-transform: none;
+    letter-spacing: 0.3px;
+}
+
+.left-panel input[type="number"],
+.left-panel input[type="text"],
+.left-panel select {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    box-shadow: none;
+}
+
+.left-panel select option {
+    background: #151b2f;
+    color: #dcefff;
+}
+
+.left-panel select option:checked,
+.left-panel select option:hover {
+    background: #243252;
+    color: #eaffff;
+}
+
+.left-panel .seed-controls select {
+    width: 185px;
+    min-height: 30px;
+    padding: 5px 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+}
+
+.left-panel .seed-controls input[type="number"],
+.left-panel .seed-controls input[type="text"] {
+    width: 70px;
+    min-height: 30px;
+    padding: 5px 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.left-panel .current-seed,
+.left-panel .density-value,
+.left-panel .species-value,
+.left-panel .speed-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.left-panel .controls {
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.left-panel .controls button,
+.left-panel .btn-small,
+.left-panel .load-seed-btn,
+.left-panel .apply-size-btn {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    color: #dcefff;
+    text-transform: none;
+    letter-spacing: 0.3px;
+    box-shadow: none;
+}
+
+.left-panel .controls button:hover,
+.left-panel .btn-small:hover,
+.left-panel .load-seed-btn:hover,
+.left-panel .apply-size-btn:hover {
+    transform: none;
+    border-color: rgba(220, 240, 255, 0.7);
+    box-shadow: none;
+}
+
+.left-panel .checkbox-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.1;
+}
+
+.left-panel .checkbox-row input[type="checkbox"] {
+    margin: 0;
+}
+
+/* Suwaki w lewym panelu - taki sam styl jak w prawym */
+.left-panel .seed-controls input[type="range"],
+.left-panel .size-controls input[type="range"] {
+    width: 150px;
+    height: 6px;
+    background: rgba(220, 240, 255, 0.4);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.left-panel .seed-controls input[type="range"]::-webkit-slider-thumb,
+.left-panel .size-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.left-panel .seed-controls input[type="range"]::-moz-range-thumb,
+.left-panel .size-controls input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+.left-panel .seed-controls input[type="range"]::-webkit-slider-thumb:hover,
+.left-panel .size-controls input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.8);
+}
+
+.left-panel .seed-controls input[type="range"]::-moz-range-thumb:hover,
+.left-panel .size-controls input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.8);
+}
+
+/* BLOK ROZMIARÓW */
+.size-controls {
+    border: 1px solid rgba(131, 56, 236, 0.3);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    animation: slideDown 0.6s ease-out;
+    flex-wrap: wrap;
+}
+
+.size-controls label {
+    color: #8892b0;
+    font-size: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* WSPÓLNY STYL INPUTÓW NUMERYCZNYCH */
+input[type="number"],
+.seed-controls input[type="text"],
+.seed-controls select {
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid rgba(131, 56, 236, 0.5);
+    border-radius: 4px;
+    color: #00F5FF;
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+input[type="number"]:focus,
+.seed-controls input[type="text"]:focus,
+.seed-controls select:focus {
+    outline: none;
+    border-color: #00F5FF;
+    box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
+}
+
+/* SPECYFICZNE SZEROKOŚCI */
+.size-controls input[type="number"] { width: 80px; }
+.seed-controls input[type="number"] { width: 100px; }
+.seed-controls input[type="text"] { width: 200px; }
+.seed-controls select { width: 220px; }

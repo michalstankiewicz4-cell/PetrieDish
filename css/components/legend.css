@@ -1,0 +1,156 @@
+/* Buttons hover, legend, checkboxes, tooltips */
+
+/* ═══════════════════════════════════════════
+   BUTTONY - Zoptymalizowane z CSS Variables
+   ═══════════════════════════════════════════ */
+/* HOVER PRZYCISKÓW */
+button:hover {
+    transform: translateY(-2px);
+}
+
+/* LEGENDA — BLOK */
+.legend {
+    border: none;
+    border-radius: 0;
+    padding: 10px 15px;
+    max-width: 320px;
+    animation: slideDown 1.2s ease-out 0.4s backwards;
+}
+
+.legend h3 {
+    color: #00F5FF;
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.legend-content {
+    color: #8892b0;
+    font-size: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    line-height: 1.8;
+    letter-spacing: 0.5px;
+}
+
+.legend-item {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.legend-item label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    flex: 1;
+}
+
+/* CHECKBOX — WSPÓLNY */
+.side-panel input[type="checkbox"] {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(220, 240, 255, 0.9);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.side-panel input[type="checkbox"]:hover {
+    transform: scale(1.1);
+    border-color: #00F5FF;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.35);
+}
+
+.side-panel input[type="checkbox"]:checked {
+    background: rgba(0, 245, 255, 0.2);
+    border-color: #00F5FF;
+}
+
+/* CHECKBOX — ZNACZNIK */
+.side-panel input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    font-weight: bold;
+    color: #EFFFFF;
+    text-shadow: 0 0 8px rgba(0, 245, 255, 0.55);
+}
+
+/* TOOLTIPS — IKONKA POMOCY */
+.tooltip-icon {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #8892b0;
+    background: rgba(136, 146, 176, 0.2);
+    border: 1px solid rgba(136, 146, 176, 0.4);
+    border-radius: 50%;
+    cursor: help;
+    margin-left: 5px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.tooltip-icon:hover {
+    background: rgba(136, 146, 176, 0.4);
+    border-color: #8892b0;
+    color: #00F5FF;
+    transform: scale(1.1);
+}
+
+.tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    left: 50%;
+    bottom: 125%;
+    transform: translateX(-50%);
+    background: rgba(16, 16, 30, 0.98);
+    border: 2px solid #8338EC;
+    border-radius: 6px;
+    padding: 10px 12px;
+    width: 280px;
+    font-size: 11px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #8892b0;
+    text-align: left;
+    z-index: 1000;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 20px rgba(131, 56, 236, 0.5);
+}
+
+.tooltip-text::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #8338EC;
+}
+
+.tooltip-icon:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+    bottom: 135%;
+}

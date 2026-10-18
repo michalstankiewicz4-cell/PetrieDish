@@ -1,0 +1,48 @@
+/* Range sliders, slider values */
+
+/* SUWAKI — SCALONE */
+input[type="range"] {
+    width: 150px;
+    height: 6px;
+    background: rgba(220, 240, 255, 0.4);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* SUWAK — THUMB (WEBKIT + MOZ) */
+input[type="range"]::-webkit-slider-thumb,
+input[type="range"]::-moz-range-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+    transition: all 0.3s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover,
+input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.8);
+}
+
+/* WARTOŚCI SUWAKÓW */
+.density-value,
+.species-value,
+.speed-value,
+.future-value,
+.viscosity-value,
+.vorticness-global-value {
+    min-width: 45px;
+    color: #FFBE0B;
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+}

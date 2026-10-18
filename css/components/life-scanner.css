@@ -1,0 +1,246 @@
+/* Life Scanner floating panel */
+
+/* ============================================
+    LIFE SCANNER - Floating Panel (spojny z prawym menu)
+    ============================================ */
+.life-scanner-panel {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 170px;
+    background: rgba(16, 16, 30, 0.95);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    border-radius: 6px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    font-family: 'Rajdhani', sans-serif;
+    z-index: 1000;
+    animation: none;
+    transition: width 0.28s ease, height 0.28s ease;
+}
+
+.scanner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(220, 240, 255, 0.35);
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.scanner-header:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.scanner-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #dcefff;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-shadow: none;
+}
+
+.scanner-icon {
+    font-size: 12px;
+    animation: none;
+}
+
+.scanner-toggle {
+    width: 36px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.scanner-toggle:hover {
+    border-color: rgba(220, 240, 255, 0.7);
+    box-shadow: none;
+}
+
+.scanner-toggle.active {
+    background: rgba(58, 134, 255, 0.22);
+    border-color: #00F5FF;
+}
+
+.toggle-dot {
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 8px rgba(0, 245, 255, 0.45);
+}
+
+.scanner-toggle.active .toggle-dot {
+    left: 18px;
+}
+
+.scanner-content {
+    padding: 10px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+.scanner-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scanner-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.scanner-content::-webkit-scrollbar-thumb {
+    background: rgba(0, 245, 255, 0.3);
+    border-radius: 3px;
+}
+
+.scanner-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 245, 255, 0.5);
+}
+
+.scanner-readout {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+.readout-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.readout-label {
+    color: #dcefff;
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+
+.readout-value {
+    color: #dcefff;
+    font-size: 18px;
+    font-weight: 900;
+    text-shadow: none;
+}
+
+.readout-unit {
+    color: #dcefff;
+    font-size: 11px;
+    letter-spacing: 1px;
+    opacity: 0.7;
+}
+
+.scanner-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.control-label {
+    color: #dcefff;
+    font-size: 9px;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+}
+
+.control-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* RANGE GROUP (dual sliders) */
+.control-input-group.range-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.range-separator {
+    color: #dcefff;
+    font-size: 14px;
+    font-weight: 700;
+    opacity: 0.6;
+    flex-shrink: 0;
+    min-width: 20px;
+    text-align: center;
+}
+
+.range-group .scanner-slider {
+    flex: 1;
+    min-width: 120px;
+}
+
+.scanner-slider {
+    flex: 1;
+    height: 5px;
+    background: rgba(220, 240, 255, 0.4);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+}
+
+.scanner-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+    transition: all 0.2s ease;
+}
+
+.scanner-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.7);
+}
+
+.scanner-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #FF006E, #8338EC);
+    border: 2px solid #00F5FF;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+    transition: all 0.2s ease;
+}
+
+.scanner-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 20px rgba(0, 245, 255, 0.7);
+}
+
+.control-value {
+    min-width: 30px;
+    color: #FFBE0B;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: right;
+    text-shadow: none;
+}

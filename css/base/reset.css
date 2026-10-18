@@ -1,0 +1,28 @@
+/* Reset, body, fullscreen layout */
+
+/* RESET PODSTAWOWY */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* TŁO I GŁÓWNY UKŁAD - FULLSCREEN */
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    min-height: 100vh;
+    width: 100vw;
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    font-family: 'Orbitron', monospace;
+    position: relative;
+}
+
+/* UKRYJ KONTROLKI Z GŁÓWNEGO WIDOKU - BĘDĄ W HAMBURGERZECH */
+.seed-controls,
+.size-controls,
+.controls,
+.legend {
+    display: none;
+}

@@ -1,0 +1,49 @@
+/* Design tokens (CSS custom properties) */
+
+/* ═══════════════════════════════════════════
+   CSS VARIABLES - Global Design Tokens
+   ═══════════════════════════════════════════ */
+:root {
+    /* Kolory mechanik */
+    --color-pink: #FF006E;
+    --color-cyan: #00F5FF;
+    --color-yellow: #FFBE0B;
+    --color-purple: #8338EC;
+    --color-blue: #3A86FF;
+    --color-orange: #FB5607;
+    --color-green: #00FF88;
+
+    /* Kolory UI */
+    --color-text-primary: #8892b0;
+    --color-text-bright: #00F5FF;
+    --color-bg-dark: rgba(16, 16, 30, 0.6);
+    --color-bg-black: #0a0a14;
+    --color-border: rgba(131, 56, 236, 0.3);
+    --color-border-bright: rgba(131, 56, 236, 0.5);
+
+    /* Rozmiary */
+    --checkbox-size: 18px;
+    --checkbox-border: 2px;
+    --slider-height: 6px;
+    --slider-thumb-size: 18px;
+    --border-radius-small: 3px;
+    --border-radius-medium: 6px;
+    --border-radius-large: 8px;
+
+    /* Spacing */
+    --gap-small: 8px;
+    --gap-medium: 15px;
+    --gap-large: 20px;
+    --padding-small: 10px;
+    --padding-medium: 15px;
+    --padding-large: 20px;
+
+    /* Animacje */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+
+    /* Shadows */
+    --shadow-glow: 0 0 10px;
+    --shadow-neon: 0 0 20px;
+    --shadow-strong: 0 0 30px;
+}

@@ -1,0 +1,151 @@
+/* Mechanic groups and per-mechanic colours */
+
+/* Kolory dla poszczególnych mechanik */
+.mech-attraction { color: var(--color-pink); }
+.mech-charges { color: var(--color-cyan); }
+.mech-mass { color: var(--color-yellow); }
+.mech-mixing { color: var(--color-purple); }
+.mech-vortex { color: var(--color-orange); }
+.mech-swarm { color: var(--color-pink); }
+.mech-mass-transfer { color: var(--color-blue); }
+
+.mech-bonds { color: var(--color-cyan); }
+.mech-intelligent { color: var(--color-purple); }
+\n.mech-initial-speed { color: var(--color-orange); }
+
+/* Sekcje mechanik - grupy z ramką */
+.mech-group {
+    border: 1px solid rgba(131, 56, 236, 0.25);
+    border-radius: 8px;
+    padding: 14px 12px 10px 12px;
+    margin-bottom: 12px;
+    position: relative;
+}
+.mech-group-label {
+    position: absolute;
+    top: -9px;
+    left: 12px;
+    font-size: 10px;
+    font-family: 'Orbitron', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #5a6a8a;
+    background: rgba(16, 16, 30, 1);
+    padding: 0 8px;
+    line-height: 1;
+}
+.mech-group-label .section-icon {
+    font-size: 11px;
+    margin-right: 2px;
+}
+
+/* Opcje mechanik (ukryte domyślnie) */
+.mech-options {
+    margin-top: 10px;
+    margin-left: 28px;
+    padding: 10px;
+    background: rgba(131, 56, 236, 0.05);
+    border-left: 2px solid rgba(131, 56, 236, 0.3);
+    border-radius: 4px;
+}
+
+.option-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 11px;
+    flex-wrap: wrap;
+}
+
+.option-row label {
+    color: #8892b0;
+    min-width: 90px;
+    cursor: default;
+    flex-shrink: 0;
+}
+
+.option-row input[type="range"] {
+    width: 120px;
+    height: 4px;
+    background: rgba(220, 240, 255, 0.3);
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.option-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: linear-gradient(135deg, #00F5FF, #3A86FF);
+    border: 1px solid #FFBE0B;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(0, 245, 255, 0.4);
+}
+
+.option-row input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: linear-gradient(135deg, #00F5FF, #3A86FF);
+    border: 1px solid #FFBE0B;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(0, 245, 255, 0.4);
+}
+
+.option-row input[type="checkbox"] {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #00F5FF;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+}
+
+.option-row input[type="checkbox"]:checked {
+    background: rgba(0, 245, 255, 0.3);
+}
+
+.option-row input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    color: #00F5FF;
+}
+
+.future-value {
+    min-width: 30px;
+    color: #FFBE0B;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.option-value {
+    min-width: 45px;
+    color: #FFBE0B;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.option-hint {
+    font-size: 10px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.option-hint #intelligentCount {
+    color: #FFBE0B;
+    font-weight: 700;
+}

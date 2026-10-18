@@ -1,0 +1,311 @@
+/* Modals, interaction matrix, colour properties, animations */
+
+/* MATRIX EDITOR */
+.edit-matrix-btn {
+    padding: 6px 12px;
+    font-size: 10px;
+    font-family: 'Orbitron', monospace;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid var(--color-purple);
+    background: rgba(131, 56, 236, 0.1);
+    color: var(--color-purple);
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.edit-matrix-btn:hover {
+    background: rgba(131, 56, 236, 0.2);
+    box-shadow: var(--shadow-glow) rgba(131, 56, 236, 0.4);
+}
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: rgba(16, 16, 30, 0.97);
+    border: 1px solid rgba(220, 240, 255, 0.35);
+    border-radius: 8px;
+    padding: 20px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow: auto;
+    position: relative;
+    box-shadow: 0 0 30px rgba(131, 56, 236, 0.3);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #dcefff;
+    font-size: 18px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 1;
+}
+
+.modal-close-btn:hover {
+    opacity: 1;
+    color: #FF006E;
+}
+
+.modal-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    color: #00F5FF;
+    text-align: center;
+    margin-bottom: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.matrix-container {
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+}
+
+.matrix-hint {
+    font-size: 9px;
+    color: #888;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.interaction-matrix {
+    display: grid;
+    gap: 3px;
+    font-size: 9px;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Scrollbar dla macierzy */
+.interaction-matrix::-webkit-scrollbar {
+    height: 6px;
+}
+
+.interaction-matrix::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.interaction-matrix::-webkit-scrollbar-thumb {
+    background: rgba(131, 56, 236, 0.5);
+    border-radius: 3px;
+}
+
+.interaction-matrix::-webkit-scrollbar-thumb:hover {
+    background: rgba(131, 56, 236, 0.8);
+}
+
+.matrix-cell {
+    padding: 6px 4px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 3px;
+    min-height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* CORNER CELL (Y↓ / X→) */
+.matrix-corner {
+    background: rgba(131, 56, 236, 0.15);
+    border: 1px solid rgba(131, 56, 236, 0.3);
+    font-size: 8px;
+    color: #8892b0;
+    font-weight: 600;
+}
+
+/* COLUMN HEADERS (TO →) */
+.matrix-header-col {
+    background: rgba(0, 245, 255, 0.1);
+    border: 1px solid rgba(0, 245, 255, 0.3);
+    font-weight: 700;
+    flex-direction: column;
+}
+
+/* ROW HEADERS (FROM) */
+.matrix-header-row {
+    background: rgba(255, 190, 11, 0.1);
+    border: 1px solid rgba(255, 190, 11, 0.3);
+    font-weight: 700;
+    flex-direction: column;
+}
+
+/* DATA CELLS */
+.matrix-data {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(131, 56, 236, 0.2);
+}
+
+.matrix-input {
+    width: 100%;
+    padding: 3px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(131, 56, 236, 0.3);
+    border-radius: 2px;
+    color: #FFBE0B;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.matrix-input:focus {
+    outline: none;
+    border-color: #00F5FF;
+    background: rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 8px rgba(0, 245, 255, 0.4);
+}
+
+.matrix-input:hover {
+    border-color: #8338EC;
+}
+
+/* COLOR PROPERTIES TABLE */
+.color-properties-table {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    margin-top: 10px;
+}
+
+.props-row {
+    display: table-row;
+}
+
+.props-header {
+    display: table-cell;
+    padding: 8px 6px;
+    background: rgba(131, 56, 236, 0.2);
+    border: 1px solid rgba(131, 56, 236, 0.4);
+    font-weight: 700;
+    color: #00F5FF;
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+}
+
+.props-cell {
+    display: table-cell;
+    padding: 8px 6px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(131, 56, 236, 0.2);
+    text-align: center;
+    color: #8892b0;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+}
+
+.props-cell.color-name {
+    font-weight: 700;
+    text-align: left;
+    padding-left: 10px;
+}
+
+.props-cell.positive {
+    color: #00F5FF;
+}
+
+.props-cell.negative {
+    color: #FF006E;
+}
+
+/* ANIMACJE */
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Small action buttons inside a modal hint line (Randomize, Gradient, ...) */
+.matrix-hint .hint-btn {
+    margin-left: 6px;
+    padding: 4px 12px;
+    font-size: 11px;
+}
+
+.matrix-hint .hint-btn:first-of-type {
+    margin-left: 12px;
+}
+
+/* Per-colour editor modals (speed / mass / charge / range) */
+.color-editor-table {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 0;
+}
+
+.color-editor-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.color-editor-label {
+    min-width: 70px;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.color-editor-row input[type="range"] {
+    flex: 1;
+    height: 4px;
+}
+
+.color-editor-value {
+    min-width: 40px;
+    font-size: 11px;
+    color: #8892b0;
+    text-align: right;
+}
+
+.matrix-corner-label,
+.matrix-axis-label {
+    font-size: 8px;
+    color: #666;
+}
+
+.matrix-corner-label {
+    font-size: 9px;
+}
+
+.matrix-color-label {
+    font-weight: 700;
+}
+
+.matrix-data.is-diagonal {
+    background: rgba(131, 56, 236, 0.1);
+}
