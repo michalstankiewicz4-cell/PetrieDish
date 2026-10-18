@@ -41,6 +41,11 @@
                 const x = xStart + Math.random() * (xEnd - xStart);
                 const y = Math.random() * sim.height;
                 const particle = new PD.Particle(x, y);
+                // LEGACY QUIRK (kept on purpose): only colorData is replaced, the cached
+                // physics values (_name, _mass, _range, ...) stay from the random species
+                // picked in the constructor. Several named samples (42, Swarms, Medusa,
+                // Colony...) use this mode and their look depends on it. The "correct"
+                // version is `new PD.Particle(x, y, color)` - see NOTES.md.
                 particle.colorData = color;
                 sim.particles.push(particle);
             }
@@ -53,8 +58,27 @@
         gradient: spawnMassGradient
     };
 
+    /**
+     * Samples only define the matrix for their own species. When the species
+     * slider adds colours, missing pairs get the Default-setup value so the
+     * physics never reads an undefined entry.
+     */
+    function completeMatrix() {
+        const fallback = PD.seed.defaultMatrix();
+        const names = sim.colors.slice(0, sim.speciesCount).map(c => c.name);
+        names.forEach((from) => {
+            if (!sim.matrix[from]) sim.matrix[from] = {};
+            names.forEach((to) => {
+                if (typeof sim.matrix[from][to] !== 'number') {
+                    sim.matrix[from][to] = (fallback[from] && fallback[from][to]) || 0;
+                }
+            });
+        });
+    }
+
     /** Throws away all particles, bonds and intelligent particles and spawns a fresh population. */
     function init() {
+        completeMatrix();
         sim.particles = [];
         sim.nextParticleId = 0;
         PD.bonds.reset();
@@ -66,6 +90,13 @@
         sim.intelligent.nextColor = 0;
 
         sim.grid = new PD.SpatialGrid(sim.width, sim.height, PD.config.GRID_CELL_SIZE);
+    }
+
+    /** Canvas size changed without respawning: the grid must cover the new area. */
+    function resize(width, height) {
+        sim.width = width;
+        sim.height = height;
+        if (sim.grid) sim.grid = new PD.SpatialGrid(width, height, PD.config.GRID_CELL_SIZE);
     }
 
     /** One physics step. */
@@ -168,5 +199,5 @@
         sim.intelligent.nextColor = 0;
     }
 
-    PD.world = { init, step, advance, afterFrame, addIntelligentParticle, removeIntelligentParticles };
+    PD.world = { init, resize, step, advance, afterFrame, addIntelligentParticle, removeIntelligentParticles };
 })(window.PD);

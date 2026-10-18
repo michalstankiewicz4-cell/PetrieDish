@@ -16,7 +16,7 @@
         intelligent: document.getElementById('intelligentCount')
     };
 
-    const prev = { render: -1, physics: -1, seed: null, bonds: -1, life: -1 };
+    const prev = { render: -1, physics: -1, seed: undefined, bonds: -1, life: -1 };
 
     function fpsColor(fps) {
         if (fps <= 16) return '#FF006E';

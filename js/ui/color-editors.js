@@ -86,7 +86,7 @@
             format: (v) => v + 'px',
             apply(color, value) {
                 color.interactionRange = value;
-                forParticlesOf(color, (p) => { p._range = value; });
+                forParticlesOf(color, (p) => { p._range = value; p._rangeSq = value * value; });
             },
             actions: {
                 rangeRandomBtn: () => Math.round((10 + Math.random() * 190) / 5) * 5,
@@ -174,7 +174,12 @@
         input.value = ((sim.matrix[from] && sim.matrix[from][to]) || 0).toFixed(1);
         input.title = `${from} → ${to}`;
         input.addEventListener('change', (e) => {
-            const clamped = Math.max(-1.0, Math.min(1.0, parseFloat(e.target.value)));
+            const parsed = parseFloat(e.target.value);
+            if (isNaN(parsed)) {
+                e.target.value = ((sim.matrix[from] && sim.matrix[from][to]) || 0).toFixed(1);
+                return;
+            }
+            const clamped = Math.max(-1.0, Math.min(1.0, parsed));
             e.target.value = clamped.toFixed(1);
             if (!sim.matrix[from]) sim.matrix[from] = {};
             sim.matrix[from][to] = clamped;

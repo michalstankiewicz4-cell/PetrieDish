@@ -12,11 +12,16 @@
     const sim = PD.sim;
 
     class Particle {
-        constructor(initX = null, initY = null) {
+        /**
+         * @param {number|null} [initX] random when null
+         * @param {number|null} [initY] random when null
+         * @param {object|null} [colorData] species colour; random active species when null
+         */
+        constructor(initX = null, initY = null, colorData = null) {
             this.id = sim.nextParticleId++;
             this.x = initX !== null ? initX : Math.random() * sim.width;
             this.y = initY !== null ? initY : Math.random() * sim.height;
-            this.colorData = sim.colors[Math.floor(Math.random() * sim.speciesCount)];
+            this.colorData = colorData || sim.colors[Math.floor(Math.random() * sim.speciesCount)];
             const spd = sim.enabled.initialSpeed && this.colorData.initialSpeed !== undefined
                 ? this.colorData.initialSpeed : 1.0;
             this.vx = (Math.random() - 0.5) * 2 * spd;

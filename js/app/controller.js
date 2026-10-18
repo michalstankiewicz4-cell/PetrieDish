@@ -142,6 +142,7 @@
         sim.particleCount = settings.particleCount;
         sim.speciesCount = settings.speciesCount;
         setSpeed(100);
+        showSpeed(100);
         sim.viscosity = settings.viscosity / 100;
         sim.vorticness = settings.vorticness / 100;
 
@@ -216,8 +217,7 @@
     }
 
     function setCanvasSize(w, h) {
-        sim.width = w;
-        sim.height = h;
+        PD.world.resize(w, h);
         loop.canvas.width = w;
         loop.canvas.height = h;
     }
