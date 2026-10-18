@@ -44,24 +44,13 @@ Life Scanner.
 
 ## Znane problemy / decyzje do podjęcia
 
-- **Tryb startowy „Mass Gradient”**: cząstka dostaje `colorData` paska, ale jej
-  cache (`_name`, `_mass`, zasięg, ładunek) zostaje z losowego gatunku z
-  konstruktora – fizyka nie zgadza się z kolorem (~84% cząstek). Celowo NIE
-  naprawione, bo używają tego próbki 42, Swarms, Medusa, Colony, Angry Virus i ich
-  wygląd by się zmienił. Poprawka to jedna linia w `js/sim/world.js`
-  (`new PD.Particle(x, y, color)`).
-- **Inteligentne cząstki** mają ten sam efekt: unikalny kolor, ale cache z losowego
-  gatunku (inne cząstki „widzą” je jako ten gatunek). Pełna naprawa wymaga wpisu
-  w macierzy interakcji dla `intelligent_N`.
-- **Transfer Rate**: stan startowy `0.01`, a suwak pokazuje 20% (= `0.002`). Po
-  pierwszym ruchu suwaka siła spada 5×.
-- **Hierarchy Strength**: suwak zapisuje `sim.hierarchyStrength`, ale fizyka go nie
-  używa.
-- Generator seedów losuje `boundaryMode`, ale loader zawsze ustawia `warp`.
-- Wiązania i Life Scanner liczą odległość bez zawijania (torus), więc na krawędzi
-  ekranu w trybie *warp* nie łączą cząstek z drugiej strony.
+- Generator seedów losuje też `boundaryMode` i `speed`, ale loader zawsze ustawia
+  `warp` i 100% (celowo – *endless* potrafi wyczyścić ekran). Losowań nie usuwamy,
+  bo zmieniłoby to wygląd każdego istniejącego numeru próbki.
 - Spatial grid ma stały rozmiar komórki 150 px – zasięg interakcji > 150 px działa
-  (sprawdzane są sąsiednie komórki), ale wolniej.
+  (sprawdzane są dalsze komórki), ale wolniej.
+- Lista nazwanych próbek (`PD.config.SAMPLES`) jest pusta – do zrobienia nowa.
+  Format: `{ seed: 42, name: 'Nazwa' }`, dropdown buduje się z niej sam.
 
 ## Pomysły na ML (z rozmowy)
 
@@ -72,6 +61,13 @@ Life Scanner.
 
 ## Historia
 
+- v3.1.0 – naprawione: tryb „Mass Gradient” (fizyka zgodna z kolorem), cache
+  inteligentnych cząstek (neutralne w macierzy zamiast crasha), suwak Hierarchy
+  Strength działa, wiązania i Life Scanner liczą odległość przez krawędź w trybie
+  *warp*, domyślne położenia suwaków zgodne ze stanem (liczba cząstek 1000, Transfer
+  Rate, FPS Booster), Reset po trybie *endless* odtwarza pełną liczbę cząstek,
+  „Donate” wyłącza się przy każdym przebudowaniu świata. Usunięta stara lista
+  nazwanych próbek.
 - v3.0.0 – podział jednego `index.html` (6600 linii) na `css/` i `js/`; poprawki:
   crash po zwiększeniu liczby gatunków ponad próbkę, mnożenie pętli animacji przy
   Reset/Random, edytor zasięgu, siatka po zmianie rozmiaru okna.

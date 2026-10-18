@@ -85,6 +85,7 @@
     function rebuildWorld() {
         const wasRunning = loop.running;
         loop.stop();
+        stopDonate(); // its targets point at the old particles
 
         PD.world.init();
         PD.hud.updateIntelligentCount();
@@ -100,7 +101,6 @@
 
     /** "Reset" / "Apply" buttons. */
     function reset() {
-        stopDonate();
         rebuildWorld();
     }
 
@@ -122,7 +122,8 @@
 
         const { settings, colors, matrix } = PD.seed.generate(seed);
         sim.seed = seed;
-        const name = cfg.SAMPLE_NAMES[String(seed)];
+        const sample = cfg.SAMPLES.find((s) => s.seed === seed);
+        const name = sample && sample.name;
         el.currentSeed.textContent = name ? `${name} (${seed})` : seed;
 
         const en = sim.enabled;

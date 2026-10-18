@@ -20,6 +20,11 @@
     const seedInput = $('seedInput');
     const loadSeedBtn = $('loadSeedBtn');
 
+    // Named samples come from PD.config.SAMPLES
+    PD.config.SAMPLES.forEach(({ seed, name }) => {
+        seedSelect.add(new Option(`${name} (${seed})`, String(seed)));
+    });
+
     function showCustomSeedInput(visible) {
         show(seedInput, visible, 'inline-block');
         show(loadSeedBtn, visible, 'inline-block');

@@ -10,7 +10,7 @@ window.PD = window.PD || {};
 (function (PD) {
     'use strict';
 
-    PD.VERSION = '3.0.0';
+    PD.VERSION = '3.1.0';
 
     /** Set to true (or call PD.setDebug(true) in the console) to enable PD.log output. */
     PD.debug = false;
@@ -35,30 +35,15 @@ window.PD = window.PD || {};
         { hex: '#FF1493', charge: 1, mass: 0.8, interactionRange: 50, vorticness: 0.5, name: 'deeppink' }
     ];
 
-    /** Named samples shown in the "Sample" dropdown (seed -> name). */
-    const SAMPLE_NAMES = {
-        '42': 'The Answer',
-        '144714130': 'Colorful Colonies',
-        '387363571': 'Colonies and Vortex',
-        '882183331': 'Swarms',
-        '405382535': 'Heavy Traffic',
-        '69129389': 'From Dot to Chaos',
-        '143757039': 'Angry Virus',
-        '377343605': 'Blue Planets',
-        '889271368': 'Pink and Orange',
-        '99141546': 'Fast Life',
-        '204301394': 'Medusa',
-        '820390980': 'Colony',
-        '135308335': 'Going to Boring',
-        '18731596': 'Slow But Go',
-        '67276887': 'Crazy',
-        '423640366': 'They Are Hungry',
-        '19595201': 'Hungry But Too Slow'
-    };
+    /**
+     * Named samples for the "Sample" dropdown, e.g. { seed: 42, name: 'The Answer' }.
+     * Empty for now - the new list will be added here.
+     */
+    const SAMPLES = [];
 
     PD.config = {
         DEFAULT_COLORS,
-        SAMPLE_NAMES,
+        SAMPLES,
         MAX_SPECIES: DEFAULT_COLORS.length,
 
         /** Canvas fill used when the world is (re)initialised. */

@@ -14,6 +14,11 @@
         return d;
     }
 
+    /** b - a, taking the shortest way around the world when it wraps ("warp" boundary mode). */
+    function delta(a, b, size, wraps) {
+        return wraps ? torusDelta(a, b, size) : b - a;
+    }
+
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
     }
@@ -45,5 +50,5 @@
         }
     }
 
-    PD.math = { torusDelta, clamp, SeededRandom };
+    PD.math = { torusDelta, delta, clamp, SeededRandom };
 })(window.PD);

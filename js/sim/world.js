@@ -40,14 +40,7 @@
             for (let i = 0; i < count; i++) {
                 const x = xStart + Math.random() * (xEnd - xStart);
                 const y = Math.random() * sim.height;
-                const particle = new PD.Particle(x, y);
-                // LEGACY QUIRK (kept on purpose): only colorData is replaced, the cached
-                // physics values (_name, _mass, _range, ...) stay from the random species
-                // picked in the constructor. Several named samples (42, Swarms, Medusa,
-                // Colony...) use this mode and their look depends on it. The "correct"
-                // version is `new PD.Particle(x, y, color)` - see NOTES.md.
-                particle.colorData = color;
-                sim.particles.push(particle);
+                sim.particles.push(new PD.Particle(x, y, color));
             }
         }
     }
@@ -142,13 +135,14 @@
         for (let r = 0; r < particles.length; r++) {
             if (!particles[r].dead) particles[w++] = particles[r];
         }
-        if (w < particles.length) {
-            particles.length = w;
-            sim.particleCount = w;
-        }
+        // particleCount is the setting for the next spawn - not touched here
+        if (w < particles.length) particles.length = w;
     }
 
-    /** Black becomes slightly heavier than the heaviest colour, white slightly lighter than the lightest. */
+    /**
+     * Black becomes heavier than the heaviest colour, white lighter than the lightest.
+     * The gap is 0.1 mass units at Hierarchy Strength 100 % (0 % = same as the extremes).
+     */
     function applyMassHierarchy() {
         const particles = sim.particles;
         const black = [];
@@ -172,12 +166,13 @@
         }
         if (!hasOther) return;
 
-        const blackMass = Math.min(2.0, maxOther + 0.1);
+        const gap = 0.1 * sim.hierarchyStrength;
+        const blackMass = Math.min(2.0, maxOther + gap);
         for (let i = 0; i < black.length; i++) {
             black[i].colorData.mass = blackMass;
             black[i]._mass = blackMass;
         }
-        const whiteMass = Math.max(0.3, minOther - 0.1);
+        const whiteMass = Math.max(0.3, minOther - gap);
         for (let i = 0; i < white.length; i++) {
             white[i].colorData.mass = whiteMass;
             white[i]._mass = whiteMass;

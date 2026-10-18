@@ -94,23 +94,6 @@
                     <select id="seedSelect">
                         <option value="">-- Select a sample --</option>
                         <option value="custom">Custom sample...</option>
-                        <option value="42">The Answer (42)</option>
-                        <option value="144714130">Colorful Colonies</option>
-                        <option value="387363571">Colonies and Vortex</option>
-                        <option value="882183331">Swarms</option>
-                        <option value="405382535">Heavy Traffic</option>
-                        <option value="69129389">From Dot to Chaos</option>
-                        <option value="143757039">Angry Virus</option>
-                        <option value="377343605">Blue Planets</option>
-                        <option value="889271368">Pink and Orange</option>
-                        <option value="99141546">Fast Life</option>
-                        <option value="204301394">Medusa</option>
-                        <option value="820390980">Colony</option>
-                        <option value="135308335">Going to Boring</option>
-                        <option value="18731596">Slow But Go</option>
-                        <option value="67276887">Crazy</option>
-                        <option value="423640366">They Are Hungry</option>
-                        <option value="19595201">Hungry But Too Slow</option>
                     </select>
                     <input type="text" id="seedInput" placeholder="Enter sample number" style="display: none;">
                     <button id="loadSeedBtn" class="btn-small load-seed-btn" style="display: none;">📥 Load Sample</button>
@@ -144,8 +127,8 @@
 
                 <div class="row density-group">
                     <label for="densityInput">Particle count:</label>
-                    <input type="range" id="densityInput" min="75" max="3000" value="300" step="25">
-                    <span class="density-value" id="densityValue">300</span>
+                    <input type="range" id="densityInput" min="75" max="3000" value="1000" step="25">
+                    <span class="density-value" id="densityValue">1000</span>
                 </div>
 
                 <div class="row species-group">
@@ -193,7 +176,7 @@
                 </div>
                 <div class="row speed-group" style="margin-top: 6px;">
                     <label for="timescaleInput" style="color: #00FF88; font-size: 11px;">⚡ FPS Booster:</label>
-                    <input type="range" id="timescaleInput" min="0" max="100" value="50" step="1">
+                    <input type="range" id="timescaleInput" min="0" max="100" value="0" step="1">
                     <span class="speed-value" id="timescaleValue" style="color: #00FF88;">1.00x</span>
                 </div>
             </div>
@@ -224,7 +207,7 @@
                             <input type="checkbox" id="attractionCheckbox" checked>
                             <span class="text">Color attraction/repulsion</span>
                             <span class="tooltip-icon">?
-                                <span class="tooltip-text">Each color pair has an interaction force from the matrix. Positive values attract, negative values repel. Edit the 6x6 matrix by clicking the button below!</span>
+                                <span class="tooltip-text">Each color pair has an interaction force from the matrix. Positive values attract, negative values repel. Edit the matrix with the button below!</span>
                             </span>
                         </label>
 
@@ -296,8 +279,8 @@
                         <div class="mech-options" id="massTransferOptions" style="display: none;">
                             <div class="option-row">
                                 <label>Transfer Rate:</label>
-                                <input type="range" id="transferRate" min="0" max="100" value="20" step="5">
-                                <span class="option-value" id="transferRateValue">20%</span>
+                                <input type="range" id="transferRate" min="0" max="100" value="100" step="5">
+                                <span class="option-value" id="transferRateValue">100%</span>
                             </div>
                         </div>
                     </div>
@@ -308,7 +291,7 @@
                             <span class="color-dot" style="color: #888888;">●</span>
                             <span class="text">Mass Hierarchy - black heaviest, white lightest</span>
                             <span class="tooltip-icon">?
-                                <span class="tooltip-text">Automatically assigns masses based on color brightness. Black = heaviest (1.5–2.0), white = lightest (0.3–0.5). Creates natural hierarchies!</span>
+                                <span class="tooltip-text">Black particles become slightly heavier than the heaviest other color, white slightly lighter than the lightest (mass 0.3–2.0). Strength scales that gap (0% = no gap). Creates natural hierarchies!</span>
                             </span>
                         </label>
 

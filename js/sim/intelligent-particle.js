@@ -17,9 +17,8 @@
         constructor(x, y, colorHex) {
             super(x, y);
 
-            // Unique colour that is not part of the species list.
-            // NOTE: the cached _name/_mass/... still come from the random species
-            // picked in super(); only colorData is replaced (behaviour kept from v2).
+            // Unique colour that is not part of the species list. It has no row in the
+            // interaction matrix, so attraction to/from it is neutral.
             this.colorData = {
                 hex: colorHex,
                 charge: 0,
@@ -29,6 +28,7 @@
                 name: `intelligent_${sim.intelligent.nextColor++}`
             };
 
+            this.syncCache();
             this.isIntelligent = true;
             this.futureX = this.x;
             this.futureY = this.y;

@@ -40,7 +40,7 @@
         swarmStrength: 0.05,
         swarmRange: 100,
         transferRate: 0.01,
-        hierarchyStrength: 1.0,  // NOTE: not used by the physics yet
+        hierarchyStrength: 1.0,  // Mass Hierarchy gap multiplier
 
         enabled: {
             attraction: true,

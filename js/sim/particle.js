@@ -74,6 +74,8 @@
 
             // Pairwise forces
             const rangeSq = this._rangeSq;
+            // Missing row/column (e.g. intelligent particles) = neutral (0)
+            const matrixRow = en.attraction ? sim.matrix[this._name] : null;
             let nearby, nearbyLen;
             if (grid) {
                 nearby = grid.getNearby(this, this._range);
@@ -94,9 +96,8 @@
 
                 const dist = Math.sqrt(distSq);
 
-                if (en.attraction) {
-                    // (looked up per pair: mixColor() inside this loop may change this._name)
-                    const force = (sim.matrix[this._name][other._name] * 0.5 * sim.attractionStrength) / dist;
+                if (matrixRow) {
+                    const force = ((matrixRow[other._name] || 0) * 0.5 * sim.attractionStrength) / dist;
                     this.vx += (dx / dist) * force;
                     this.vy += (dy / dist) * force;
                 }

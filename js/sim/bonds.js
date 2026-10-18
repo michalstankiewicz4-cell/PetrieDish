@@ -8,6 +8,8 @@
 
     const sim = PD.sim;
     const state = sim.bonds;
+    const { delta } = PD.math;
+    const wraps = () => sim.boundaryMode === 'warp';
     const TWO_PI = 2 * Math.PI;
 
     // id -> particle lookup, built lazily once per frame (see endFrame)
@@ -52,6 +54,8 @@
         const maxBonds = state.maxPerParticle;
         const candidates = state.candidates;
         const checked = new Set();
+        const wrap = wraps();
+        const W = sim.width, H = sim.height;
 
         for (let i = 0; i < particles.length; i++) {
             const p1 = particles[i];
@@ -73,8 +77,8 @@
 
                 if (p1.bonds.includes(p2.id)) continue;
 
-                const dx = p2.x - p1.x;
-                const dy = p2.y - p1.y;
+                const dx = delta(p1.x, p2.x, W, wrap);
+                const dy = delta(p1.y, p2.y, H, wrap);
                 const distSq = dx * dx + dy * dy;
 
                 if (!(distSq < maxDistSq)) {
@@ -115,13 +119,15 @@
 
         const map = particleMap(particles);
         const active = state.active;
+        const wrap = wraps();
+        const W = sim.width, H = sim.height;
         for (let b = 0; b < active.length; b++) {
             const p1 = map.get(active[b].p1);
             const p2 = map.get(active[b].p2);
             if (!p1 || !p2) continue;
 
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
+            const dx = delta(p1.x, p2.x, W, wrap);
+            const dy = delta(p1.y, p2.y, H, wrap);
             const distSq = dx * dx + dy * dy;
             if (distSq === 0) continue;
 

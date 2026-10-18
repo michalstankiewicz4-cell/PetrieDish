@@ -8,11 +8,13 @@
 
     const sim = PD.sim;
     const life = sim.life;
+    const { delta } = PD.math;
     let stepCounter = 0;
 
     /** Breadth-first fill from particle index `start`. Returns { cluster, colorCount }. */
     function growCluster(particles, start, visited, limits) {
-        const { distFromSq, distToSq, speedFromSq, speedToSq, searchRange } = limits;
+        const { distFromSq, distToSq, speedFromSq, speedToSq, searchRange, wrap } = limits;
+        const W = sim.width, H = sim.height;
         const grid = sim.grid;
         const cluster = [];
         const queue = [start];
@@ -22,8 +24,8 @@
         visited.add(start);
 
         const tryAdd = (current, neighbor, nIdx) => {
-            const dx = neighbor.x - current.x;
-            const dy = neighbor.y - current.y;
+            const dx = delta(current.x, neighbor.x, W, wrap);
+            const dy = delta(current.y, neighbor.y, H, wrap);
             const distSq = dx * dx + dy * dy;
             if (!(distSq >= distFromSq && distSq <= distToSq)) return;
             const dvx = neighbor.vx - current.vx;
@@ -72,7 +74,8 @@
             distToSq: life.distance.to * life.distance.to,
             speedFromSq: life.speedDiff.from * life.speedDiff.from,
             speedToSq: life.speedDiff.to * life.speedDiff.to,
-            searchRange: life.distance.to
+            searchRange: life.distance.to,
+            wrap: sim.boundaryMode === 'warp'
         };
 
         // index lookup for the grid path (avoids indexOf)

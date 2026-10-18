@@ -4,6 +4,7 @@
 
     const sim = PD.sim;
     const vfx = PD.vfx;
+    const { delta } = PD.math;
     const TWO_PI = Math.PI * 2;
     const LIFE_COLOR = '#00FF88';
     const LIFE_DASH = [5, 5];
@@ -144,6 +145,7 @@
         if (!sim.enabled.bonds || active.length === 0) return;
 
         const map = PD.bonds.particleMap(particles);
+        const wrap = sim.boundaryMode === 'warp';
         ctx.lineWidth = 2.5;
         ctx.globalAlpha = 0.6;
         ctx.shadowBlur = 0;
@@ -153,9 +155,12 @@
             const p2 = map.get(active[b].p2);
             if (!p1 || !p2) continue;
             ctx.strokeStyle = p1.colorData.hex;
+            // shortest segment; a bond across the edge leaves the screen instead of crossing it
+            const dx = delta(p1.x, p2.x, sim.width, wrap);
+            const dy = delta(p1.y, p2.y, sim.height, wrap);
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p1.x + dx, p1.y + dy);
             ctx.stroke();
         }
         ctx.globalAlpha = 1;
@@ -170,16 +175,21 @@
         ctx.globalAlpha = 0.8;
         ctx.setLineDash(LIFE_DASH);
 
+        const wrap = sim.boundaryMode === 'warp';
         for (let index = 0; index < forms.length; index++) {
             const cluster = forms[index];
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
             let avgVx = 0, avgVy = 0;
+            // positions relative to the first particle, so a cluster on the edge gets one box
+            const ox = cluster[0].x, oy = cluster[0].y;
             for (let i = 0; i < cluster.length; i++) {
                 const p = cluster[i];
-                if (p.x < minX) minX = p.x;
-                if (p.y < minY) minY = p.y;
-                if (p.x > maxX) maxX = p.x;
-                if (p.y > maxY) maxY = p.y;
+                const x = ox + delta(ox, p.x, sim.width, wrap);
+                const y = oy + delta(oy, p.y, sim.height, wrap);
+                if (x < minX) minX = x;
+                if (y < minY) minY = y;
+                if (x > maxX) maxX = x;
+                if (y > maxY) maxY = y;
                 avgVx += p.vx;
                 avgVy += p.vy;
             }
