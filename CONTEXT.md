@@ -74,6 +74,8 @@ Checklista wydania (wykonuje ją asystent, bez przypominania):
 3. `PD.VERSION` w `js/core/config.js` = `X.Y.Z` (widać w tytule karty).
 4. Wersja w sekcji **Stan** tego pliku; statusy w `KNOWN_ISSUES.md` (`ZAMKNIĘTY vX.Y.Z`).
 5. Commit `release: vX.Y.Z – krótki opis`, tag `git tag -a vX.Y.Z -m "..."`, push `main` i tagów.
+   Sesja w chmurze nie może wypychać tagów (proxy zwraca 403) – wtedy asystent podaje
+   użytkownikowi gotowe polecenia `git tag` + `git push origin --tags` do uruchomienia lokalnie.
 6. Kontrola: strona na GitHub Pages pokazuje nową wersję w tytule karty.
 
 Same zmiany w dokumentacji mogą iść bez nowej wersji (zostają w `[Unreleased]`),
