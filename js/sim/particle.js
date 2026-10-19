@@ -1,13 +1,18 @@
 /**
- * A single particle. `colorData` points at an entry of PD.sim.colors (shared by
- * every particle of that species) until colour mixing gives the particle its own
- * copy. Hot values are cached on the instance - call syncCache() after changing
- * colorData or one of its fields.
+ * A single particle.
+ *
+ * - `species`   the species entry in PD.sim.colors (never changes; per-colour editors use it)
+ * - `colorData` what is drawn; same object as `species` until colour mixing gives the
+ *               particle its own copy with a blended `hex`
+ * - `_name, _mass, _range, _rangeSq, _charge, _vorticness` hot values cached for the
+ *   inner loop. `_mass` is the particle's own mass: Mass Transfer / Hierarchy / wall hits
+ *   change only `_mass`, never the shared species (KI-07). Call syncCache() after changing
+ *   the species.
  */
 (function (PD) {
     'use strict';
 
-    const { torusDelta } = PD.math;
+    const { delta } = PD.math;
     const cfg = PD.config;
     const sim = PD.sim;
 
@@ -22,6 +27,7 @@
             this.x = initX !== null ? initX : Math.random() * sim.width;
             this.y = initY !== null ? initY : Math.random() * sim.height;
             this.colorData = colorData || sim.colors[Math.floor(Math.random() * sim.speciesCount)];
+            this.species = this.colorData;
             const spd = sim.enabled.initialSpeed && this.colorData.initialSpeed !== undefined
                 ? this.colorData.initialSpeed : 1.0;
             this.vx = (Math.random() - 0.5) * 2 * spd;
@@ -49,6 +55,7 @@
             if (speed <= 0) return;
 
             const W = sim.width, H = sim.height;
+            const wrap = sim.boundaryMode === 'warp'; // distances go across the edge only in warp (KI-05)
             const en = sim.enabled;
             const grid = sim.grid;
 
@@ -59,8 +66,8 @@
 
             const mouse = sim.mouse;
             if (mouse.pressed) {
-                const dx = torusDelta(this.x, mouse.x, W);
-                const dy = torusDelta(this.y, mouse.y, H);
+                const dx = delta(this.x, mouse.x, W, wrap);
+                const dy = delta(this.y, mouse.y, H, wrap);
                 const distSq = dx * dx + dy * dy;
                 if (distSq < cfg.MOUSE_RANGE * cfg.MOUSE_RANGE && distSq > 0) {
                     const dist = Math.sqrt(distSq);
@@ -70,7 +77,7 @@
                 }
             }
 
-            if (en.swarm) this._applySwarm(particles, grid, W, H);
+            if (en.swarm) this._applySwarm(particles, grid, W, H, wrap);
 
             // Pairwise forces
             const rangeSq = this._rangeSq;
@@ -89,8 +96,8 @@
                 const other = nearby[i];
                 if (other === this) continue;
 
-                const dx = torusDelta(this.x, other.x, W);
-                const dy = torusDelta(this.y, other.y, H);
+                const dx = delta(this.x, other.x, W, wrap);
+                const dy = delta(this.y, other.y, H, wrap);
                 const distSq = dx * dx + dy * dy;
                 if (!(distSq < rangeSq && distSq > 0)) continue;
 
@@ -119,21 +126,27 @@
                     this.mixColor(other);
                 }
 
-                if (en.massTransfer && distSq < 25) {
+                if (en.massTransfer && distSq < 25 &&
+                    !(en.massHierarchy && (isHierarchyAnchor(this) || isHierarchyAnchor(other)))) {
                     const transfer = (this._mass - other._mass) * sim.transferRate;
-                    this._mass -= transfer;
-                    other._mass += transfer;
-                    this._mass = Math.max(0.3, Math.min(2.0, this._mass));
-                    other._mass = Math.max(0.3, Math.min(2.0, other._mass));
-                    this.colorData.mass = this._mass;
-                    other.colorData.mass = other._mass;
+                    this._mass = Math.max(0.3, Math.min(2.0, this._mass - transfer));
+                    other._mass = Math.max(0.3, Math.min(2.0, other._mass + transfer));
                 }
             }
 
             // Integrate
             const massEffect = en.mass ? (2 / this._mass * sim.massEffect) : 2;
-            this.x += this.vx * massEffect * speed;
-            this.y += this.vy * massEffect * speed;
+            let stepX = this.vx * massEffect * speed;
+            let stepY = this.vy * massEffect * speed;
+            // Limit the step so contact effects (mixing < 8 px, transfer < 5 px) are not skipped (KI-11)
+            const stepSq = stepX * stepX + stepY * stepY;
+            if (stepSq > cfg.MAX_STEP_PX * cfg.MAX_STEP_PX) {
+                const k = cfg.MAX_STEP_PX / Math.sqrt(stepSq);
+                stepX *= k;
+                stepY *= k;
+            }
+            this.x += stepX;
+            this.y += stepY;
             this._dirty = true;
 
             this._applyBoundary(W, H, en);
@@ -148,8 +161,9 @@
         }
 
         /** Pull towards the centre of same-colour neighbours. */
-        _applySwarm(particles, grid, W, H) {
-            let centerX = 0, centerY = 0, count = 0;
+        _applySwarm(particles, grid, W, H, wrap) {
+            // centre = average OFFSET to the neighbours, so groups across the edge work in warp mode
+            let offX = 0, offY = 0, count = 0;
             const rangeSq = sim.swarmRange * sim.swarmRange;
             let nearby, nearbyLen;
             if (grid) {
@@ -162,20 +176,18 @@
             for (let i = 0; i < nearbyLen; i++) {
                 const other = nearby[i];
                 if (other._name !== this._name) continue;
-                const dx = torusDelta(this.x, other.x, W);
-                const dy = torusDelta(this.y, other.y, H);
+                const dx = delta(this.x, other.x, W, wrap);
+                const dy = delta(this.y, other.y, H, wrap);
                 if (dx * dx + dy * dy < rangeSq) {
-                    centerX += other.x;
-                    centerY += other.y;
+                    offX += dx;
+                    offY += dy;
                     count++;
                 }
             }
             if (count === 0) return;
 
-            centerX /= count;
-            centerY /= count;
-            const dx = torusDelta(this.x, centerX, W);
-            const dy = torusDelta(this.y, centerY, H);
+            const dx = offX / count;
+            const dy = offY / count;
             const distSq = dx * dx + dy * dy;
             if (distSq > 0) {
                 const dist = Math.sqrt(distSq);
@@ -209,10 +221,12 @@
 
         _loseMassOnWallHit() {
             this._mass = Math.max(0.3, this._mass * 0.95);
-            this.colorData.mass = this._mass;
         }
 
-        /** Occasionally blend towards the other particle's colour (gives this particle its own colorData). */
+        /**
+         * Occasionally blend the DRAWN colour towards the other particle's colour.
+         * Only `hex` changes - species, mass and the other cached values stay (KI-08, KI-01).
+         */
         mixColor(other) {
             if (Math.random() >= 0.02) return;
             const a = this.colorData.hex, b = other.colorData.hex;
@@ -220,12 +234,16 @@
             const mix = (i) => Math.floor(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t);
             const hex2 = (v) => v.toString(16).padStart(2, '0');
             this.colorData = { ...this.colorData, hex: `#${hex2(mix(1))}${hex2(mix(3))}${hex2(mix(5))}` };
-            this.syncCache();
         }
 
         draw(ctx) {
             PD.render.drawParticle(ctx, this);
         }
+    }
+
+    /** With Mass Hierarchy on, black and white masses are set by the hierarchy, not by transfer (KI-06). */
+    function isHierarchyAnchor(p) {
+        return p._name === 'black' || p._name === 'white';
     }
 
     PD.Particle = Particle;

@@ -28,20 +28,20 @@
         frameParticleMap = null;
     }
 
-    /** Each particle has `maxPerParticle` angular slots; a bond needs a free slot on both ends. */
-    function claimSlot(particle, angle) {
+    /**
+     * Each particle has `maxPerParticle` angular slots; a bond needs a free slot on both ends.
+     * @returns {number} free slot index for this direction, or -1
+     */
+    function freeSlot(particle, angle) {
         const max = state.maxPerParticle;
         angle = ((angle % TWO_PI) + TWO_PI) % TWO_PI;
         const slotIndex = Math.floor(angle / (TWO_PI / max));
 
-        if (!particle.bondSlots) {
-            particle.bondSlots = new Array(max).fill(false);
+        if (!particle.bondSlots || particle.bondSlots.length !== max) {
+            const old = particle.bondSlots || [];
+            particle.bondSlots = new Array(max).fill(false).map((_, i) => !!old[i]);
         }
-        if (slotIndex < max && !particle.bondSlots[slotIndex]) {
-            particle.bondSlots[slotIndex] = true;
-            return true;
-        }
-        return false;
+        return slotIndex < max && !particle.bondSlots[slotIndex] ? slotIndex : -1;
     }
 
     function detectAndCreate(particles) {
@@ -102,14 +102,17 @@
 
                 candidate.frames++;
                 candidate.distance = dist;
-                if (candidate.frames >= requiredFrames &&
-                    claimSlot(p1, Math.atan2(dy, dx)) &&
-                    claimSlot(p2, Math.atan2(-dy, -dx))) {
-                    p1.bonds.push(p2.id);
-                    p2.bonds.push(p1.id);
-                    state.active.push({ p1: p1.id, p2: p2.id, distance: dist });
-                    candidates.delete(pairKey);
-                }
+                if (candidate.frames < requiredFrames) continue;
+                // check both ends first, so a failed bond does not leave a claimed slot behind
+                const s1 = freeSlot(p1, Math.atan2(dy, dx));
+                const s2 = s1 < 0 ? -1 : freeSlot(p2, Math.atan2(-dy, -dx));
+                if (s2 < 0) continue;
+                p1.bondSlots[s1] = true;
+                p2.bondSlots[s2] = true;
+                p1.bonds.push(p2.id);
+                p2.bonds.push(p1.id);
+                state.active.push({ p1: p1.id, p2: p2.id, s1, s2, distance: dist });
+                candidates.delete(pairKey);
             }
         }
     }
@@ -146,6 +149,33 @@
         state.active = [];
     }
 
+    /**
+     * Drops bonds and candidates that involve particles no longer in `particles`
+     * and frees the slots on the surviving end (KI-10).
+     */
+    function prune(particles) {
+        const alive = new Map();
+        for (let i = 0; i < particles.length; i++) alive.set(particles[i].id, particles[i]);
+
+        state.active = state.active.filter((b) => {
+            const p1 = alive.get(b.p1), p2 = alive.get(b.p2);
+            if (p1 && p2) return true;
+            const survivor = p1 || p2;
+            if (survivor) {
+                const goneId = p1 ? b.p2 : b.p1;
+                const slot = p1 ? b.s1 : b.s2;
+                survivor.bonds = survivor.bonds.filter((id) => id !== goneId);
+                if (survivor.bondSlots && slot !== undefined) survivor.bondSlots[slot] = false;
+            }
+            return false;
+        });
+
+        for (const key of state.candidates.keys()) {
+            if (!alive.has(Math.floor(key / 100000)) || !alive.has(key % 100000)) state.candidates.delete(key);
+        }
+        frameParticleMap = null;
+    }
+
     /** Remove bonds and free all slots on existing particles (mechanic switched off). */
     function clearFromParticles(particles) {
         reset();
@@ -155,5 +185,5 @@
         });
     }
 
-    PD.bonds = { detectAndCreate, applyConstraints, reset, clearFromParticles, particleMap, endFrame };
+    PD.bonds = { detectAndCreate, applyConstraints, reset, clearFromParticles, prune, particleMap, endFrame };
 })(window.PD);

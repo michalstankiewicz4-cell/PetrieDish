@@ -10,7 +10,7 @@ window.PD = window.PD || {};
 (function (PD) {
     'use strict';
 
-    PD.VERSION = '3.1.0';
+    PD.VERSION = '3.2.0';
 
     /** Set to true (or call PD.setDebug(true) in the console) to enable PD.log output. */
     PD.debug = false;
@@ -53,6 +53,8 @@ window.PD = window.PD || {};
         GRID_CELL_SIZE: 150,
 
         MAX_SPEED: 3,
+        /** Max distance a particle moves in one physics step (px). Keeps contact effects from being skipped. */
+        MAX_STEP_PX: 8,
         MOUSE_RANGE: 100,
         MOUSE_FORCE: 0.6,
 

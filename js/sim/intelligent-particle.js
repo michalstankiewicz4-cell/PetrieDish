@@ -6,7 +6,7 @@
 (function (PD) {
     'use strict';
 
-    const { torusDelta } = PD.math;
+    const { delta } = PD.math;
     const cfg = PD.config;
     const sim = PD.sim;
 
@@ -28,6 +28,7 @@
                 name: `intelligent_${sim.intelligent.nextColor++}`
             };
 
+            this.species = this.colorData;
             this.syncCache();
             this.isIntelligent = true;
             this.futureX = this.x;
@@ -38,6 +39,7 @@
         /** Simulates `frames` steps ahead and returns the predicted position. */
         predictFuture(frames) {
             const W = sim.width, H = sim.height;
+            const wrap = sim.boundaryMode === 'warp';
             const en = sim.enabled;
             const range = this.colorData.interactionRange;
             const ownRow = sim.matrix[this.colorData.name];
@@ -61,8 +63,8 @@
                     const other = neighbors[i];
                     if (other === this || other.isIntelligent) continue;
 
-                    const dx = torusDelta(other.x, fx, W);
-                    const dy = torusDelta(other.y, fy, H);
+                    const dx = delta(fx, other.x, W, wrap);
+                    const dy = delta(fy, other.y, H, wrap);
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
                     if (dist < range && dist > 0 && en.attraction) {
@@ -73,7 +75,7 @@
                     }
                 }
 
-                const massEffect = en.mass ? (2 / this.colorData.mass * sim.massEffect) : 2;
+                const massEffect = en.mass ? (2 / this._mass * sim.massEffect) : 2;
                 fx += fvx * massEffect * sim.speed;
                 fy += fvy * massEffect * sim.speed;
 
@@ -114,8 +116,9 @@
             this.futureY = future.y;
 
             // Push away from our own future self
-            const dx = torusDelta(this.futureX, this.x, sim.width);
-            const dy = torusDelta(this.futureY, this.y, sim.height);
+            const wrap = sim.boundaryMode === 'warp';
+            const dx = delta(this.futureX, this.x, sim.width, wrap);
+            const dy = delta(this.futureY, this.y, sim.height, wrap);
             const dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < AVOID_RADIUS && dist > 0) {
                 const force = (1 - dist / AVOID_RADIUS) * AVOID_FORCE;

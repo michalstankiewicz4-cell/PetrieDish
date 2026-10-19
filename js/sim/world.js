@@ -136,7 +136,10 @@
             if (!particles[r].dead) particles[w++] = particles[r];
         }
         // particleCount is the setting for the next spawn - not touched here
-        if (w < particles.length) particles.length = w;
+        if (w < particles.length) {
+            particles.length = w;
+            PD.bonds.prune(particles); // drop bonds of removed particles (KI-10)
+        }
     }
 
     /**
@@ -169,12 +172,10 @@
         const gap = 0.1 * sim.hierarchyStrength;
         const blackMass = Math.min(2.0, maxOther + gap);
         for (let i = 0; i < black.length; i++) {
-            black[i].colorData.mass = blackMass;
             black[i]._mass = blackMass;
         }
         const whiteMass = Math.max(0.3, minOther - gap);
         for (let i = 0; i < white.length; i++) {
-            white[i].colorData.mass = whiteMass;
             white[i]._mass = whiteMass;
         }
     }
@@ -182,7 +183,7 @@
     /** Adds a time-loop particle at a canvas position. */
     function addIntelligentParticle(x, y) {
         const hue = (sim.intelligent.nextColor * 137.5) % 360; // golden angle -> distinct colours
-        const p = new PD.IntelligentParticle(x, y, `hsl(${hue}, 80%, 60%)`);
+        const p = new PD.IntelligentParticle(x, y, PD.math.hslToHex(hue, 80, 60));
         sim.particles.push(p);
         sim.intelligent.list.push(p);
         return p;
@@ -190,6 +191,7 @@
 
     function removeIntelligentParticles() {
         sim.particles = sim.particles.filter(p => !p.isIntelligent);
+        PD.bonds.prune(sim.particles);
         sim.intelligent.list = [];
         sim.intelligent.nextColor = 0;
     }

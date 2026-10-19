@@ -11,6 +11,17 @@ Just run it and have fun. Feel free to use.
 
 <img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/755e9d64-c894-4d2d-a32f-ddb9820a751d" />
 
+## Documentation
+
+| | |
+| --- | --- |
+| [User guide](docs/USER_GUIDE.md) | every button, slider and mechanic |
+| [Architecture](docs/ARCHITECTURE.md) | files, frame pipeline, state, how to extend |
+| [Mechanics](docs/MECHANICS.md) | exact formulas |
+| [Known issues](docs/KNOWN_ISSUES.md) | open problems and design decisions (KI-xx) |
+| [Context](CONTEXT.md) | current state + working rules (read first) |
+| [Changelog](CHANGELOG.md) | versions (SemVer); current version is shown in the browser tab |
+
 ## Running locally
 
 No build step and no server needed: open `index.html` in a browser (double click works).
@@ -32,8 +43,10 @@ js/
   app/                  animation loop, controller (start/stop/reset/samples/resize)
   ui/                   one file per panel / widget
   main.js               bootstrap
+docs/                   USER_GUIDE, ARCHITECTURE, MECHANICS, KNOWN_ISSUES (Polish)
 tools/regression.py     deterministic regression test (see below)
-NOTES.md                architecture notes, conventions, known issues
+CONTEXT.md              start here when resuming work (state, rules, versioning)
+CHANGELOG.md            version history
 ```
 
 Everything lives under one global namespace, `window.PD`:

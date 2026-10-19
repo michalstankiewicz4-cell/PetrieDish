@@ -11,9 +11,9 @@
     /** Colours of the species currently in use. */
     const activeColors = () => sim.colors.slice(0, sim.speciesCount);
 
-    /** Runs fn for every particle that still uses `color` (mixed particles have their own copy). */
+    /** Runs fn for every particle of the species `color` (also colour-mixed ones, KI-09). */
     function forParticlesOf(color, fn) {
-        sim.particles.forEach((p) => { if (p.colorData === color) fn(p); });
+        sim.particles.forEach((p) => { if (p.species === color) fn(p); });
     }
 
     const initialSpeedOf = (c) => (c.initialSpeed !== undefined ? c.initialSpeed : 1.0);

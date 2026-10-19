@@ -4,6 +4,7 @@
 
     const ctl = PD.controller;
 
+    document.title = `Petrie Dish v${PD.VERSION}`;
     ctl.setCanvasSize(PD.sim.width, PD.sim.height);
     window.addEventListener('resize', ctl.fitToWindow);
 
