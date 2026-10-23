@@ -50,6 +50,12 @@
     <div id="stage">
         <canvas id="world"></canvas>
         <canvas id="world3d" hidden></canvas>
+        <div id="fastOverlay" class="fast-overlay" hidden>
+            <div class="fast-title">⏩ FAST FORWARD</div>
+            <div id="fastStats"></div>
+            <button id="fastStopBtn">■ Stop</button>
+            <div class="fast-hint">drawing is off · T / Esc / Space = stop</div>
+        </div>
     </div>
 
     <header class="hud">
@@ -117,6 +123,7 @@
             <summary>Time</summary>
             <div class="row buttons">
                 <button id="playBtn" title="Space">❚❚ Pause</button>
+                <button id="fastBtn" title="T – compute as fast as possible without drawing, until Stop">⏩ Fast forward</button>
             </div>
             <div class="row">
                 <label for="speedInput">Steps / frame</label>
@@ -140,8 +147,8 @@
                 </select>
                 <button id="fitBtn" title="F">Fit</button>
             </div>
-            <p class="hint" data-dim="2">Wheel = zoom · drag = move · click = inspect · Space = pause · 3 = 3D · G = GPU</p>
-            <p class="hint" data-dim="3" hidden>Drag = rotate · right-drag = move · wheel = zoom · click = inspect · 3 = 2D · G = GPU</p>
+            <p class="hint" data-dim="2">Wheel = zoom · drag = move · click = inspect · Space = pause · T = fast forward · 3 = 3D · G = GPU</p>
+            <p class="hint" data-dim="3" hidden>Drag = rotate · right-drag = move · wheel = zoom · click = inspect · T = fast forward · 3 = 2D · G = GPU</p>
         </details>
     </aside>
 

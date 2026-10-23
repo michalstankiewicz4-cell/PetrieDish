@@ -5,6 +5,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.4.0] – 2026-10-23
+### Dodane
+- **Fast forward** (przycisk w panelu Time, klawisz `T`): fizyka liczy się tak szybko,
+  jak się da, bez rysowania, aż do Stop (przycisk na ekranie, `T`, `Esc` albo spacja).
+  Na ekranie: numer kroku, ile kroków przybyło i kroki/s. Obserwatorzy i katalog
+  działają dalej w zwykłym rytmie. Działa na CPU i GPU, w 2D i 3D.
+### Zmienione
+- Fizyka bez zmian (te same przebiegi co w 0.3.0).
+
 ## [0.3.0] – 2026-10-23
 ### Dodane
 - **Backend GPU (WebGPU)**: fizyka liczona na karcie graficznej – przełącznik

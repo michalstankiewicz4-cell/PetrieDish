@@ -49,6 +49,9 @@
     // ---------- time ----------
     const playBtn = $('playBtn');
     playBtn.addEventListener('click', () => app.togglePlay());
+    const fastBtn = $('fastBtn');
+    fastBtn.addEventListener('click', () => app.setFast(!app.fast));
+    $('fastStopBtn').addEventListener('click', () => app.setFast(false));
     const spf = $('speedInput'), spfValue = $('speedValue');
     spf.addEventListener('input', () => {
         app.settings.stepsPerFrame = +spf.value;
@@ -97,8 +100,9 @@
         const w = app.world;
         if (!w) return;
         playBtn.textContent = app.settings.running ? '❚❚ Pause' : '▶ Play';
+        fastBtn.textContent = app.fast ? '■ Stop' : '⏩ Fast forward';
         const loop = EM.loop;
-        hud.textContent = `${w.dim}D ${app.gpu ? 'GPU' : 'CPU'} · step ${fmt(w.steps)} · ${fmt(w.n)} photons · ${fmt(w.bondCount)} bonds · ` +
+        hud.textContent = `${app.fast ? '⏩ ' : ''}${w.dim}D ${app.gpu ? 'GPU' : 'CPU'} · step ${fmt(w.steps)} · ${fmt(w.n)} photons · ${fmt(w.bondCount)} bonds · ` +
             `${loop.fps} fps · ${loop.stepsPerSecond} steps/s · ${loop.msPerStep.toFixed(1)} ms/step`;
     });
 })(EM);

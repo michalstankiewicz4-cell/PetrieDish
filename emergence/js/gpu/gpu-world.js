@@ -353,6 +353,7 @@
         }
     }
 
+    GpuWorld.MAX_BATCH = MAX_BATCH;
     EM.gpu = gpu;
     EM.GpuWorld = GpuWorld;
 })(EM);

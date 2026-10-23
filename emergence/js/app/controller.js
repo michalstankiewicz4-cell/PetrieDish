@@ -27,6 +27,8 @@
         observer: null,
         /** EM.GpuWorld when the GPU backend runs the current world, else null */
         gpu: null,
+        /** fast forward: physics as fast as possible, nothing drawn, until stopped */
+        fast: false,
         /** where the current laws came from: 'seed' | 'mutation' | 'lab' | 'file' */
         origin: 'seed',
         listeners: new Set(),
@@ -54,6 +56,10 @@
         /** Builds a world from the current genome and settings. */
         rebuild() {
             const size = app.worldSize(settings.count);
+            if (app.fast) {
+                app.fast = false;
+                EM.loop.onFast(false);
+            }
             if (app.gpu) {
                 app.gpu.destroy();
                 app.gpu = null;
@@ -156,7 +162,18 @@
         },
 
         togglePlay() {
+            if (app.fast) {
+                app.setFast(false); // Space during fast forward = stop it, keep running
+                return;
+            }
             settings.running = !settings.running;
+            app.emit();
+        },
+
+        setFast(on) {
+            app.fast = !!on;
+            if (app.fast) settings.running = true;
+            EM.loop.onFast(app.fast);
             app.emit();
         },
 

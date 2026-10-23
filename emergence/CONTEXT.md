@@ -18,7 +18,7 @@
 
 ## Stan
 
-- **Wersja:** 0.3.0 (2026-10-23) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
+- **Wersja:** 0.4.0 (2026-10-23) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
@@ -84,6 +84,10 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-10-23 – v0.4.0:** fast forward (liczenie bez rysowania do Stop, budżet ~40 ms
+  na klatkę na CPU, pełna kolejka na GPU). Pomysł na później: oś czasu z migawkami
+  i cofanie (CPU deterministyczny → migawka + doliczenie; GPU tylko migawki).
 
 - **2026-10-23 – v0.3.0:** backend WebGPU (5 shaderów na krok, wzajemne propozycje
   wiązań, losowość z funkcji skrótu), przełącznik CPU/GPU, do 200 tys. fotonów,

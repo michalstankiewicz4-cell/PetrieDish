@@ -3,7 +3,8 @@
  * 2D: wheel = zoom at cursor, drag = pan.
  * 3D: drag = rotate, right-drag / shift-drag = pan, wheel = zoom.
  * Click (without dragging) = inspect a photon.
- * Keys: Space = play/pause, F = fit, N = new laws, M = mutate, 3 = 2D/3D, G = CPU/GPU.
+ * Keys: Space = play/pause, F = fit, N = new laws, M = mutate, 3 = 2D/3D, G = CPU/GPU,
+ * T = fast forward on/off, Esc = stop fast forward.
  */
 (function (EM) {
     'use strict';
@@ -11,7 +12,11 @@
     const stage = document.getElementById('stage');
     let drag = null;
 
+    // the fast-forward overlay covers the stage: its button must get normal clicks
+    const onOverlay = (e) => !!e.target.closest('.fast-overlay');
+
     stage.addEventListener('wheel', (e) => {
+        if (onOverlay(e)) return;
         e.preventDefault();
         EM.renderer.onWheel(e);
     }, { passive: false });
@@ -19,6 +24,7 @@
     stage.addEventListener('contextmenu', (e) => e.preventDefault());
 
     stage.addEventListener('pointerdown', (e) => {
+        if (onOverlay(e)) return;
         drag = { x: e.clientX, y: e.clientY, moved: 0 };
         stage.setPointerCapture(e.pointerId);
     });
@@ -47,6 +53,8 @@
         else if (e.key === 'n' || e.key === 'N') app.newLaws();
         else if (e.key === 'm' || e.key === 'M') app.mutate();
         else if (e.key === '3') app.setDim(app.settings.dim === 3 ? 2 : 3);
+        else if (e.key === 't' || e.key === 'T') app.setFast(!app.fast);
+        else if (e.key === 'Escape' && app.fast) app.setFast(false);
         else if (e.key === 'g' || e.key === 'G') app.setBackend(app.settings.backend === 'gpu' ? 'cpu' : 'gpu');
     });
 

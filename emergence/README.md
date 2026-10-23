@@ -14,6 +14,7 @@ appears; it only picks laws, it never touches a running world.
 - **World panel** (left): new / mutated laws, **Space 2D / 3D**, photon count, restart, speed, view options.
 - **Observe panel** (right): metrics, history chart, the catalogue of stable structures
   (click to highlight), and the **Lab** (start the search, then *Load* a result).
+- **Fast forward** (Time panel or T): computes without drawing until you press Stop.
 - 2D: wheel = zoom, drag = move. 3D: drag = rotate, right-drag = move, wheel = zoom.
   Click = inspect a photon, Space = pause, F = fit, N = new laws, M = mutate, 3 = switch 2D/3D.
 - 3D needs WebGL2 (any current browser) and runs ~2000 photons smoothly on a CPU.
