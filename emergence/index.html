@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergence</title>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/panels.css">
+
+    <!-- Plain <script defer> in dependency order: no build step, works from file:// and GitHub Pages.
+         physics/ and observe/ never touch the DOM (they also run in the Lab's Web Workers). -->
+    <script defer src="js/core/config.js"></script>
+    <script defer src="js/core/rng.js"></script>
+    <script defer src="js/core/genome.js"></script>
+    <script defer src="js/core/spatial-hash.js"></script>
+    <script defer src="js/physics/light.js"></script>
+    <script defer src="js/physics/bonds.js"></script>
+    <script defer src="js/physics/forces.js"></script>
+    <script defer src="js/physics/reactions.js"></script>
+    <script defer src="js/physics/world.js"></script>
+    <script defer src="js/observe/structures.js"></script>
+    <script defer src="js/observe/catalog.js"></script>
+    <script defer src="js/observe/enclosures.js"></script>
+    <script defer src="js/observe/observer.js"></script>
+    <script defer src="js/lab/runner.js"></script>
+    <script defer src="js/lab/search.js"></script>
+    <script defer src="js/lab/pool.js"></script>
+    <script defer src="js/lab/lab.js"></script>
+    <script defer src="js/render/camera.js"></script>
+    <script defer src="js/render/renderer.js"></script>
+    <script defer src="js/render/tiles.js"></script>
+    <script defer src="js/app/setup.js"></script>
+    <script defer src="js/app/controller.js"></script>
+    <script defer src="js/app/loop.js"></script>
+    <script defer src="js/ui/dom.js"></script>
+    <script defer src="js/ui/world-panel.js"></script>
+    <script defer src="js/ui/observe-panel.js"></script>
+    <script defer src="js/ui/lab-panel.js"></script>
+    <script defer src="js/ui/input.js"></script>
+    <script defer src="js/main.js"></script>
+</head>
+<body>
+    <canvas id="world"></canvas>
+
+    <header class="hud">
+        <div class="hud-title">EMERGENCE <span id="version"></span></div>
+        <div class="hud-stats" id="hudStats"></div>
+    </header>
+
+    <button class="panel-toggle left" data-toggle="worldPanel" title="World">☰ World</button>
+    <button class="panel-toggle right" data-toggle="observePanel" title="Observe &amp; Lab">Observe ☰</button>
+
+    <!-- LEFT: laws, world, time, view -->
+    <aside class="panel left open" id="worldPanel">
+        <details open>
+            <summary>Laws</summary>
+            <div class="row">
+                <label for="lawsSeed">Laws seed</label>
+                <input type="number" id="lawsSeed" min="0" step="1">
+                <button id="loadLawsBtn">Load</button>
+            </div>
+            <div class="row">
+                <label for="typesInput">Photon types</label>
+                <input type="range" id="typesInput" min="2" max="8" step="1">
+                <span class="value" id="typesValue"></span>
+            </div>
+            <div class="row buttons">
+                <button id="newLawsBtn" title="N">🎲 New laws</button>
+                <button id="mutateBtn" title="M">🧬 Mutate</button>
+            </div>
+            <div class="row buttons">
+                <button id="exportBtn">⤓ Export</button>
+                <button id="importBtn">⤒ Import</button>
+            </div>
+            <p class="hint" id="lawsOrigin"></p>
+        </details>
+
+        <details open>
+            <summary>World</summary>
+            <div class="row">
+                <label for="countInput">Photons</label>
+                <input type="range" id="countInput" min="500" max="20000" step="500">
+                <span class="value" id="countValue"></span>
+            </div>
+            <div class="row buttons">
+                <button id="applyCountBtn">Apply</button>
+                <button id="restartBtn" title="Same laws, same start">↺ Restart</button>
+                <button id="reseedBtn" title="Same laws, new start">⟳ New start</button>
+            </div>
+        </details>
+
+        <details open>
+            <summary>Time</summary>
+            <div class="row buttons">
+                <button id="playBtn" title="Space">❚❚ Pause</button>
+            </div>
+            <div class="row">
+                <label for="speedInput">Steps / frame</label>
+                <input type="range" id="speedInput" min="1" max="10" step="1">
+                <span class="value" id="speedValue"></span>
+            </div>
+        </details>
+
+        <details open>
+            <summary>View</summary>
+            <label class="check"><input type="checkbox" id="viewBonds"> Bonds</label>
+            <label class="check"><input type="checkbox" id="viewLight"> Light</label>
+            <label class="check"><input type="checkbox" id="viewHeadings"> Headings (zoom in)</label>
+            <label class="check"><input type="checkbox" id="viewEnclosures"> Enclosures</label>
+            <div class="row">
+                <label for="viewColor">Colour</label>
+                <select id="viewColor">
+                    <option value="type">by type</option>
+                    <option value="energy">by energy</option>
+                </select>
+                <button id="fitBtn" title="F">Fit</button>
+            </div>
+            <p class="hint">Wheel = zoom · drag = move · click = inspect · Space = pause</p>
+        </details>
+    </aside>
+
+    <!-- RIGHT: observers + lab -->
+    <aside class="panel right open" id="observePanel">
+        <details open>
+            <summary>Observe</summary>
+            <canvas id="historyChart" width="300" height="70"></canvas>
+            <table class="metrics" id="metricsTable"></table>
+        </details>
+
+        <details open>
+            <summary>Catalogue <span class="badge" id="catalogCount">0</span></summary>
+            <p class="hint">Structures that stayed the same shape long enough. Click to highlight.</p>
+            <div class="catalog" id="catalogGrid"></div>
+        </details>
+
+        <details>
+            <summary>Lab – search for laws</summary>
+            <p class="hint">Runs many small worlds without drawing and keeps the laws whose
+                behaviour is new and neither gas nor a frozen lump. It only chooses laws –
+                it never touches a running world.</p>
+            <div class="row">
+                <label for="labCount">Photons / test</label>
+                <input type="number" id="labCount" min="300" max="6000" step="100">
+            </div>
+            <div class="row">
+                <label for="labSteps">Steps / test</label>
+                <input type="number" id="labSteps" min="500" max="20000" step="500">
+            </div>
+            <div class="row">
+                <label for="labWorkers">Workers</label>
+                <input type="number" id="labWorkers" min="1" step="1">
+            </div>
+            <div class="row buttons">
+                <button id="labStartBtn">▶ Start search</button>
+                <button id="labClearBtn">Clear</button>
+            </div>
+            <p class="hint" id="labStatus"></p>
+            <table class="results">
+                <thead><tr><th>#</th><th>laws</th><th>score</th><th>bond</th><th>shapes</th><th>max</th><th>encl</th><th></th></tr></thead>
+                <tbody id="labResults"></tbody>
+            </table>
+        </details>
+    </aside>
+
+    <div class="inspector" id="inspector" hidden>
+        <button class="close" id="inspectorClose">×</button>
+        <div id="inspectorBody"></div>
+    </div>
+</body>
+</html>

@@ -27,6 +27,9 @@
      ewentualnie Neural Cellular Automata / ocena klatek przez CLIP (transformers.js).
   3. Decyzje projektowe z KNOWN_ISSUES (np. czy mixing ma zmieniać zachowanie).
 
+> **Osobny projekt w tym repo:** `emergence/` (świat fotonów + Lab ML) ma własne
+> `emergence/CONTEXT.md`, wersjonowanie i CHANGELOG. Przy pracy nad nim czytaj tamten plik.
+
 ## Mapa dokumentacji
 
 | Plik | Po co |

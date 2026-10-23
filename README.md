@@ -2,6 +2,8 @@
 
 Run -> https://michalstankiewicz4-cell.github.io/PetrieDish/
 
+**New:** [Emergence](https://michalstankiewicz4-cell.github.io/PetrieDish/emergence/) – photons → molecules → membranes, laws found by an ML lab (folder `emergence/`, separate versioning).
+
 That's one of my first projects with vibecoding: it visualizes the physical and chemical relationships between particles in fluid.
 Just run it and have fun. Feel free to use.
 
