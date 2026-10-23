@@ -18,17 +18,18 @@
 
 ## Stan
 
-- **Wersja:** 0.1.0 (2026-10-23) – etap **M0** gotowy, detektory **M1/M2** gotowe.
+- **Wersja:** 0.2.0 (2026-10-23) – etap **M0** gotowy w 2D i 3D, detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
   w workerach; z `file://` liczy w stronie), eksport/import praw, link z ziarnem.
+  **3D** (v0.2): te same prawa w sześcianie, renderer WebGL2 z kulkami, ~2 tys. fotonów na CPU.
 - **Następne kroki:**
   1. Puścić Lab na dłużej i obejrzeć najlepsze wszechświaty → czy pojawiają się
      trwałe zamknięcia (M2). Jeśli nie: rozszerzyć przestrzeń praw (np. więcej
      typów z biegunowością, kąty wiązań).
   2. Miary M3 (metabolizm): porównanie trwałości struktur w świetle i w cieniu.
-  3. Wydajność: WebGPU dla sił (dane już są w typed arrays).
+  3. Wydajność: WebGPU dla sił (dane już są w typed arrays) – szczególnie potrzebne w 3D.
   4. Detektor „poziomów”: skupiska zamknięć (M6) i drzewo pochodzenia struktur (M5).
 
 ## Mapa plików
@@ -44,10 +45,14 @@
 | `js/physics/*` | dynamika (bez DOM, bez pojęć wyższego poziomu) |
 | `js/observe/*` | detektory – tylko czytają świat |
 | `js/lab/*` | wyszukiwanie praw (runner, search, pool, worker) |
-| `js/render/*`, `js/ui/*`, `js/app/*` | rysowanie, panele, pętla |
+| `js/render/*`, `js/ui/*`, `js/app/*` | rysowanie (renderer2d Canvas, renderer3d WebGL2, fasada `EM.renderer` w app/setup.js), panele, pętla |
 | `tools/smoke.js` | `node tools/smoke.js` – test determinizmu i niezmienników |
 
 ## Zasady pracy (twarde)
+
+0. 2D i 3D dzielą genom i kod wiązań/obserwatorów (oś z = 0 w 2D). Gorące pętle
+   (siły, całkowanie, siatka) są osobne dla 2D i 3D. Zmiana w 2D nie może zmienić
+   wyników 2D bez wpisu w CHANGELOG – sprawdzaj sumy kontrolne (`tools/smoke.js`).
 
 1. W `js/physics/` nie ma pojęć atom/molekuła/komórka – tylko w `js/observe/`.
 2. Obserwatorzy nigdy nie zmieniają świata.
@@ -70,6 +75,9 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-10-23 – v0.2.0:** świat 3D (fizyka, siatka 3D, światło, zamknięcia 3D),
+  renderer WebGL2 z kulkami, kulki w 2D, Lab per wymiar. 2D bit w bit jak w 0.1.0.
 
 - **2026-10-20 / 2026-10-23 – v0.1.0:** plan (PLAN.md), silnik M0, detektory M1/M2,
   Lab z novelty search, UI, test smoke, dokumentacja. Wydajność na wolnym serwerze

@@ -101,11 +101,11 @@ spełniające miarę, a efekt widać w pełnej symulacji.
 emergence/
   index.html
   css/                 base (tokeny, HUD), panels
-  js/core/             config (EM, wersja), rng, genome (prawa), spatial-hash
-  js/physics/          light, bonds, forces, reactions, world
+  js/core/             config (EM, wersja), rng, genome (prawa), spatial-hash (2D), spatial-hash3 (3D)
+  js/physics/          light, bonds, forces (2D), forces3d, reactions, world (2D/3D)
   js/observe/          structures (odcisk kształtu), catalog, enclosures, observer
   js/lab/              runner (bez okna), search (novelty), pool, lab, worker
-  js/render/           camera, renderer, tiles
+  js/render/           camera (2D), mat4, renderer2d (Canvas, kulki), renderer3d (WebGL2, kulki), tiles
   js/app/              setup, controller, loop
   js/ui/               dom, world-panel, observe-panel, lab-panel, input
   js/main.js
@@ -128,4 +128,6 @@ karty, `CHANGELOG.md`, `CONTEXT.md`.
 - **Przestrzeń praw jest ogromna:** większość wszechświatów to „gaz” albo „bryła”.
   Dlatego Lab, nowość i żywotność.
 - **M5–M6 to otwarty problem badawczy** – cel eksperymentu, nie obietnica.
-- **3D** dopiero, gdy 2D pokaże poziomy M2–M3.
+- **3D** (od v0.2) liczy się na CPU: ~2 tys. fotonów płynnie. Większe światy 3D
+  wymagają WebGPU (dane są już w typed arrays). Emergencja w 3D jest trudniejsza:
+  błona to powierzchnia, potrzeba więcej fotonów na strukturę.

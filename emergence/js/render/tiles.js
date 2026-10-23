@@ -13,6 +13,10 @@
         const w = canvas.width, h = canvas.height;
         ctx.clearRect(0, 0, w, h);
 
+        // 3D shapes: simple oblique projection (z goes up-right), so depth stays readable
+        const shape = entry.shape.map(([px, py, pz = 0]) => [px + pz * 0.55, py - pz * 0.35]);
+        entry = Object.assign({}, entry, { shape });
+
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         for (const [px, py] of entry.shape) {
             if (px < minX) minX = px;

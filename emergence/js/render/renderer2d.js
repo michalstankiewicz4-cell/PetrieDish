@@ -1,6 +1,7 @@
 /**
- * Draws the world: light field, enclosures, bonds, photons, headings and the
- * selected structure. Photons are batched by colour (one fillStyle per batch).
+ * 2D renderer (Canvas 2D): light field, enclosures, bonds, photons as shaded
+ * balls (one pre-rendered sprite per colour, drawn with drawImage), headings
+ * and the selected structure. Wheel = zoom at cursor, drag = pan.
  */
 (function (EM) {
     'use strict';
@@ -8,22 +9,42 @@
     const MV = EM.config.MAX_VALENCE;
     const BG = '#05060b';
     const ENERGY_LEVELS = 8;
+    const SPRITE = 32; // px of a pre-rendered ball
 
-    class Renderer {
-        constructor(canvas) {
+    /** A shaded ball (highlight top-left, dark rim) in the given colour. */
+    function ballSprite(color) {
+        const c = document.createElement('canvas');
+        c.width = c.height = SPRITE;
+        const g = c.getContext('2d');
+        const r = SPRITE / 2;
+        // base colour
+        g.fillStyle = color;
+        g.beginPath();
+        g.arc(r, r, r - 0.5, 0, Math.PI * 2);
+        g.fill();
+        // shading: light from the top-left, dark rim
+        const shade = g.createRadialGradient(r * 0.65, r * 0.6, r * 0.05, r, r, r);
+        shade.addColorStop(0, 'rgba(255,255,255,0.75)');
+        shade.addColorStop(0.25, 'rgba(255,255,255,0.12)');
+        shade.addColorStop(0.7, 'rgba(0,0,0,0.15)');
+        shade.addColorStop(1, 'rgba(0,0,0,0.6)');
+        g.fillStyle = shade;
+        g.beginPath();
+        g.arc(r, r, r - 0.5, 0, Math.PI * 2);
+        g.fill();
+        return c;
+    }
+
+    class Renderer2D {
+        constructor(canvas, view) {
             this.canvas = canvas;
             this.ctx = canvas.getContext('2d');
             this.camera = new EM.Camera();
-            this.view = {
-                bonds: true,
-                light: true,
-                headings: true,
-                enclosures: true,
-                color: 'type'   // 'type' | 'energy'
-            };
+            this.view = view;
+            this.selection = null;
+            this.sprites = new Map(); // colour -> sprite canvas
             this.lightCanvas = document.createElement('canvas');
             this.lightImage = null;
-            this.selection = null; // { members: number[], label }
             this.resize();
         }
 
@@ -36,6 +57,27 @@
             this.canvas.style.height = h + 'px';
             this.dpr = dpr;
             this.camera.setScreen(w, h);
+        }
+
+        sprite(color) {
+            let s = this.sprites.get(color);
+            if (!s) {
+                s = ballSprite(color);
+                this.sprites.set(color, s);
+            }
+            return s;
+        }
+
+        fit(world) {
+            this.camera.fit(world.width, world.height);
+        }
+
+        onWheel(e) {
+            this.camera.zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
+        }
+
+        onDrag(dx, dy) {
+            this.camera.pan(dx, dy);
         }
 
         draw(world, observer) {
@@ -117,16 +159,18 @@
 
         drawPhotons(world) {
             const ctx = this.ctx, x = world.x, y = world.y, n = world.n, type = world.type;
-            const r = Math.max(1.2, Math.min(world.laws.coreR * 0.6, 2.6 / Math.sqrt(this.camera.zoom) + 0.6));
+            // a ball is about the size of the hard core (in world units), but never under ~1.5 screen px
+            const r = Math.max(world.laws.coreR * 0.55, 1.5 / this.camera.zoom);
             const size = r * 2;
+            ctx.imageSmoothingEnabled = true;
 
             if (this.view.color === 'energy') {
                 const e = world.energy;
                 for (let lvl = 0; lvl < ENERGY_LEVELS; lvl++) {
                     const t = lvl / (ENERGY_LEVELS - 1);
-                    ctx.fillStyle = `rgb(${Math.round(40 + 215 * t)}, ${Math.round(60 + 160 * t)}, ${Math.round(140 - 100 * t)})`;
+                    const img = this.sprite(`rgb(${Math.round(40 + 215 * t)}, ${Math.round(60 + 160 * t)}, ${Math.round(140 - 100 * t)})`);
                     for (let i = 0; i < n; i++) {
-                        if (Math.min(ENERGY_LEVELS - 1, (e[i] * ENERGY_LEVELS) | 0) === lvl) ctx.fillRect(x[i] - r, y[i] - r, size, size);
+                        if (Math.min(ENERGY_LEVELS - 1, (e[i] * ENERGY_LEVELS) | 0) === lvl) ctx.drawImage(img, x[i] - r, y[i] - r, size, size);
                     }
                 }
                 return;
@@ -134,8 +178,8 @@
 
             const colors = world.laws.color;
             for (let t = 0; t < colors.length; t++) {
-                ctx.fillStyle = colors[t];
-                for (let i = 0; i < n; i++) if (type[i] === t) ctx.fillRect(x[i] - r, y[i] - r, size, size);
+                const img = this.sprite(colors[t]);
+                for (let i = 0; i < n; i++) if (type[i] === t) ctx.drawImage(img, x[i] - r, y[i] - r, size, size);
             }
         }
 
@@ -178,5 +222,5 @@
         }
     }
 
-    EM.Renderer = Renderer;
+    EM.Renderer2D = Renderer2D;
 })(EM);

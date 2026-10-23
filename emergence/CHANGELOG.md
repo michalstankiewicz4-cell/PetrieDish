@@ -5,6 +5,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.2.0] – 2026-10-23
+### Dodane
+- **Świat 3D**: te same prawa w sześcianie zawijanym na wszystkich ścianach.
+  Przełącznik Space (2D/3D) w panelu World, klawisz `3`, parametr `d=3` w linku.
+  Siatka 3D (komórki R/2, blok 5×5×5), siły 3D, orientacja jako wektor, światło 3D,
+  detektor zamknięć wolumetrycznych, kafelki katalogu w rzucie ukośnym.
+- **Renderer 3D (WebGL2)**: fotony jako cieniowane kulki (impostory), wiązania,
+  słońca i zamknięcia jako poświaty, mgła głębi, kamera orbitalna
+  (przeciągnij = obrót, prawy przycisk = przesuwanie, kółko = zoom, auto-obrót).
+- Lab ma osobne archiwa dla 2D i 3D i ocenia światy w aktualnym wymiarze.
+### Zmienione
+- 2D: fotony rysowane jako cieniowane kulki zamiast kwadratów, rozmiar skaluje się z zoomem.
+- Wydajność 3D na CPU: ~2 tys. fotonów płynnie (domyślnie w 3D).
+- Fizyka 2D bez zmian – ziarna 2D dają identyczny przebieg jak w 0.1.0.
+
 ## [0.1.0] – 2026-10-23
 Pierwszy prototyp (etap M0 + detektory M1/M2).
 ### Dodane

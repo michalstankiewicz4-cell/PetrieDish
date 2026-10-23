@@ -5,9 +5,11 @@
 (function (EM) {
     'use strict';
 
-    const AREA_PER_PHOTON = 220; // px^2 - keeps density constant when the count changes
+    const AREA_PER_PHOTON = 220;    // px^2 per photon in 2D - density stays the same when the count changes
+    const VOLUME_PER_PHOTON = 4500; // px^3 per photon in 3D (a bit sparser: in 3D every photon has many more neighbours)
 
     const settings = {
+        dim: 2,
         lawsSeed: 1,
         worldSeed: 1,
         types: EM.config.DEFAULT_TYPES,
@@ -34,21 +36,26 @@
             app.listeners.forEach((fn) => fn(app));
         },
 
-        worldSize(count) {
+        worldSize(count, dim = settings.dim) {
+            if (dim === 3) {
+                const side = Math.round(Math.cbrt(count * VOLUME_PER_PHOTON));
+                return { width: side, height: side, depth: side };
+            }
             const aspect = Math.max(1, window.innerWidth / Math.max(1, window.innerHeight));
             const area = count * AREA_PER_PHOTON;
             const width = Math.round(Math.sqrt(area * aspect));
-            return { width, height: Math.round(area / width) };
+            return { width, height: Math.round(area / width), depth: 0 };
         },
 
         /** Builds a world from the current genome and settings. */
         rebuild() {
-            const { width, height } = app.worldSize(settings.count);
-            app.world = new EM.World({ width, height, count: settings.count, genome: app.genome, seed: settings.worldSeed });
+            const size = app.worldSize(settings.count);
+            app.world = new EM.World(Object.assign(size, { count: settings.count, genome: app.genome, seed: settings.worldSeed }));
             app.observer = new EM.Observer(app.world);
             app.observer.observe();
+            EM.renderer.setDim(settings.dim);
             EM.renderer.selection = null;
-            EM.renderer.camera.fit(width, height);
+            EM.renderer.fit(app.world);
             app.writeHash();
             app.emit();
         },
@@ -84,6 +91,15 @@
             app.rebuild();
         },
 
+        /** Switches between a 2D and a 3D world (same laws). */
+        setDim(dim) {
+            if (dim === settings.dim) return;
+            settings.dim = dim;
+            // 3D is ~3x more expensive per photon: start from a count that stays fluid
+            settings.count = dim === 3 ? Math.min(settings.count, EM.config.DEFAULT_COUNT_3D) : EM.config.DEFAULT_COUNT;
+            app.rebuild();
+        },
+
         setCount(count) {
             const L = EM.config.COUNT_LIMITS;
             settings.count = Math.max(L.min, Math.min(L.max, count | 0));
@@ -105,7 +121,7 @@
                 history.replaceState(null, '', location.pathname + location.search);
                 return;
             }
-            const h = `#laws=${settings.lawsSeed}&types=${settings.types}&n=${settings.count}&world=${settings.worldSeed}`;
+            const h = `#laws=${settings.lawsSeed}&types=${settings.types}&n=${settings.count}&world=${settings.worldSeed}&d=${settings.dim}`;
             history.replaceState(null, '', h);
         },
 
@@ -116,6 +132,7 @@
             if (num('types') !== null) settings.types = Math.max(1, Math.min(EM.config.MAX_TYPES, num('types')));
             if (num('n') !== null) settings.count = Math.max(EM.config.COUNT_LIMITS.min, Math.min(EM.config.COUNT_LIMITS.max, num('n')));
             if (num('world') !== null) settings.worldSeed = num('world') >>> 0;
+            if (num('d') === 3) settings.dim = 3;
             return params.has('laws');
         }
     };

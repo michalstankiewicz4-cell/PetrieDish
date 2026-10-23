@@ -14,9 +14,11 @@
     <script defer src="js/core/rng.js"></script>
     <script defer src="js/core/genome.js"></script>
     <script defer src="js/core/spatial-hash.js"></script>
+    <script defer src="js/core/spatial-hash3.js"></script>
     <script defer src="js/physics/light.js"></script>
     <script defer src="js/physics/bonds.js"></script>
     <script defer src="js/physics/forces.js"></script>
+    <script defer src="js/physics/forces3d.js"></script>
     <script defer src="js/physics/reactions.js"></script>
     <script defer src="js/physics/world.js"></script>
     <script defer src="js/observe/structures.js"></script>
@@ -28,7 +30,9 @@
     <script defer src="js/lab/pool.js"></script>
     <script defer src="js/lab/lab.js"></script>
     <script defer src="js/render/camera.js"></script>
-    <script defer src="js/render/renderer.js"></script>
+    <script defer src="js/render/mat4.js"></script>
+    <script defer src="js/render/renderer2d.js"></script>
+    <script defer src="js/render/renderer3d.js"></script>
     <script defer src="js/render/tiles.js"></script>
     <script defer src="js/app/setup.js"></script>
     <script defer src="js/app/controller.js"></script>
@@ -41,7 +45,10 @@
     <script defer src="js/main.js"></script>
 </head>
 <body>
-    <canvas id="world"></canvas>
+    <div id="stage">
+        <canvas id="world"></canvas>
+        <canvas id="world3d" hidden></canvas>
+    </div>
 
     <header class="hud">
         <div class="hud-title">EMERGENCE <span id="version"></span></div>
@@ -79,6 +86,13 @@
         <details open>
             <summary>World</summary>
             <div class="row">
+                <label for="dimSelect">Space</label>
+                <select id="dimSelect" title="3 = switch">
+                    <option value="2">2D (plane)</option>
+                    <option value="3">3D (cube)</option>
+                </select>
+            </div>
+            <div class="row">
                 <label for="countInput">Photons</label>
                 <input type="range" id="countInput" min="500" max="20000" step="500">
                 <span class="value" id="countValue"></span>
@@ -106,7 +120,8 @@
             <summary>View</summary>
             <label class="check"><input type="checkbox" id="viewBonds"> Bonds</label>
             <label class="check"><input type="checkbox" id="viewLight"> Light</label>
-            <label class="check"><input type="checkbox" id="viewHeadings"> Headings (zoom in)</label>
+            <label class="check" data-dim="2"><input type="checkbox" id="viewHeadings"> Headings (zoom in)</label>
+            <label class="check" data-dim="3" hidden><input type="checkbox" id="viewSpin"> Auto-rotate</label>
             <label class="check"><input type="checkbox" id="viewEnclosures"> Enclosures</label>
             <div class="row">
                 <label for="viewColor">Colour</label>
@@ -116,7 +131,8 @@
                 </select>
                 <button id="fitBtn" title="F">Fit</button>
             </div>
-            <p class="hint">Wheel = zoom · drag = move · click = inspect · Space = pause</p>
+            <p class="hint" data-dim="2">Wheel = zoom · drag = move · click = inspect · Space = pause · 3 = 3D</p>
+            <p class="hint" data-dim="3" hidden>Drag = rotate · right-drag = move · wheel = zoom · click = inspect · 3 = 2D</p>
         </details>
     </aside>
 

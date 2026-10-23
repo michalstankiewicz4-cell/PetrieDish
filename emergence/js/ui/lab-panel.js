@@ -61,7 +61,7 @@
     function render() {
         const s = lab.search;
         const mode = lab.pool ? (lab.pool.mode === 'workers' ? `${lab.pool.size} worker(s)` : 'in page (open via http for workers)') : '';
-        status.textContent = (lab.running ? `searching · ${mode} · ` : 'stopped · ') +
+        status.textContent = `${lab.dim}D · ` + (lab.running ? `searching · ${mode} · ` : 'stopped · ') +
             `${fmt(s.evaluated)} evaluated · archive ${s.archive.length}` +
             (lab.last ? ` · last ${lab.last.name} (${fmt(lab.last.interest, 2)})` : '') +
             (lab.error ? ` · error: ${lab.error}` : '');
@@ -73,5 +73,12 @@
     }
 
     lab.onUpdate(render);
+    // the lab follows the current world's dimension
+    EM.app.onChange((app) => {
+        if (lab.dim !== app.settings.dim) {
+            lab.useDim(app.settings.dim);
+            countIn.value = lab.opts.count;
+        }
+    });
     EM.ui.labRender = render;
 })(EM);

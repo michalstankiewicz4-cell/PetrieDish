@@ -67,7 +67,8 @@
         if (deg[i] >= L.valence[type[i]] || deg[j] >= L.valence[type[j]]) return;
         const dvx = world.vx[j] - world.vx[i];
         const dvy = world.vy[j] - world.vy[i];
-        if (dvx * dvx + dvy * dvy > L.bindE[p]) return;
+        const dvz = world.vz[j] - world.vz[i]; // 0 in 2D
+        if (dvx * dvx + dvy * dvy + dvz * dvz > L.bindE[p]) return;
         const act = L.activation[p];
         const e = world.energy;
         if (act > 0 && e[i] + e[j] < act) return;
@@ -89,7 +90,8 @@
         const L = world.laws, T = L.T;
         const n = world.n, deg = world.deg, partner = world.partner, type = world.type;
         const x = world.x, y = world.y, vx = world.vx, vy = world.vy, fx = world.fx, fy = world.fy;
-        const W = world.width, H = world.height, hw = W / 2, hh = H / 2;
+        const z = world.z, vz = world.vz, fz = world.fz; // all 0 in 2D
+        const W = world.width, H = world.height, D = world.depth, hw = W / 2, hh = H / 2, hd = D / 2;
         const e = world.energy, share = L.energyShare, decay = L.decay, rng = world.rng;
 
         for (let i = 0; i < n; i++) {
@@ -102,7 +104,9 @@
                 if (dx > hw) dx -= W; else if (dx < -hw) dx += W;
                 let dy = y[j] - y[i];
                 if (dy > hh) dy -= H; else if (dy < -hh) dy += H;
-                const d = Math.sqrt(dx * dx + dy * dy) || 1e-6;
+                let dz = z[j] - z[i];
+                if (D) { if (dz > hd) dz -= D; else if (dz < -hd) dz += D; }
+                const d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
                 const p = type[i] * T + type[j];
 
                 if (d > L.bondBreak[p] || (decay[p] > 0 && rng.next() < decay[p] * (1 + e[i] + e[j]))) {
@@ -116,13 +120,17 @@
                     e[j] -= flow;
                 }
 
-                const nx = dx / d, ny = dy / d;
-                const along = (vx[j] - vx[i]) * nx + (vy[j] - vy[i]) * ny;
+                const nx = dx / d, ny = dy / d, nz = dz / d;
+                const along = (vx[j] - vx[i]) * nx + (vy[j] - vy[i]) * ny + (vz[j] - vz[i]) * nz;
                 const f = L.bondK[p] * (d - L.bondLen[p]) + DAMPING * along;
                 fx[i] += f * nx;
                 fy[i] += f * ny;
                 fx[j] -= f * nx;
                 fy[j] -= f * ny;
+                if (D) {
+                    fz[i] += f * nz;
+                    fz[j] -= f * nz;
+                }
             }
         }
     }

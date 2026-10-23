@@ -11,7 +11,7 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
 (function (EM) {
     'use strict';
 
-    EM.VERSION = '0.1.0';
+    EM.VERSION = '0.2.0';
 
     EM.debug = false;
     EM.log = (...args) => { if (EM.debug) console.log(...args); };
@@ -23,6 +23,7 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
         MAX_SPEED: 4,
 
         DEFAULT_COUNT: 6000,
+        DEFAULT_COUNT_3D: 2000,
         DEFAULT_TYPES: 5,
         COUNT_LIMITS: { min: 500, max: 30000 },
 

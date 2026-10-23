@@ -4,6 +4,8 @@
 
     const lab = {
         search: null,
+        searches: {},
+        dim: 2,
         pool: null,
         running: false,
         opts: { count: 1500, steps: 3000, workers: Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) - 1)) },
@@ -12,7 +14,18 @@
         listeners: new Set(),
 
         init() {
-            lab.search = new EM.lab.Search();
+            lab.useDim(EM.app.settings.dim);
+        },
+
+        /** 2D and 3D laws behave differently - each dimension keeps its own archive. */
+        useDim(dim) {
+            if (lab.running) lab.stop();
+            lab.dim = dim;
+            if (!lab.searches[dim]) lab.searches[dim] = new EM.lab.Search(dim === 3 ? 'emergence.lab.3d.v1' : 'emergence.lab.v1');
+            lab.search = lab.searches[dim];
+            lab.opts.count = dim === 3 ? 800 : 1500;
+            lab.last = null;
+            lab.emit();
         },
 
         onUpdate(fn) {
@@ -45,7 +58,7 @@
         fill() {
             while (lab.running && lab.pool.free > 0) {
                 const proposal = lab.search.propose();
-                const opts = { count: lab.opts.count, steps: lab.opts.steps, worldSeed: 1 };
+                const opts = { count: lab.opts.count, steps: lab.opts.steps, worldSeed: 1, dim: lab.dim };
                 lab.pool.run(proposal.genome, opts).then((result) => {
                     if (!lab.running) return;
                     lab.last = lab.search.add(proposal, result);

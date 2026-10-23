@@ -89,15 +89,16 @@
         };
     }
 
-    /** Positions of the members relative to the first one (unwrapped across the torus edge). */
+    /** Positions of the members relative to the first one (unwrapped across the torus edge). [dx, dy, dz] */
     function localShape(world, members) {
-        const x0 = world.x[members[0]], y0 = world.y[members[0]];
-        const W = world.width, H = world.height;
+        const x0 = world.x[members[0]], y0 = world.y[members[0]], z0 = world.z[members[0]];
+        const W = world.width, H = world.height, D = world.depth;
         return members.map((p) => {
-            let dx = world.x[p] - x0, dy = world.y[p] - y0;
+            let dx = world.x[p] - x0, dy = world.y[p] - y0, dz = world.z[p] - z0;
             if (dx > W / 2) dx -= W; else if (dx < -W / 2) dx += W;
             if (dy > H / 2) dy -= H; else if (dy < -H / 2) dy += H;
-            return [dx, dy];
+            if (D) { if (dz > D / 2) dz -= D; else if (dz < -D / 2) dz += D; }
+            return [dx, dy, dz];
         });
     }
 

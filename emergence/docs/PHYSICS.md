@@ -1,4 +1,4 @@
-# Fizyka – wzory (v0.1)
+# Fizyka – wzory (v0.2)
 
 Tylko to, co jest w `js/physics/`. Oznaczenia: `i`, `j` – fotony, `d` – odległość
 (przez krawędź torusa), `n = (dx, dy) / d` – kierunek i → j, `p = typ_i · T + typ_j`.
@@ -67,6 +67,25 @@ się nie zmienia.
 `L(x, y) = min(1.5, ambient + Σ exp(−d²/(2r²))) · dzień`, siatka 32 px.
 ambient 0–0.3, 0–3 słońc o promieniu (0.1–0.4) · min(W, H), dryf 0–0.3 px/krok,
 `dzień = 0.5 + 0.5 · sin(2π · krok / okres)` gdy okres ≥ 500 (inaczej 1).
+
+## 3D (od v0.2)
+
+Te same prawa (ten sam genom) w sześcianie zawijanym na wszystkich ścianach
+(3-torus). Wybór: panel World → Space albo klawisz `3`.
+
+- **Rozmiar świata:** bok = ∛(liczba fotonów · 4500) px (w 2D: pole = liczba · 220 px²).
+  W 3D jest rzadziej, bo każdy foton ma tam znacznie więcej sąsiadów w tym samym zasięgu.
+- **Siatka:** komórki o boku ≥ R/2, sąsiedzi szukani w bloku 5×5×5 (62 komórki „do przodu” + własna).
+- **Siły:** te same wzory z wektorem `n = (dx, dy, dz)/d` (`forces3d.js`).
+- **Orientacja:** kierunek to wektor jednostkowy `h`. `polar` jak w 2D (`h · n`).
+  Moment: `h += torque · 0.05 · (n − (h·n) h) · (1 − d/R)` (składowa n prostopadła do h),
+  plus szum obrotowy, potem normalizacja.
+- **Wiązania, energia, reakcje:** bez zmian (wiązania liczą też oś z).
+- **Światło:** pole 3D (sześciany 32 px), słońca to kule gaussowskie dryfujące w 3D.
+- **Zamknięcia:** woksele (~1.25 długości wiązania), flood fill przez ściany (6 sąsiadów);
+  wnęka liczy się, gdy jest szczelnie otoczona związaną materią.
+- **Determinizm:** świat 2D losuje dokładnie to samo co w v0.1 (dodatkowe losowania
+  tylko w 3D) – ziarna 2D dają identyczny przebieg.
 
 ## Determinizm
 

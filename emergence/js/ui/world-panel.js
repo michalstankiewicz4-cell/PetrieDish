@@ -32,6 +32,8 @@
     });
 
     // ---------- world ----------
+    const dimSelect = $('dimSelect');
+    dimSelect.addEventListener('change', () => app.setDim(+dimSelect.value));
     const count = $('countInput'), countValue = $('countValue');
     count.addEventListener('input', () => { countValue.textContent = fmt(+count.value); });
     $('applyCountBtn').addEventListener('click', () => app.setCount(+count.value));
@@ -55,7 +57,9 @@
         box.addEventListener('change', () => { view[key] = box.checked; });
     });
     $('viewColor').addEventListener('change', (e) => { view.color = e.target.value; });
-    $('fitBtn').addEventListener('click', () => EM.renderer.camera.fit(app.world.width, app.world.height));
+    $('fitBtn').addEventListener('click', () => EM.renderer.fit(app.world));
+    const spin = $('viewSpin');
+    spin.addEventListener('change', () => EM.renderer.setSpin(spin.checked));
 
     // ---------- refresh ----------
     const hud = $('hudStats'), originEl = $('lawsOrigin');
@@ -71,6 +75,9 @@
         spf.value = s.stepsPerFrame;
         spfValue.textContent = s.stepsPerFrame;
         originEl.textContent = ORIGIN[app.origin] || '';
+        dimSelect.value = s.dim;
+        // options that only make sense in one of the views
+        document.querySelectorAll('[data-dim]').forEach((el) => { el.hidden = +el.dataset.dim !== s.dim; });
     }
 
     app.onChange(syncControls);
@@ -80,7 +87,7 @@
         if (!w) return;
         playBtn.textContent = app.settings.running ? '❚❚ Pause' : '▶ Play';
         const loop = EM.loop;
-        hud.textContent = `step ${fmt(w.steps)} · ${fmt(w.n)} photons · ${fmt(w.bondCount)} bonds · ` +
+        hud.textContent = `${w.dim}D · step ${fmt(w.steps)} · ${fmt(w.n)} photons · ${fmt(w.bondCount)} bonds · ` +
             `${loop.fps} fps · ${loop.stepsPerSecond} steps/s · ${loop.msPerStep.toFixed(1)} ms/step`;
     });
 })(EM);

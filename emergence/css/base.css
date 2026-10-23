@@ -28,12 +28,25 @@ body {
     font: 13px/1.4 var(--sans);
 }
 
-#world {
+#stage {
     position: fixed;
     inset: 0;
-    display: block;
     cursor: crosshair;
     touch-action: none;
+}
+
+#stage canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+}
+
+#stage canvas[hidden] {
+    display: none;
+}
+
+[hidden] {
+    display: none !important;
 }
 
 button,

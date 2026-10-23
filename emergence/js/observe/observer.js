@@ -64,7 +64,7 @@
             let encAgeSum = 0, encOld = 0;
             const bucket = Math.max(enc.cellW, enc.cellH) * 4; // centres may wobble a little
             for (const r of enc.regions) {
-                const key = Math.round(r.cx / bucket) + ':' + Math.round(r.cy / bucket);
+                const key = Math.round(r.cx / bucket) + ':' + Math.round(r.cy / bucket) + ':' + Math.round((r.cz || 0) / bucket);
                 const a = (this.enclosureAge.get(key) || 0) + 1;
                 nextEnc.set(key, a);
                 r.age = a;

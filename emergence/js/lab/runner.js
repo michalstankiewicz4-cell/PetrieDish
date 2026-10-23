@@ -6,14 +6,21 @@
 (function (EM) {
     'use strict';
 
-    const DEFAULTS = { count: 1500, steps: 3000, worldSeed: 1, areaPerPhoton: 220, aspect: 1.6 };
+    const DEFAULTS = { count: 1500, steps: 3000, worldSeed: 1, dim: 2, areaPerPhoton: 220, volumePerPhoton: 4500, aspect: 1.6 };
 
     class Run {
         constructor(genome, opts = {}) {
             const o = this.opts = Object.assign({}, DEFAULTS, opts);
-            const area = o.count * o.areaPerPhoton;
-            const width = Math.round(Math.sqrt(area * o.aspect));
-            this.world = new EM.World({ width, height: Math.round(area / width), count: o.count, genome, seed: o.worldSeed });
+            let size;
+            if (o.dim === 3) {
+                const side = Math.round(Math.cbrt(o.count * o.volumePerPhoton));
+                size = { width: side, height: side, depth: side };
+            } else {
+                const area = o.count * o.areaPerPhoton;
+                const width = Math.round(Math.sqrt(area * o.aspect));
+                size = { width, height: Math.round(area / width), depth: 0 };
+            }
+            this.world = new EM.World(Object.assign(size, { count: o.count, genome, seed: o.worldSeed }));
             this.observer = new EM.Observer(this.world);
             this.done = false;
             this.t0 = Date.now();
