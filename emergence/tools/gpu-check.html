@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Emergence – GPU check</title>
+<style>body { font: 13px monospace; background: #111; color: #ddd; padding: 16px; } .ok { color: #7d7; } .bad { color: #f77; }</style>
+</head>
+<body>
+<h3>GPU backend check</h3>
+<p>Compares the WebGPU physics with the CPU reference. Open from a local server or GitHub Pages (WebGPU needs a secure context).</p>
+<pre id="out"></pre>
+<script src="../js/core/config.js"></script>
+<script src="../js/core/rng.js"></script>
+<script src="../js/core/genome.js"></script>
+<script src="../js/core/spatial-hash.js"></script>
+<script src="../js/core/spatial-hash3.js"></script>
+<script src="../js/physics/light.js"></script>
+<script src="../js/physics/bonds.js"></script>
+<script src="../js/physics/forces.js"></script>
+<script src="../js/physics/forces3d.js"></script>
+<script src="../js/physics/reactions.js"></script>
+<script src="../js/physics/world.js"></script>
+<script src="../js/gpu/kernels.js"></script>
+<script src="../js/gpu/gpu-world.js"></script>
+<script>
+(async function () {
+    const out = document.getElementById('out');
+    const results = { pass: true, tests: [] };
+    const log = (ok, msg) => {
+        const line = document.createElement('div');
+        line.className = ok ? 'ok' : 'bad';
+        line.textContent = (ok ? 'PASS ' : 'FAIL ') + msg;
+        out.appendChild(line);
+        results.tests.push({ ok, msg });
+        if (!ok) results.pass = false;
+    };
+    const info = (msg) => { out.appendChild(document.createTextNode(msg + '\n')); results.tests.push({ info: msg }); };
+
+    function makeWorld(seed, dim, count, quiet) {
+        const g = EM.genome.random(seed, 5);
+        const size = dim === 3
+            ? { width: Math.round(Math.cbrt(count * 4500)), height: 0, depth: 0 }
+            : { width: Math.round(Math.sqrt(count * 220 * 1.6)), height: 0, depth: 0 };
+        if (dim === 3) size.height = size.depth = size.width;
+        else size.height = Math.round(count * 220 / size.width);
+        const w = new EM.World(Object.assign(size, { count, genome: g, seed: 7 }));
+        if (quiet) {
+            // no randomness: noise off, bonds off -> CPU and GPU must agree closely
+            w.laws.temperature = 0;
+            w.laws.spin = 0;
+            w.bondsEnabled = false;
+        }
+        return w;
+    }
+
+    function checkInvariants(w, label) {
+        const MV = EM.config.MAX_VALENCE;
+        let bad = 0, why = '';
+        for (let i = 0; i < w.n; i++) {
+            const vals = [w.x[i], w.y[i], w.z[i], w.vx[i], w.vy[i], w.energy[i]];
+            if (vals.some((v) => !Number.isFinite(v))) { bad++; why = 'NaN at ' + i; continue; }
+            if (w.x[i] < 0 || w.x[i] >= w.width || w.y[i] < 0 || w.y[i] >= w.height) { bad++; why = 'outside at ' + i; }
+            if (w.energy[i] < 0 || w.energy[i] > 1) { bad++; why = 'energy at ' + i; }
+            if (w.deg[i] > w.laws.valence[w.type[i]]) { bad++; why = 'valence at ' + i; }
+            for (let s = 0; s < w.deg[i]; s++) {
+                const j = w.partner[i * MV + s];
+                if (!EM.bonds.isBonded(w, j, i)) { bad++; why = 'one-sided bond ' + i + '-' + j; }
+                if (j === i) { bad++; why = 'self bond'; }
+            }
+        }
+        log(bad === 0, `${label}: invariants (finite, inside, energy 0..1, valence, symmetric bonds)${bad ? ' – ' + bad + ' problems, e.g. ' + why : ''}`);
+    }
+
+    function bondedFraction(w) {
+        let b = 0;
+        for (let i = 0; i < w.n; i++) if (w.deg[i] > 0) b++;
+        return b / w.n;
+    }
+
+    const ok = await EM.gpu.init();
+    if (!ok) {
+        log(false, 'WebGPU init: ' + EM.gpu.error);
+        window.gpuCheck = results;
+        return;
+    }
+    info('adapter: ' + EM.gpu.adapterInfo);
+
+    // 1) one quiet step: forces + integration must match the CPU
+    for (const [dim, seed] of [[2, 1], [2, 42], [3, 4], [3, 6]]) {
+        const a = makeWorld(seed, dim, 3000, true), b = makeWorld(seed, dim, 3000, true);
+        const g = new EM.GpuWorld(b);
+        for (let s = 0; s < 3; s++) a.step();
+        g.advance(3);
+        await g.sync();
+        let maxDp = 0, maxDv = 0;
+        for (let i = 0; i < a.n; i++) {
+            let dx = Math.abs(a.x[i] - b.x[i]); dx = Math.min(dx, a.width - dx);
+            let dy = Math.abs(a.y[i] - b.y[i]); dy = Math.min(dy, a.height - dy);
+            maxDp = Math.max(maxDp, dx, dy, Math.abs(a.z[i] - b.z[i]) % (a.depth || 1e9));
+            maxDv = Math.max(maxDv, Math.abs(a.vx[i] - b.vx[i]), Math.abs(a.vy[i] - b.vy[i]), Math.abs(a.vz[i] - b.vz[i]));
+        }
+        log(maxDp < 1e-2 && maxDv < 1e-2, `${dim}D seed ${seed}: 3 quiet steps CPU vs GPU – max |dpos| ${maxDp.toExponential(2)}, max |dvel| ${maxDv.toExponential(2)}`);
+        g.destroy();
+    }
+
+    // 2) full physics: invariants and statistics close to the CPU
+    for (const [dim, seed, steps] of [[2, 1, 600], [2, 2026, 600], [3, 1, 400], [3, 6, 400]]) {
+        const a = makeWorld(seed, dim, 3000, false), b = makeWorld(seed, dim, 3000, false);
+        const g = new EM.GpuWorld(b);
+        for (let s = 0; s < steps; s++) a.step();
+        for (let s = 0; s < steps; s += 20) {
+            while (!g.advance(20)) await g.device.queue.onSubmittedWorkDone();
+        }
+        await g.device.queue.onSubmittedWorkDone();
+        await g.sync();
+        checkInvariants(b, `${dim}D seed ${seed} after ${b.steps} GPU steps`);
+        const fa = bondedFraction(a), fb = bondedFraction(b);
+        const ea = a.internalEnergy() / a.n, eb = b.internalEnergy() / b.n;
+        info(`   bonded photons CPU ${(fa * 100).toFixed(1)}% / GPU ${(fb * 100).toFixed(1)}%, mean energy CPU ${ea.toFixed(3)} / GPU ${eb.toFixed(3)}, bonds formed CPU ${a.bondsFormed} / GPU ${b.bondsFormed}, reactions CPU ${a.reactions} / GPU ${b.reactions}`);
+        log(Math.abs(fa - fb) < 0.25 && Math.abs(ea - eb) < 0.25, `${dim}D seed ${seed}: statistics comparable`);
+        g.destroy();
+    }
+
+    // 3) speed
+    for (const [dim, count] of [[2, 20000], [3, 20000]]) {
+        const w = makeWorld(1, dim, count, false);
+        const g = new EM.GpuWorld(w);
+        g.advance(5);
+        await g.device.queue.onSubmittedWorkDone();
+        const t0 = performance.now();
+        const N = 20;
+        for (let s = 0; s < N; s += 10) {
+            while (!g.advance(10)) await g.device.queue.onSubmittedWorkDone();
+        }
+        await g.device.queue.onSubmittedWorkDone();
+        const ms = (performance.now() - t0) / N;
+        const t1 = performance.now();
+        await g.sync();
+        info(`speed ${dim}D ${count} photons: ${ms.toFixed(2)} ms/step, readback ${(performance.now() - t1).toFixed(1)} ms`);
+        checkInvariants(w, `${dim}D ${count}`);
+        g.destroy();
+    }
+
+    info(results.pass ? 'ALL PASSED' : 'SOME FAILED');
+    window.gpuCheck = results;
+})().catch((e) => {
+    document.getElementById('out').textContent += 'ERROR ' + e.stack;
+    window.gpuCheck = { pass: false, error: e.message };
+});
+</script>
+</body>
+</html>

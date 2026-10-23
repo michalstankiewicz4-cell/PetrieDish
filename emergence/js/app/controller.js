@@ -15,7 +15,9 @@
         types: EM.config.DEFAULT_TYPES,
         count: EM.config.DEFAULT_COUNT,
         stepsPerFrame: 2,
-        running: true
+        running: true,
+        /** 'cpu' (reference, deterministic) | 'gpu' (WebGPU, many photons) */
+        backend: 'cpu'
     };
 
     const app = {
@@ -23,6 +25,8 @@
         genome: null,
         world: null,
         observer: null,
+        /** EM.GpuWorld when the GPU backend runs the current world, else null */
+        gpu: null,
         /** where the current laws came from: 'seed' | 'mutation' | 'lab' | 'file' */
         origin: 'seed',
         listeners: new Set(),
@@ -50,7 +54,21 @@
         /** Builds a world from the current genome and settings. */
         rebuild() {
             const size = app.worldSize(settings.count);
+            if (app.gpu) {
+                app.gpu.destroy();
+                app.gpu = null;
+            }
             app.world = new EM.World(Object.assign(size, { count: settings.count, genome: app.genome, seed: settings.worldSeed }));
+            if (settings.backend === 'gpu') {
+                try {
+                    app.gpu = new EM.GpuWorld(app.world);
+                } catch (e) {
+                    console.warn('GPU backend failed, using CPU:', e);
+                    settings.backend = 'cpu';
+                    app.clampCount();
+                    if (app.world.n !== settings.count) return app.rebuild();
+                }
+            }
             app.observer = new EM.Observer(app.world);
             app.observer.observe();
             EM.renderer.setDim(settings.dim);
@@ -96,14 +114,45 @@
             if (dim === settings.dim) return;
             settings.dim = dim;
             // 3D is ~3x more expensive per photon: start from a count that stays fluid
-            settings.count = dim === 3 ? Math.min(settings.count, EM.config.DEFAULT_COUNT_3D) : EM.config.DEFAULT_COUNT;
+            if (settings.backend === 'cpu') {
+                settings.count = dim === 3 ? Math.min(settings.count, EM.config.DEFAULT_COUNT_3D) : EM.config.DEFAULT_COUNT;
+            }
             app.rebuild();
         },
 
+        /** Photon count limits of the current backend. */
+        countLimits() {
+            return settings.backend === 'gpu' ? EM.config.COUNT_LIMITS_GPU : EM.config.COUNT_LIMITS;
+        },
+
+        clampCount() {
+            const L = app.countLimits();
+            settings.count = Math.max(L.min, Math.min(L.max, settings.count | 0));
+        },
+
         setCount(count) {
-            const L = EM.config.COUNT_LIMITS;
-            settings.count = Math.max(L.min, Math.min(L.max, count | 0));
+            settings.count = count;
+            app.clampCount();
             app.rebuild();
+        },
+
+        /**
+         * Switches the physics between CPU and GPU (same laws, same start).
+         * Resolves to false when WebGPU is not available.
+         */
+        async setBackend(backend) {
+            if (backend === settings.backend) return true;
+            if (backend === 'gpu' && !(await EM.gpu.init())) {
+                alert('GPU backend needs WebGPU: ' + EM.gpu.error);
+                app.emit();
+                return false;
+            }
+            settings.backend = backend;
+            if (backend === 'gpu') settings.count = Math.max(settings.count, EM.config.DEFAULT_COUNT_GPU);
+            else settings.count = settings.dim === 3 ? Math.min(settings.count, EM.config.DEFAULT_COUNT_3D) : Math.min(settings.count, EM.config.DEFAULT_COUNT);
+            app.clampCount();
+            app.rebuild();
+            return true;
         },
 
         togglePlay() {
@@ -121,7 +170,7 @@
                 history.replaceState(null, '', location.pathname + location.search);
                 return;
             }
-            const h = `#laws=${settings.lawsSeed}&types=${settings.types}&n=${settings.count}&world=${settings.worldSeed}&d=${settings.dim}`;
+            const h = `#laws=${settings.lawsSeed}&types=${settings.types}&n=${settings.count}&world=${settings.worldSeed}&d=${settings.dim}${settings.backend === 'gpu' ? '&gpu=1' : ''}`;
             history.replaceState(null, '', h);
         },
 
@@ -130,7 +179,11 @@
             const num = (k) => (params.has(k) && isFinite(+params.get(k)) ? +params.get(k) : null);
             if (num('laws') !== null) settings.lawsSeed = num('laws') >>> 0;
             if (num('types') !== null) settings.types = Math.max(1, Math.min(EM.config.MAX_TYPES, num('types')));
-            if (num('n') !== null) settings.count = Math.max(EM.config.COUNT_LIMITS.min, Math.min(EM.config.COUNT_LIMITS.max, num('n')));
+            if (num('gpu') === 1) settings.backend = 'gpu';
+            if (num('n') !== null) {
+                const L = EM.config.COUNT_LIMITS_GPU;
+                settings.count = Math.max(L.min, Math.min(L.max, num('n')));
+            }
             if (num('world') !== null) settings.worldSeed = num('world') >>> 0;
             if (num('d') === 3) settings.dim = 3;
             return params.has('laws');

@@ -5,6 +5,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.3.0] – 2026-10-23
+### Dodane
+- **Backend GPU (WebGPU)**: fizyka liczona na karcie graficznej – przełącznik
+  Compute (CPU/GPU) w panelu World, klawisz `G`, parametr `gpu=1` w linku.
+  W trybie GPU do 200 tys. fotonów (domyślnie 40 tys.), w 2D i 3D.
+  Pięć shaderów obliczeniowych na krok: siatka (zliczanie, suma prefiksowa,
+  rozłożenie), siły parami z propozycjami wiązań, aktualizacja (wiązania,
+  reakcje, całkowanie). Stan wraca asynchronicznie do świata na CPU, więc
+  rysowanie, obserwatorzy i katalog działają bez zmian.
+- `tools/gpu-check.html` – porównanie GPU z CPU (siły po 3 krokach bez szumu,
+  niezmienniki, statystyki po kilkuset krokach, prędkość).
+### Zmienione
+- Tryb CPU bez zmian (ziarna 2D i 3D dają ten sam przebieg co w 0.2.0); Lab zawsze liczy na CPU.
+- W trybie GPU obserwatorzy liczą najwyżej co 400 ms (przy setkach tysięcy fotonów są drodzy).
+
 ## [0.2.0] – 2026-10-23
 ### Dodane
 - **Świat 3D**: te same prawa w sześcianie zawijanym na wszystkich ścianach.

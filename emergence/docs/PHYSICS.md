@@ -1,4 +1,4 @@
-# Fizyka – wzory (v0.2)
+# Fizyka – wzory (v0.3)
 
 Tylko to, co jest w `js/physics/`. Oznaczenia: `i`, `j` – fotony, `d` – odległość
 (przez krawędź torusa), `n = (dx, dy) / d` – kierunek i → j, `p = typ_i · T + typ_j`.
@@ -86,6 +86,31 @@ Te same prawa (ten sam genom) w sześcianie zawijanym na wszystkich ścianach
   wnęka liczy się, gdy jest szczelnie otoczona związaną materią.
 - **Determinizm:** świat 2D losuje dokładnie to samo co w v0.1 (dodatkowe losowania
   tylko w 3D) – ziarna 2D dają identyczny przebieg.
+
+## Backend GPU (od v0.3)
+
+Te same prawa i wzory, liczone w WebGPU (`js/gpu/kernels.js`, `js/gpu/gpu-world.js`)
+jako „jeden wątek na foton”. Różnice względem CPU:
+
+- **Siły zbierane, nie rozdzielane:** każdy foton sumuje siły od sąsiadów sam
+  (komórki ≥ R, sąsiedztwo 3×3 albo 3×3×3), więc nie trzeba atomowych dodawań floatów.
+  Prawdziwy `sin` zamiast tablicy (różnica ~1e-4).
+- **Wiązania przez wzajemne propozycje:** w kroku każdy foton wybiera jednego
+  kandydata (ten z najwyższą wartością skrótu pary); wiązanie powstaje, gdy dwa
+  fotony wybrały siebie nawzajem. Najwyżej jedno nowe wiązanie na foton na krok.
+- **Losowość z funkcji skrótu** `hash(id_niższy, id_wyższy, krok)` – oba końce
+  wiązania liczą tę samą liczbę, więc decyzje o tworzeniu i rozpadzie są symetryczne.
+  Parametry pary bierze się od fotonu o niższym indeksie.
+- **Energia (przepływ, aktywacja, uwolnienie)** liczona z energii z początku kroku
+  (równolegle, nie po kolei).
+- **Reakcje:** foton zmienia typ tylko wtedy, gdy nowy typ ma walencję ≥ liczba jego
+  wiązań (na CPU nadmiarowe wiązania pękają) – dlatego reakcji jest trochę mniej.
+- Kolejność fotonów w komórkach zależy od atomowych operacji → przebieg na GPU
+  **nie jest powtarzalny** co do bitu. CPU pozostaje wzorcem; Lab liczy na CPU.
+
+Kontrola: `tools/gpu-check.html` (z serwera lokalnego). Po 3 krokach bez szumu
+pozycje CPU i GPU różnią się o < 1e-3 px; po 400–600 krokach udział związanych
+fotonów, średnia energia i liczba utworzonych wiązań różnią się o kilka procent.
 
 ## Determinizm
 

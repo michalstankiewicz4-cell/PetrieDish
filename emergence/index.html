@@ -21,6 +21,8 @@
     <script defer src="js/physics/forces3d.js"></script>
     <script defer src="js/physics/reactions.js"></script>
     <script defer src="js/physics/world.js"></script>
+    <script defer src="js/gpu/kernels.js"></script>
+    <script defer src="js/gpu/gpu-world.js"></script>
     <script defer src="js/observe/structures.js"></script>
     <script defer src="js/observe/catalog.js"></script>
     <script defer src="js/observe/enclosures.js"></script>
@@ -93,6 +95,13 @@
                 </select>
             </div>
             <div class="row">
+                <label for="backendSelect">Compute</label>
+                <select id="backendSelect" title="GPU = WebGPU, many more photons (not bit-exact like the CPU)">
+                    <option value="cpu">CPU (exact)</option>
+                    <option value="gpu">GPU (WebGPU)</option>
+                </select>
+            </div>
+            <div class="row">
                 <label for="countInput">Photons</label>
                 <input type="range" id="countInput" min="500" max="20000" step="500">
                 <span class="value" id="countValue"></span>
@@ -131,8 +140,8 @@
                 </select>
                 <button id="fitBtn" title="F">Fit</button>
             </div>
-            <p class="hint" data-dim="2">Wheel = zoom · drag = move · click = inspect · Space = pause · 3 = 3D</p>
-            <p class="hint" data-dim="3" hidden>Drag = rotate · right-drag = move · wheel = zoom · click = inspect · 3 = 2D</p>
+            <p class="hint" data-dim="2">Wheel = zoom · drag = move · click = inspect · Space = pause · 3 = 3D · G = GPU</p>
+            <p class="hint" data-dim="3" hidden>Drag = rotate · right-drag = move · wheel = zoom · click = inspect · 3 = 2D · G = GPU</p>
         </details>
     </aside>
 

@@ -34,6 +34,12 @@
     // ---------- world ----------
     const dimSelect = $('dimSelect');
     dimSelect.addEventListener('change', () => app.setDim(+dimSelect.value));
+    const backendSelect = $('backendSelect');
+    if (!EM.gpu.supported) {
+        backendSelect.querySelector('[value="gpu"]').disabled = true;
+        backendSelect.title = 'WebGPU is not available in this browser';
+    }
+    backendSelect.addEventListener('change', () => app.setBackend(backendSelect.value));
     const count = $('countInput'), countValue = $('countValue');
     count.addEventListener('input', () => { countValue.textContent = fmt(+count.value); });
     $('applyCountBtn').addEventListener('click', () => app.setCount(+count.value));
@@ -70,7 +76,12 @@
         lawsSeed.value = s.lawsSeed;
         types.value = s.types;
         typesValue.textContent = s.types;
+        const lim = app.countLimits();
+        count.min = lim.min;
+        count.max = s.backend === 'gpu' ? lim.max : 20000;
+        count.step = s.backend === 'gpu' ? 2000 : 500;
         count.value = s.count;
+        backendSelect.value = s.backend;
         countValue.textContent = fmt(s.count);
         spf.value = s.stepsPerFrame;
         spfValue.textContent = s.stepsPerFrame;
@@ -87,7 +98,7 @@
         if (!w) return;
         playBtn.textContent = app.settings.running ? '❚❚ Pause' : '▶ Play';
         const loop = EM.loop;
-        hud.textContent = `${w.dim}D · step ${fmt(w.steps)} · ${fmt(w.n)} photons · ${fmt(w.bondCount)} bonds · ` +
+        hud.textContent = `${w.dim}D ${app.gpu ? 'GPU' : 'CPU'} · step ${fmt(w.steps)} · ${fmt(w.n)} photons · ${fmt(w.bondCount)} bonds · ` +
             `${loop.fps} fps · ${loop.stepsPerSecond} steps/s · ${loop.msPerStep.toFixed(1)} ms/step`;
     });
 })(EM);

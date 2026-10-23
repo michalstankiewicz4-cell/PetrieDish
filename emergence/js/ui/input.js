@@ -3,7 +3,7 @@
  * 2D: wheel = zoom at cursor, drag = pan.
  * 3D: drag = rotate, right-drag / shift-drag = pan, wheel = zoom.
  * Click (without dragging) = inspect a photon.
- * Keys: Space = play/pause, F = fit, N = new laws, M = mutate, 3 = 2D/3D.
+ * Keys: Space = play/pause, F = fit, N = new laws, M = mutate, 3 = 2D/3D, G = CPU/GPU.
  */
 (function (EM) {
     'use strict';
@@ -47,6 +47,7 @@
         else if (e.key === 'n' || e.key === 'N') app.newLaws();
         else if (e.key === 'm' || e.key === 'M') app.mutate();
         else if (e.key === '3') app.setDim(app.settings.dim === 3 ? 2 : 3);
+        else if (e.key === 'g' || e.key === 'G') app.setBackend(app.settings.backend === 'gpu' ? 'cpu' : 'gpu');
     });
 
     window.addEventListener('resize', () => EM.renderer.resize());

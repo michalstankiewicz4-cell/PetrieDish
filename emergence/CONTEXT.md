@@ -18,18 +18,23 @@
 
 ## Stan
 
-- **Wersja:** 0.2.0 (2026-10-23) – etap **M0** gotowy w 2D i 3D, detektory **M1/M2** gotowe.
+- **Wersja:** 0.3.0 (2026-10-23) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
   w workerach; z `file://` liczy w stronie), eksport/import praw, link z ziarnem.
   **3D** (v0.2): te same prawa w sześcianie, renderer WebGL2 z kulkami, ~2 tys. fotonów na CPU.
+  **GPU** (v0.3): fizyka w WebGPU, do 200 tys. fotonów; stan wraca asynchronicznie do
+  `World` (lustro), więc render/obserwatorzy bez zmian. Nie bit w bit jak CPU – szczegóły
+  w PHYSICS.md. Wydajności na prawdziwej karcie jeszcze nie zmierzono (test tylko na
+  programowym SwiftShaderze) – do sprawdzenia u użytkownika.
 - **Następne kroki:**
   1. Puścić Lab na dłużej i obejrzeć najlepsze wszechświaty → czy pojawiają się
      trwałe zamknięcia (M2). Jeśli nie: rozszerzyć przestrzeń praw (np. więcej
      typów z biegunowością, kąty wiązań).
   2. Miary M3 (metabolizm): porównanie trwałości struktur w świetle i w cieniu.
-  3. Wydajność: WebGPU dla sił (dane już są w typed arrays) – szczególnie potrzebne w 3D.
+  3. Wydajność: zmierzyć GPU na prawdziwej karcie; przy >50 tys. fotonów wąskim gardłem
+     będzie rysowanie 2D (Canvas) i obserwatorzy – ew. renderer 2D w WebGL, obserwatorzy w workerze.
   4. Detektor „poziomów”: skupiska zamknięć (M6) i drzewo pochodzenia struktur (M5).
 
 ## Mapa plików
@@ -45,8 +50,10 @@
 | `js/physics/*` | dynamika (bez DOM, bez pojęć wyższego poziomu) |
 | `js/observe/*` | detektory – tylko czytają świat |
 | `js/lab/*` | wyszukiwanie praw (runner, search, pool, worker) |
+| `js/gpu/*` | backend WebGPU: `kernels.js` (shadery WGSL), `gpu-world.js` (`EM.gpu.init`, `EM.GpuWorld`) |
 | `js/render/*`, `js/ui/*`, `js/app/*` | rysowanie (renderer2d Canvas, renderer3d WebGL2, fasada `EM.renderer` w app/setup.js), panele, pętla |
 | `tools/smoke.js` | `node tools/smoke.js` – test determinizmu i niezmienników |
+| `tools/gpu-check.html` | porównanie GPU z CPU w przeglądarce (z serwera lokalnego) |
 
 ## Zasady pracy (twarde)
 
@@ -62,6 +69,8 @@
 5. Determinizm: fizyka używa wyłącznie `EM.Rng`. Po każdej zmianie `node tools/smoke.js`.
 6. Nowe parametry praw dopisywać na **końcu** list SPECS (inaczej zmienią się wszystkie ziarna).
 7. Każda zmiana fizyki → `docs/PHYSICS.md` + wpis w `CHANGELOG.md`.
+8. Zmiana wzoru w `js/physics/` → ta sama zmiana w `js/gpu/kernels.js` i `tools/gpu-check.html`
+   (CPU to wzorzec; GPU ma się zgadzać statystycznie).
 
 ## Wersjonowanie
 
@@ -75,6 +84,10 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-10-23 – v0.3.0:** backend WebGPU (5 shaderów na krok, wzajemne propozycje
+  wiązań, losowość z funkcji skrótu), przełącznik CPU/GPU, do 200 tys. fotonów,
+  `tools/gpu-check.html`. CPU bez zmian (sumy kontrolne 2D identyczne).
 
 - **2026-10-23 – v0.2.0:** świat 3D (fizyka, siatka 3D, światło, zamknięcia 3D),
   renderer WebGL2 z kulkami, kulki w 2D, Lab per wymiar. 2D bit w bit jak w 0.1.0.

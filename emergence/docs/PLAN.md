@@ -105,12 +105,14 @@ emergence/
   js/physics/          light, bonds, forces (2D), forces3d, reactions, world (2D/3D)
   js/observe/          structures (odcisk kształtu), catalog, enclosures, observer
   js/lab/              runner (bez okna), search (novelty), pool, lab, worker
+  js/gpu/              kernels (WGSL), gpu-world (WebGPU, lustro stanu w World)
   js/render/           camera (2D), mat4, renderer2d (Canvas, kulki), renderer3d (WebGL2, kulki), tiles
   js/app/              setup, controller, loop
   js/ui/               dom, world-panel, observe-panel, lab-panel, input
   js/main.js
   docs/                PLAN, PHYSICS
   tools/smoke.js       test: determinizm, zachowanie materii, brak NaN, wydajność
+  tools/gpu-check.html porównanie GPU z CPU
   CONTEXT.md, CHANGELOG.md, README.md
 ```
 
@@ -128,6 +130,6 @@ karty, `CHANGELOG.md`, `CONTEXT.md`.
 - **Przestrzeń praw jest ogromna:** większość wszechświatów to „gaz” albo „bryła”.
   Dlatego Lab, nowość i żywotność.
 - **M5–M6 to otwarty problem badawczy** – cel eksperymentu, nie obietnica.
-- **3D** (od v0.2) liczy się na CPU: ~2 tys. fotonów płynnie. Większe światy 3D
-  wymagają WebGPU (dane są już w typed arrays). Emergencja w 3D jest trudniejsza:
+- **3D** (od v0.2) liczy się na CPU: ~2 tys. fotonów płynnie; od v0.3 backend
+  WebGPU pozwala na setki tysięcy (bez powtarzalności co do bitu). Emergencja w 3D jest trudniejsza:
   błona to powierzchnia, potrzeba więcej fotonów na strukturę.

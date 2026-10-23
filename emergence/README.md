@@ -17,6 +17,9 @@ appears; it only picks laws, it never touches a running world.
 - 2D: wheel = zoom, drag = move. 3D: drag = rotate, right-drag = move, wheel = zoom.
   Click = inspect a photon, Space = pause, F = fit, N = new laws, M = mutate, 3 = switch 2D/3D.
 - 3D needs WebGL2 (any current browser) and runs ~2000 photons smoothly on a CPU.
+- **Compute: GPU** (or key G) runs the physics with WebGPU (Chrome, Edge; Firefox/Safari
+  newer versions) – up to 200 000 photons. Same laws, but not bit-exact like the CPU.
+  Check: `tools/gpu-check.html` on a local server.
 - The address bar keeps the laws seed – copy it to share a world.
 - Opened as a file (double click) everything works, but the Lab runs in the page
   instead of Web Workers (slower). On GitHub Pages or any local server it uses workers.

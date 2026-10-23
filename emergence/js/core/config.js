@@ -11,7 +11,7 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
 (function (EM) {
     'use strict';
 
-    EM.VERSION = '0.2.0';
+    EM.VERSION = '0.3.0';
 
     EM.debug = false;
     EM.log = (...args) => { if (EM.debug) console.log(...args); };
@@ -26,6 +26,11 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
         DEFAULT_COUNT_3D: 2000,
         DEFAULT_TYPES: 5,
         COUNT_LIMITS: { min: 500, max: 30000 },
+        /** GPU backend (WebGPU): many more photons. */
+        DEFAULT_COUNT_GPU: 40000,
+        COUNT_LIMITS_GPU: { min: 500, max: 200000 },
+        /** GPU backend: observers are expensive with many photons - run them at most this often (ms). */
+        OBSERVE_MS_GPU: 400,
 
         /** Physics steps between two observer passes. */
         OBSERVE_EVERY: 20,
