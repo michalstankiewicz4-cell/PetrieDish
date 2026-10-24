@@ -5,7 +5,9 @@
  * headless and reads general measures (EM.descriptor). The score rewards
  * NOVELTY (distance to what was already seen) times VIABILITY (neither a gas
  * of free photons nor one frozen lump) plus a small bonus for persistent
- * structure and enclosures. Nothing rewards a particular shape.
+ * structure and enclosures, and for the number of different "elements"
+ * (stable structures of different sizes - see observe/elements.js).
+ * Nothing rewards a particular shape.
  */
 (function (EM) {
     'use strict';
@@ -27,7 +29,8 @@
             lg(d.enclosures, 60),            // enclosed regions (membranes)
             lg(d.kinetic, 3),                // motion
             Math.min(1, d.energy),           // stored energy
-            lg(d.bondTurnover, 0.2)          // how dynamic the bonds are
+            lg(d.bondTurnover, 0.2),         // how dynamic the bonds are
+            lg(d.elementsEver || 0, 40)      // how many elements (sizes of stable structures)
         ];
     }
 
@@ -47,8 +50,11 @@
     /** Small bonus for persistent structure on several levels (molecules, rings, enclosures). */
     function structure(d) {
         return 0.15 * Math.log1p(d.persistence) / Math.log1p(60) +
-            0.15 * Math.log1p(d.stableEnclosures) / Math.log1p(20);
+            0.15 * Math.log1p(d.stableEnclosures) / Math.log1p(20) +
+            0.3 * Math.log1p(d.elementsEver || 0) / Math.log1p(40);
     }
+
+    const LOG_MAX = 1000;
 
     function nameOf(genome) {
         const h = EM.hash.string(JSON.stringify(genome)).toString(36).toUpperCase();
@@ -61,6 +67,8 @@
             /** @type {Array<{name, genome, descriptor, f, novelty, interest, parent, origin, top, at}>} */
             this.archive = [];
             this.evaluated = 0;
+            /** every evaluation in order (for the learning curve): { n, interest, novelty, viability, elements, best } */
+            this.log = [];
             this.rng = new EM.Rng(Math.floor(Math.random() * 1e9));
             this.load();
         }
@@ -108,6 +116,7 @@
                 origin: proposal.origin,
                 descriptor: d,
                 top: result.top,
+                elements: result.elements || [],
                 f,
                 novelty,
                 viability: v,
@@ -115,6 +124,16 @@
                 at: Date.now()
             };
             this.evaluated++;
+            const prevBest = this.log.length ? this.log[this.log.length - 1].best : 0;
+            this.log.push({
+                n: this.evaluated,
+                interest: entry.interest,
+                novelty,
+                viability: v,
+                elements: entry.elements.length,
+                best: Math.max(prevBest, entry.interest)
+            });
+            if (this.log.length > LOG_MAX) this.log.shift();
             this.archive.push(entry);
             if (this.archive.length > ARCHIVE_MAX) {
                 // forget the least interesting (keeps the archive diverse and small)
@@ -132,12 +151,13 @@
         clear() {
             this.archive = [];
             this.evaluated = 0;
+            this.log = [];
             this.save();
         }
 
         save() {
             try {
-                localStorage.setItem(this.storageKey, JSON.stringify({ evaluated: this.evaluated, archive: this.archive }));
+                localStorage.setItem(this.storageKey, JSON.stringify({ evaluated: this.evaluated, archive: this.archive, log: this.log }));
             } catch (e) { /* storage full or unavailable - the lab still works for this session */ }
         }
 
@@ -147,7 +167,11 @@
                 if (!raw) return;
                 const data = JSON.parse(raw);
                 this.archive = (data.archive || []).filter((a) => a && a.genome && a.descriptor);
-                this.archive.forEach((a) => { a.f = features(a.descriptor); });
+                this.archive.forEach((a) => {
+                    a.f = features(a.descriptor);
+                    if (!a.elements) a.elements = [];
+                });
+                this.log = Array.isArray(data.log) ? data.log : [];
                 this.evaluated = data.evaluated || this.archive.length;
             } catch (e) {
                 this.archive = [];

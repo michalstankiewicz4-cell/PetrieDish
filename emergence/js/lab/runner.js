@@ -48,7 +48,12 @@
             const d = EM.descriptor(late);
             d.ms = Date.now() - this.t0;
             const cat = this.observer.catalog.sorted().slice(0, 6).map((e) => ({ name: e.name, size: e.size, peak: e.peak }));
-            return { descriptor: d, top: cat };
+            // every element (Z = photons in a stable structure, 2..118) seen during the run
+            const zs = new Set();
+            this.observer.catalog.entries.forEach((e) => { if (e.size <= 118) zs.add(e.size); });
+            const elements = Array.from(zs).sort((a, b) => a - b);
+            d.elementsEver = elements.length;
+            return { descriptor: d, top: cat, elements };
         }
     }
 

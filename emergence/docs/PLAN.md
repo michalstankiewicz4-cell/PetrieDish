@@ -108,7 +108,7 @@ emergence/
   js/gpu/              kernels (WGSL), gpu-world (WebGPU, lustro stanu w World)
   js/render/           camera (2D), mat4, renderer2d (Canvas, kulki), renderer3d (WebGL2, kulki), tiles
   js/app/              setup, controller, loop
-  js/ui/               dom, world-panel, observe-panel, lab-panel, input
+  js/ui/               dom, world-panel, observe-panel, lab-panel, input, atlas (Tab: pierwiastki + ML)
   js/main.js
   docs/                PLAN, PHYSICS
   tools/smoke.js       test: determinizm, zachowanie materii, brak NaN, wydajność

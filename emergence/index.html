@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/panels.css">
+    <link rel="stylesheet" href="css/atlas.css">
 
     <!-- Plain <script defer> in dependency order: no build step, works from file:// and GitHub Pages.
          physics/ and observe/ never touch the DOM (they also run in the Lab's Web Workers). -->
@@ -27,6 +28,7 @@
     <script defer src="js/observe/catalog.js"></script>
     <script defer src="js/observe/enclosures.js"></script>
     <script defer src="js/observe/observer.js"></script>
+    <script defer src="js/observe/elements.js"></script>
     <script defer src="js/lab/runner.js"></script>
     <script defer src="js/lab/search.js"></script>
     <script defer src="js/lab/pool.js"></script>
@@ -44,6 +46,7 @@
     <script defer src="js/ui/observe-panel.js"></script>
     <script defer src="js/ui/lab-panel.js"></script>
     <script defer src="js/ui/input.js"></script>
+    <script defer src="js/ui/atlas.js"></script>
     <script defer src="js/main.js"></script>
 </head>
 <body>
@@ -199,5 +202,64 @@
         <button class="close" id="inspectorClose">×</button>
         <div id="inspectorBody"></div>
     </div>
+
+    <!-- ATLAS (Tab): periodic table of emergent elements + machine-learning view -->
+    <button class="atlas-open-btn" id="atlasOpenBtn" title="Periodic table and machine learning">⊞ Elements &amp; ML<kbd>Tab</kbd></button>
+    <section class="atlas" id="atlas" hidden>
+        <header class="atlas-head">
+            <nav class="atlas-tabs">
+                <button data-tab="table" class="on">Periodic table</button>
+                <button data-tab="ml">Machine learning</button>
+            </nav>
+            <div class="atlas-summary" id="atlasSummary"></div>
+            <button class="atlas-close" id="atlasClose" title="Tab / Esc">✕ close</button>
+        </header>
+        <div class="atlas-body">
+            <div class="atlas-page" id="pageTable">
+                <div class="pt-layout">
+                    <div class="pt-grid" id="ptGrid"></div>
+                    <aside class="pt-detail" id="ptDetail"></aside>
+                </div>
+                <div class="pt-legend" id="ptLegend"></div>
+            </div>
+            <div class="atlas-page" id="pageMl" hidden>
+                <div class="ml-grid">
+                    <div class="ml-card ml-span-4">
+                        <h3>Search <small id="mlMode"></small></h3>
+                        <div class="ml-stats" id="mlStats"></div>
+                        <div class="ml-controls">
+                            <button id="mlStartBtn">▶ Start search</button>
+                            <div class="ml-workers" id="mlWorkers"></div>
+                        </div>
+                    </div>
+                    <div class="ml-card ml-span-8">
+                        <h3>Learning curve <small>every tested universe · best so far · elements found</small></h3>
+                        <canvas id="mlCurve" height="190"></canvas>
+                    </div>
+                    <div class="ml-card ml-span-7">
+                        <h3>Map of universes <small>x = bonded matter · y = variety of shapes · size = elements · click = load</small></h3>
+                        <canvas id="mlMap" height="300"></canvas>
+                    </div>
+                    <div class="ml-card ml-span-5">
+                        <h3>Elements the lab has made <small>share of archived universes</small></h3>
+                        <div class="ml-mini" id="mlMini"></div>
+                        <h3 style="margin-top:14px">How it learns</h3>
+                        <p class="ml-text">
+                            Each test is a new universe: random laws or a <b>mutation</b> of an interesting one.
+                            It runs without drawing and is described by general numbers only.
+                            Score = <code>viability × (novelty + persistence + enclosures + elements)</code>:
+                            not a gas, not one lump, <b>unlike what was seen before</b>, and producing many
+                            different stable sizes – our elements. Nothing tells it which shape to build.
+                        </p>
+                    </div>
+                    <div class="ml-card ml-span-12">
+                        <h3>Best universes <small>load one to watch it at full size</small></h3>
+                        <div class="ml-best" id="mlBest"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="ml-tip" id="mlTip" hidden></div>
 </body>
 </html>

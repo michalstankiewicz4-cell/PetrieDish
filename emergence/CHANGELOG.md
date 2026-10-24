@@ -5,6 +5,25 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.5.0] – 2026-10-24
+### Dodane
+- **Atlas** (klawisz `Tab` albo przycisk „Elements & ML”): pełnoekranowy widok z dwiema kartami.
+- **Tablica Mendelejewa** (118 pierwiastków, prawdziwy układ z lantanowcami i aktynowcami):
+  stabilna struktura z Z fotonów = atom pierwiastka Z, wolny foton = H, różne kształty
+  o tym samym Z = izotopy. Pole przygasłe = jeszcze nie było, obrysowane = odkryte,
+  świecące = jest teraz (jasność od liczby kopii), błysk przy nowym odkryciu.
+  Szczegóły pierwiastka: liczba teraz, izotopy (kafelki kształtów), krok odkrycia,
+  „Show in the world” podświetla wszystkie jego atomy.
+- **Podgląd uczenia maszynowego**: liczniki, krzywa uczenia (wynik każdego wszechświata,
+  najlepszy dotąd, liczba pierwiastków), mapa przetestowanych wszechświatów (klik = wczytaj),
+  mini-tablica pierwiastków, które Lab już wytworzył, najlepsze wszechświaty z listą pierwiastków.
+- Obserwator liczy `elements` (różne Z obecne teraz), Lab zapisuje pierwiastki każdego testu
+  i historię ocen.
+### Zmienione
+- **Lab nagradza pierwiastki**: nowa cecha nowości (liczba różnych Z) i premia
+  `0.3 · log(1 + pierwiastki) / log(41)` w ocenie. Stare wyniki w archiwum zostają.
+- Fizyka bez zmian (przebiegi identyczne z 0.4.0).
+
 ## [0.4.0] – 2026-10-23
 ### Dodane
 - **Fast forward** (przycisk w panelu Time, klawisz `T`): fizyka liczy się tak szybko,

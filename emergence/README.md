@@ -14,6 +14,8 @@ appears; it only picks laws, it never touches a running world.
 - **World panel** (left): new / mutated laws, **Space 2D / 3D**, photon count, restart, speed, view options.
 - **Observe panel** (right): metrics, history chart, the catalogue of stable structures
   (click to highlight), and the **Lab** (start the search, then *Load* a result).
+- **Tab** (or the *Elements & ML* button): periodic table of the elements this universe has
+  formed (Z = photons in a stable structure) and a live view of the machine learning.
 - **Fast forward** (Time panel or T): computes without drawing until you press Stop.
 - 2D: wheel = zoom, drag = move. 3D: drag = rotate, right-drag = move, wheel = zoom.
   Click = inspect a photon, Space = pause, F = fit, N = new laws, M = mutate, 3 = switch 2D/3D.

@@ -37,6 +37,7 @@
 
             let bonded = 0, largest = 0, rings = 0, ageSum = 0;
             const shapesNow = new Set();
+            const elementsNow = new Set(); // sizes (Z) of stable structures - see observe/elements.js
 
             for (const c of comps) {
                 bonded += c.members.length;
@@ -53,6 +54,7 @@
                 if (age >= need) {
                     const entry = this.catalog.record(c, world);
                     this.stable.push({ fp: c.fp, members: c.members, entry });
+                    if (c.members.length <= 118) elementsNow.add(c.members.length);
                 }
             }
             this.age = nextAge;
@@ -96,6 +98,8 @@
                 rings,
                 shapesNow: shapesNow.size,
                 catalog: this.catalog.size,
+                // different "elements" (Z = photons in a stable structure) present now
+                elements: elementsNow.size,
                 // average age (in passes) of current structures - proxy for persistence
                 persistence: comps.length ? ageSum / comps.length : 0,
                 kinetic: world.kineticEnergy() / n,
@@ -119,7 +123,7 @@
      * says which shape is "good". Averaged over the given metric snapshots.
      */
     function descriptor(history) {
-        const keys = ['freeFraction', 'shapesNow', 'largest', 'persistence', 'rings', 'enclosures', 'stableEnclosures', 'kinetic', 'energy', 'bondTurnover'];
+        const keys = ['elements', 'freeFraction', 'shapesNow', 'largest', 'persistence', 'rings', 'enclosures', 'stableEnclosures', 'kinetic', 'energy', 'bondTurnover'];
         const d = {};
         keys.forEach((k) => {
             d[k] = history.length ? history.reduce((s, m) => s + (m[k] || 0), 0) / history.length : 0;
