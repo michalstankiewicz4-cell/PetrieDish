@@ -5,6 +5,18 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.6.0] – 2026-10-24
+### Dodane
+- **Górny pasek = menu główne projektu** (na całą szerokość):
+  logo i wersja; sekcje **World**, **Observe** (panele boczne), **Elements**
+  (tablica Mendelejewa), **Machine learning** (podgląd Labu) z zaznaczeniem, co jest otwarte;
+  szybkie przyciski play/pauza, fast forward, nowe prawa, przełączniki **2D/3D** i **CPU/GPU**;
+  statystyki na żywo; menu **Help** ze skrótami klawiszy i linkami do dokumentacji,
+  zmian, repozytorium i PetrieDish. Na wąskich ekranach same ikony.
+### Zmienione
+- Pasek zastępuje dawny napis HUD, przyciski „☰ World / Observe ☰” i przycisk „Elements & ML”.
+  Atlas (Tab) otwiera się pod paskiem, więc menu jest zawsze widoczne.
+
 ## [0.5.0] – 2026-10-24
 ### Dodane
 - **Atlas** (klawisz `Tab` albo przycisk „Elements & ML”): pełnoekranowy widok z dwiema kartami.

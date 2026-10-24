@@ -82,9 +82,9 @@
         atlas.hidden = !state.open;
         if (state.open) refresh();
         else $('mlTip').hidden = true;
+        if (EM.ui.topbar) EM.ui.topbar.sync();
     }
 
-    $('atlasOpenBtn').addEventListener('click', () => toggle(true));
     $('atlasClose').addEventListener('click', () => toggle(false));
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Tab' && !e.target.matches('input[type="number"], input[type="text"], textarea')) {
@@ -96,15 +96,14 @@
         }
     }, true);
 
-    atlas.querySelectorAll('.atlas-tabs button').forEach((b) => {
-        b.addEventListener('click', () => {
-            state.tab = b.dataset.tab;
-            atlas.querySelectorAll('.atlas-tabs button').forEach((x) => x.classList.toggle('on', x === b));
-            $('pageTable').hidden = state.tab !== 'table';
-            $('pageMl').hidden = state.tab !== 'ml';
-            refresh();
-        });
-    });
+    function setTab(tab) {
+        state.tab = tab;
+        atlas.querySelectorAll('.atlas-tabs button').forEach((x) => x.classList.toggle('on', x.dataset.tab === tab));
+        $('pageTable').hidden = tab !== 'table';
+        $('pageMl').hidden = tab !== 'ml';
+        refresh();
+    }
+    atlas.querySelectorAll('.atlas-tabs button').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
 
     function refresh() {
         if (!state.open || !app.world || !app.observer) return;
@@ -505,5 +504,15 @@
         setTimeout(pulse, 120);
     })();
 
-    EM.ui.atlas = { toggle };
+    EM.ui.atlas = {
+        toggle,
+        /** Opens the atlas on a tab ('table' | 'ml'); the same tab again closes it. */
+        show(tab) {
+            if (state.open && state.tab === tab) return toggle(false);
+            setTab(tab);
+            toggle(true);
+        },
+        get open() { return state.open; },
+        get tab() { return state.tab; }
+    };
 })(EM);

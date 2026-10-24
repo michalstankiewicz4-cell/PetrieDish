@@ -7,6 +7,7 @@
 
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/panels.css">
+    <link rel="stylesheet" href="css/topbar.css">
     <link rel="stylesheet" href="css/atlas.css">
 
     <!-- Plain <script defer> in dependency order: no build step, works from file:// and GitHub Pages.
@@ -47,6 +48,7 @@
     <script defer src="js/ui/lab-panel.js"></script>
     <script defer src="js/ui/input.js"></script>
     <script defer src="js/ui/atlas.js"></script>
+    <script defer src="js/ui/topbar.js"></script>
     <script defer src="js/main.js"></script>
 </head>
 <body>
@@ -61,13 +63,53 @@
         </div>
     </div>
 
-    <header class="hud">
-        <div class="hud-title">EMERGENCE <span id="version"></span></div>
-        <div class="hud-stats" id="hudStats"></div>
+    <!-- TOP BAR: main menu of the project -->
+    <header class="topbar" id="topbar">
+        <a class="tb-brand" href="#" id="tbBrand" title="Emergence – photons, laws, elements">
+            <span class="tb-logo"></span><span class="tb-name">EMERGENCE</span> <span id="version"></span>
+        </a>
+        <nav class="tb-menu">
+            <button class="tb-item" data-toggle="worldPanel" title="Laws, world, time and view">☰<span class="lbl"> World</span></button>
+            <button class="tb-item" data-toggle="observePanel" title="Metrics, catalogue, Lab">◉<span class="lbl"> Observe</span></button>
+            <button class="tb-item" data-atlas="table" title="Periodic table (Tab)">⊞<span class="lbl"> Elements</span></button>
+            <button class="tb-item" data-atlas="ml" title="Machine learning – search for laws">◈<span class="lbl"> Machine learning</span></button>
+        </nav>
+        <div class="tb-controls">
+            <button class="tb-btn" id="tbPlay" title="Play / pause (Space)">❚❚</button>
+            <button class="tb-btn" id="tbFast" title="Fast forward without drawing (T)">⏩</button>
+            <button class="tb-btn" id="tbNew" title="New laws (N)">🎲</button>
+            <div class="tb-seg" id="tbDim" title="Space: 2D / 3D (3)">
+                <button data-space="2">2D</button><button data-space="3">3D</button>
+            </div>
+            <div class="tb-seg" id="tbBackend" title="Compute: CPU (exact) / GPU (WebGPU) (G)">
+                <button data-backend="cpu">CPU</button><button data-backend="gpu">GPU</button>
+            </div>
+        </div>
+        <div class="tb-stats" id="hudStats"></div>
+        <div class="tb-right">
+            <button class="tb-item" id="tbHelpBtn" title="Keys and links">?<span class="lbl"> Help</span></button>
+            <div class="tb-drop" id="tbHelp" hidden>
+                <h4>Keys</h4>
+                <dl>
+                    <dt>Space</dt><dd>play / pause</dd>
+                    <dt>T</dt><dd>fast forward (no drawing)</dd>
+                    <dt>Tab</dt><dd>periodic table &amp; ML</dd>
+                    <dt>N / M</dt><dd>new laws / mutate</dd>
+                    <dt>3</dt><dd>2D ↔ 3D</dd>
+                    <dt>G</dt><dd>CPU ↔ GPU</dd>
+                    <dt>F</dt><dd>fit the view</dd>
+                    <dt>Esc</dt><dd>close / stop</dd>
+                </dl>
+                <h4>Project</h4>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/tree/main/emergence#readme" target="_blank" rel="noopener">README – how to use</a>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/docs/PHYSICS.md" target="_blank" rel="noopener">Physics – all formulas</a>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/docs/PLAN.md" target="_blank" rel="noopener">Plan – milestones M0–M6</a>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish" target="_blank" rel="noopener">GitHub repository</a>
+                <a href="../">PetrieDish (sister project)</a>
+            </div>
+        </div>
     </header>
-
-    <button class="panel-toggle left" data-toggle="worldPanel" title="World">☰ World</button>
-    <button class="panel-toggle right" data-toggle="observePanel" title="Observe &amp; Lab">Observe ☰</button>
 
     <!-- LEFT: laws, world, time, view -->
     <aside class="panel left open" id="worldPanel">
@@ -204,7 +246,6 @@
     </div>
 
     <!-- ATLAS (Tab): periodic table of emergent elements + machine-learning view -->
-    <button class="atlas-open-btn" id="atlasOpenBtn" title="Periodic table and machine learning">⊞ Elements &amp; ML<kbd>Tab</kbd></button>
     <section class="atlas" id="atlas" hidden>
         <header class="atlas-head">
             <nav class="atlas-tabs">

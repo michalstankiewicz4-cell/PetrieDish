@@ -18,7 +18,7 @@
 
 ## Stan
 
-- **Wersja:** 0.5.0 (2026-10-24) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
+- **Wersja:** 0.6.0 (2026-10-24) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
@@ -51,6 +51,7 @@
 | `js/observe/*` | detektory – tylko czytają świat |
 | `js/lab/*` | wyszukiwanie praw (runner, search, pool, worker) |
 | `js/observe/elements.js` | tablica Mendelejewa (118 pól), `census(observer)`: Z = liczba fotonów stabilnej struktury |
+| `js/ui/topbar.js`, `css/topbar.css` | górny pasek = menu główne (sekcje, szybkie przyciski, statystyki, Help) |
 | `js/ui/atlas.js`, `css/atlas.css` | Atlas pod Tab: tablica pierwiastków + podgląd ML |
 | `js/gpu/*` | backend WebGPU: `kernels.js` (shadery WGSL), `gpu-world.js` (`EM.gpu.init`, `EM.GpuWorld`) |
 | `js/render/*`, `js/ui/*`, `js/app/*` | rysowanie (renderer2d Canvas, renderer3d WebGL2, fasada `EM.renderer` w app/setup.js), panele, pętla |
@@ -86,6 +87,10 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-10-24 – v0.6.0:** górny pasek jako menu główne (sekcje, szybkie sterowanie,
+  statystyki, Help). Uwaga: atrybut `data-dim` jest zajęty przez world-panel (ukrywa elementy
+  innego wymiaru) – w pasku używamy `data-space`.
 
 - **2026-10-24 – v0.5.0:** Atlas (Tab): prawdziwa tablica Mendelejewa (Z = liczba fotonów
   w stabilnej strukturze, H = wolny foton, izotopy = kształty) i podgląd uczenia

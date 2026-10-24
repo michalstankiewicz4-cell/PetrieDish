@@ -11,6 +11,8 @@ appears; it only picks laws, it never touches a running world.
 
 ## Use
 
+- **Top bar** – main menu: World / Observe panels, Elements, Machine learning,
+  play, fast forward, new laws, 2D/3D, CPU/GPU, live stats, Help (keys and links).
 - **World panel** (left): new / mutated laws, **Space 2D / 3D**, photon count, restart, speed, view options.
 - **Observe panel** (right): metrics, history chart, the catalogue of stable structures
   (click to highlight), and the **Lab** (start the search, then *Load* a result).

@@ -102,7 +102,8 @@
         playBtn.textContent = app.settings.running ? '❚❚ Pause' : '▶ Play';
         fastBtn.textContent = app.fast ? '■ Stop' : '⏩ Fast forward';
         const loop = EM.loop;
-        hud.textContent = `${app.fast ? '⏩ ' : ''}${w.dim}D ${app.gpu ? 'GPU' : 'CPU'} · step ${fmt(w.steps)} · ${fmt(w.n)} photons · ${fmt(w.bondCount)} bonds · ` +
-            `${loop.fps} fps · ${loop.stepsPerSecond} steps/s · ${loop.msPerStep.toFixed(1)} ms/step`;
+        hud.innerHTML = `<span>step <b>${fmt(w.steps)}</b></span><span><b>${fmt(w.n)}</b> photons</span>` +
+            `<span><b>${fmt(w.bondCount)}</b> bonds</span><span>${loop.fps} fps</span>` +
+            `<span title="${loop.msPerStep.toFixed(1)} ms/step">${fmt(loop.stepsPerSecond)} steps/s</span>`;
     });
 })(EM);
