@@ -47,6 +47,7 @@
     <script defer src="js/ui/observe-panel.js"></script>
     <script defer src="js/ui/lab-panel.js"></script>
     <script defer src="js/ui/input.js"></script>
+    <script defer src="js/ui/photon-editor.js"></script>
     <script defer src="js/ui/atlas.js"></script>
     <script defer src="js/ui/topbar.js"></script>
     <script defer src="js/main.js"></script>
@@ -71,6 +72,7 @@
         <nav class="tb-menu">
             <button class="tb-item" data-toggle="worldPanel" title="Laws, world, time and view">☰<span class="lbl"> World</span></button>
             <button class="tb-item" data-toggle="observePanel" title="Metrics, catalogue, Lab">◉<span class="lbl"> Observe</span></button>
+            <button class="tb-item" data-toggle="editorPanel" title="Photon editor: properties and interactions (E)">⚛<span class="lbl"> Photon</span></button>
             <button class="tb-item" data-atlas="table" title="Periodic table (Tab)">⊞<span class="lbl"> Elements</span></button>
             <button class="tb-item" data-atlas="ml" title="Machine learning – search for laws">◈<span class="lbl"> Machine learning</span></button>
         </nav>
@@ -97,6 +99,7 @@
                     <dt>N / M</dt><dd>new laws / mutate</dd>
                     <dt>3</dt><dd>2D ↔ 3D</dd>
                     <dt>G</dt><dd>CPU ↔ GPU</dd>
+                    <dt>E</dt><dd>photon editor</dd>
                     <dt>F</dt><dd>fit the view</dd>
                     <dt>Esc</dt><dd>close / stop</dd>
                 </dl>
@@ -198,8 +201,42 @@
         </details>
     </aside>
 
+    <!-- RIGHT (alternative): photon editor - what a photon is and how photons interact -->
+    <aside class="panel right editor" id="editorPanel" data-side="right">
+        <div class="ed-head">
+            <b>⚛ Photon editor</b>
+            <span class="hint" id="edOrigin"></span>
+        </div>
+        <div class="ed-restart" id="edRestart" hidden>
+            Some changes (↻) take effect in a new world.
+            <button id="edRestartBtn">↻ Restart now</button>
+        </div>
+        <details open>
+            <summary>Photon</summary>
+            <canvas id="edPhoton" height="128"></canvas>
+            <div class="row">
+                <label for="edEnergy" title="Preview only: how a photon with this energy behaves">Preview energy</label>
+                <input type="range" id="edEnergy" min="0" max="1" step="0.01" value="0">
+                <span class="value" id="edEnergyValue"></span>
+            </div>
+            <p class="hint" id="edPhotonText"></p>
+        </details>
+        <details open>
+            <summary>Forces between two photons</summary>
+            <canvas id="edForces" height="170"></canvas>
+            <p class="hint">Force on a photon vs distance of the centres. Positive = attraction.
+                Grey = hard boundary (pressure), blue = strong bonds form, dashed = strong bond breaks.</p>
+        </details>
+        <div id="edGroups"></div>
+        <div class="row buttons ed-foot">
+            <button id="edApplyBtn" title="New world with these laws (same start)">↻ Restart with these laws</button>
+            <button id="edResetBtn" title="Laws from the seed again">⟲ Seed laws</button>
+            <button id="edExportBtn" title="Save the laws as JSON">⤓ Export</button>
+        </div>
+    </aside>
+
     <!-- RIGHT: observers + lab -->
-    <aside class="panel right open" id="observePanel">
+    <aside class="panel right open" id="observePanel" data-side="right">
         <details open>
             <summary>Observe</summary>
             <canvas id="historyChart" width="300" height="70"></canvas>

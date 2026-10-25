@@ -226,3 +226,29 @@ table {
         width: calc(100vw - 24px);
     }
 }
+
+/* photon editor */
+.panel.right.editor { width: 370px; }
+.ed-head { display: flex; justify-content: space-between; align-items: baseline; padding: 8px 0 4px; }
+.ed-head b { font: 600 12px var(--mono); letter-spacing: 0.12em; color: #fff; }
+.ed-restart {
+    margin: 6px 0;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(255, 184, 107, 0.1);
+    border: 1px solid rgba(255, 184, 107, 0.35);
+    color: var(--warn);
+    font-size: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+}
+#edPhoton, #edForces { width: 100%; display: block; margin: 4px 0; }
+.ed-law { display: grid; grid-template-columns: 112px 1fr 52px; gap: 6px; align-items: center; margin: 5px 0; }
+.ed-law label { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: help; }
+.ed-law label .rs { color: var(--warn); margin-left: 3px; }
+.ed-law .value { font: 11px var(--mono); text-align: right; color: var(--text); }
+.ed-law .value.off { color: var(--muted); }
+.ed-law.changed label { color: var(--accent); }
+.ed-foot { margin-top: 10px; }

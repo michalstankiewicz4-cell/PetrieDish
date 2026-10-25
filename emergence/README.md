@@ -15,6 +15,8 @@ appears; it only picks laws, it never touches a running world.
 
 - **Top bar** – main menu: World / Observe panels, Elements, Machine learning,
   play, fast forward, new laws, 2D/3D, CPU/GPU, live stats, Help (keys and links).
+- **Photon editor** (top bar → Photon, or E): every law as a slider – most act live –
+  with a picture of the photon and the force curves.
 - **World panel** (left): new / mutated laws, **Pressure** (live), Space 3D / 2D, photon count,
   restart, speed, view options (*Free bonds on photons*: a number on every ball, zoom in to see it).
 - **Observe panel** (right): metrics, history chart, the catalogue of stable structures

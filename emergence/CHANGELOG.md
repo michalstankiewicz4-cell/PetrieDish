@@ -5,6 +5,21 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.8.0] – 2026-10-25
+### Dodane
+- **Edytor fotonu** (górny pasek → Photon, klawisz `E`, prawy panel zamiast Observe):
+  - podgląd fotonu: pięć ładunków z kolorem, masą, udziałem na starcie i liczbą dozwolonych
+    wiązań przy wybranej energii (suwak *Preview energy*), promień i najbliższa odległość;
+  - wykres sił między dwoma fotonami (+1/−1, +1/+1, 0/+1, +2/−2) z zaznaczoną twardą granicą,
+    strefą tworzenia wiązań i miejscem pękania;
+  - wszystkie prawa jako suwaki w grupach (Photon, Strong, Electromagnetic, Environment,
+    Energy, Light) z opisami; zmienione względem ziarna są podświetlone.
+  - Większość praw działa **na żywo**; skład ładunków, zasięg R i słońca (↻) – po restarcie
+    (pasek „Restart now”). Eksport, powrót do praw z ziarna.
+### Poprawione
+- **Restart i nowe prawa nie oddalają już kamery** (gdy rozmiar świata się nie zmienia) –
+  wcześniej po restarcie liczby na kulkach znikały, bo widok wracał do całego świata.
+
 ## [0.7.0] – 2026-10-25
 Nowa fizyka: model fotonów. **Stare ziarna praw i archiwum Labu nie pasują** – poprzednia
 wersja zostaje pod `v0.6/` (link w menu Help).

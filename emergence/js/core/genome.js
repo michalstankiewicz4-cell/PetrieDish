@@ -244,8 +244,15 @@
         return g;
     }
 
+    /**
+     * Laws that only take effect in a new world: the charge mix (decided at
+     * spawn), the range (sets the spatial grid) and the suns (created with the light).
+     */
+    const RESTART_KEYS = ['neutralShare', 'doubleShare', 'positiveShare', 'range', 'sunCount', 'sunRadius', 'sunDrift'];
+
     EM.genome = {
         FORMAT,
+        RESTART_KEYS,
         CHARGES,
         SPECS,
         random, mutate, compile, applyPressure, contactDistance, forceAt, toJSON, fromJSON, fillMissing

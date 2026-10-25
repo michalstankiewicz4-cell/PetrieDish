@@ -247,6 +247,15 @@
             if (D) { if (this.z[i] < 0) this.z[i] += D; else if (this.z[i] >= D) this.z[i] -= D; }
         }
 
+        /**
+         * New laws for a running world (photon editor). Only laws that do not
+         * change the world's structure may change live - see EM.genome.RESTART_KEYS.
+         */
+        setLaws(laws) {
+            this.laws = laws;
+            this.light.params = laws.light;
+        }
+
         /** Changes the pressure (environment) of a running world. */
         setPressure(p) {
             EM.genome.applyPressure(this.laws, p);

@@ -32,6 +32,8 @@
         /** where the current laws came from: 'seed' | 'mutation' | 'lab' | 'file' */
         origin: 'seed',
         listeners: new Set(),
+        /** called after a law changed in the running world (editor, pressure) */
+        lawListeners: new Set(),
 
         /** Called after every new world (UI refresh). */
         onChange(fn) {
@@ -64,7 +66,11 @@
                 app.gpu.destroy();
                 app.gpu = null;
             }
+            // same size and space as before (restart, new laws): keep the camera where the user put it
+            const prev = app.world;
+            const sameView = prev && prev.dim === (size.depth > 0 ? 3 : 2) && prev.width === size.width && prev.height === size.height && prev.depth === size.depth;
             app.world = new EM.World(Object.assign(size, { count: settings.count, genome: app.genome, seed: settings.worldSeed }));
+            app.pendingRestart = false;
             if (settings.backend === 'gpu') {
                 try {
                     app.gpu = new EM.GpuWorld(app.world);
@@ -79,7 +85,7 @@
             app.observer.observe();
             EM.renderer.setDim(settings.dim);
             EM.renderer.selection = null;
-            EM.renderer.fit(app.world);
+            if (!sameView) EM.renderer.fit(app.world);
             app.writeHash();
             app.emit();
         },
@@ -162,15 +168,30 @@
 
         /** Environment pressure (0..1), live: changes how close photons may come. */
         setPressure(p) {
-            if (!app.world) return;
-            app.genome.global.pressure = p;
-            app.world.setPressure(p);
-            if (app.gpu) app.gpu.updateLaws();
+            app.setGene('pressure', p);
+        },
+
+        /**
+         * Changes one law (photon editor). Most act live on the running world;
+         * RESTART_KEYS are stored and used from the next restart.
+         * @returns {boolean} true when the change is already live
+         */
+        setGene(key, value) {
+            if (!app.world) return false;
+            app.genome.global[key] = value;
+            const live = !EM.genome.RESTART_KEYS.includes(key);
+            if (live) {
+                app.world.setLaws(EM.genome.compile(app.genome));
+                if (app.gpu) app.gpu.updateLaws();
+            }
+            app.pendingRestart = app.pendingRestart || !live;
+            app.lawListeners.forEach((fn) => fn(key, value, live));
             if (app.origin === 'seed') {
                 app.origin = 'edited';
                 app.writeHash();
                 app.emit();
             }
+            return live;
         },
 
         togglePlay() {

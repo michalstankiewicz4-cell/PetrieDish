@@ -18,7 +18,7 @@
 
 ## Stan
 
-- **Wersja:** 0.7.0 (2026-10-25) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
+- **Wersja:** 0.8.0 (2026-10-25) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
@@ -45,7 +45,7 @@
 - Energia: im więcej, tym szybszy foton i mniej dozwolonych wiązań.
 - Pomysły użytkownika na później: kąty wiązań zależne od szybkości/energii (szybszy → szerszy
   dozwolony kąt), moc wiązania, **wymiana właściwości przez wiązanie zamiast rozpadu i fuzji**,
-  edytor fotonu (formuły jak w Gravitation), filtry podglądu (rozmiar, kolor).
+  edytor fotonu – jest (v0.8, suwaki); formuły jak w Gravitation – może później; filtry podglądu (rozmiar, kolor).
 - 2D zostaje jako szybki podgląd; użytkownik rozważa usunięcie 2D, gdy 3D na GPU wystarczy.
 
 ## Mapa plików
@@ -62,6 +62,7 @@
 | `js/observe/*` | detektory – tylko czytają świat |
 | `js/lab/*` | wyszukiwanie praw (runner, search, pool, worker) |
 | `js/observe/elements.js` | tablica Mendelejewa (118 pól), `census(observer)`: Z = liczba fotonów stabilnej struktury |
+| `js/ui/photon-editor.js` | edytor fotonu (prawy panel, `E`): suwaki praw (`app.setGene`, na żywo poza `EM.genome.RESTART_KEYS`), podgląd fotonu, wykres sił |
 | `js/ui/topbar.js`, `css/topbar.css` | górny pasek = menu główne (sekcje, szybkie przyciski, statystyki, Help) |
 | `js/ui/atlas.js`, `css/atlas.css` | Atlas pod Tab: tablica pierwiastków + podgląd ML |
 | `js/gpu/*` | backend WebGPU: `kernels.js` (shadery WGSL), `gpu-world.js` (`EM.gpu.init`, `EM.GpuWorld`) |
@@ -98,6 +99,9 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-10-25 – v0.8.0:** edytor fotonu (suwaki wszystkich praw, zmiany na żywo, podgląd
+  fotonu i sił), restart nie zmienia kamery. Nowe prawo = wpis w `INFO` w photon-editor.js.
 
 - **2026-10-25 – v0.7.0:** nowy model fotonów (identyczne fotony, ciśnienie i twarda granica,
   siła silna i elektromagnetyczna, energia → szybkość i mniej wiązań), 3D domyślne, liczby na

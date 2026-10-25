@@ -7,7 +7,14 @@
 
     // ---------- panel toggles ----------
     document.querySelectorAll('[data-toggle]').forEach((btn) => {
-        btn.addEventListener('click', () => document.getElementById(btn.dataset.toggle).classList.toggle('open'));
+        btn.addEventListener('click', () => {
+            const panel = document.getElementById(btn.dataset.toggle);
+            panel.classList.toggle('open');
+            // panels on the same side share the space: opening one closes the others
+            if (panel.classList.contains('open') && panel.dataset.side) {
+                document.querySelectorAll(`.panel[data-side="${panel.dataset.side}"]`).forEach((p) => { if (p !== panel) p.classList.remove('open'); });
+            }
+        });
     });
 
     // ---------- laws ----------
@@ -101,6 +108,12 @@
     }
 
     app.onChange(syncControls);
+    // the photon editor can change the pressure too
+    app.lawListeners.add((key) => {
+        if (key !== 'pressure' || document.activeElement === pressure) return;
+        pressure.value = app.world.laws.pressure;
+        pressureValue.textContent = app.world.laws.pressure.toFixed(2);
+    });
 
     EM.ui.register(() => {
         const w = app.world;
