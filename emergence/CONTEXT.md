@@ -5,7 +5,7 @@
 
 ## Projekt w skrócie
 
-- **Co:** świat 2D, w którym z „fotonów” mają same wyłaniać się atomy → molekuły →
+- **Co:** świat (domyślnie 3D), w którym z „fotonów” mają same wyłaniać się atomy → molekuły →
   błony/komórki → organizmy. Nic z tych poziomów nie jest zaprogramowane;
   uczenie maszynowe (Lab) szuka **praw fizyki**, przy których to się dzieje.
 - **Gdzie:** folder `emergence/` w repo https://github.com/michalstankiewicz4-cell/PetrieDish
@@ -18,7 +18,7 @@
 
 ## Stan
 
-- **Wersja:** 0.6.0 (2026-10-24) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
+- **Wersja:** 0.7.0 (2026-10-25) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
@@ -36,6 +36,17 @@
   3. Wydajność: zmierzyć GPU na prawdziwej karcie; przy >50 tys. fotonów wąskim gardłem
      będzie rysowanie 2D (Canvas) i obserwatorzy – ew. renderer 2D w WebGL, obserwatorzy w workerze.
   4. Detektor „poziomów”: skupiska zamknięć (M6) i drzewo pochodzenia struktur (M5).
+
+### Model fotonów (od v0.7) – decyzje użytkownika
+- Wszystkie fotony identyczne, ten sam promień; różnią się stanem (ładunek, masa z ładunku, energia).
+- Twarda granica regulowana ciśnieniem; najbliżej = stykanie się powierzchniami.
+- Siły: silna (wiązania na styk, walencja narzucona prawem i zależna od energii),
+  elektromagnetyczna (fala z Gravitation), słaba (plan). Bez rozszczepiania i fuzji (na razie).
+- Energia: im więcej, tym szybszy foton i mniej dozwolonych wiązań.
+- Pomysły użytkownika na później: kąty wiązań zależne od szybkości/energii (szybszy → szerszy
+  dozwolony kąt), moc wiązania, **wymiana właściwości przez wiązanie zamiast rozpadu i fuzji**,
+  edytor fotonu (formuły jak w Gravitation), filtry podglądu (rozmiar, kolor).
+- 2D zostaje jako szybki podgląd; użytkownik rozważa usunięcie 2D, gdy 3D na GPU wystarczy.
 
 ## Mapa plików
 
@@ -87,6 +98,10 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-10-25 – v0.7.0:** nowy model fotonów (identyczne fotony, ciśnienie i twarda granica,
+  siła silna i elektromagnetyczna, energia → szybkość i mniej wiązań), 3D domyślne, liczby na
+  kulkach, GPU przepisane, v0.6 zamrożona w `v0.6/`.
 
 - **2026-10-24 – v0.6.0:** górny pasek jako menu główne (sekcje, szybkie sterowanie,
   statystyki, Help). Uwaga: atrybut `data-dim` jest zajęty przez world-panel (ukrywa elementy

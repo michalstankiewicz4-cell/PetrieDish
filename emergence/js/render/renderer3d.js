@@ -11,7 +11,7 @@
 
     const BALL_VS = `#version 300 es
         in vec3 a_pos;
-        in vec2 a_data;            // type, energy
+        in vec2 a_data;            // type + 8 x (label + 1) (label = free bonds, 0 = none), energy
         uniform mat4 u_view, u_proj;
         uniform float u_radius, u_viewH;
         uniform vec3 u_palette[8];
@@ -19,12 +19,16 @@
         uniform vec3 u_flat;
         out vec3 v_color;
         out float v_depth;
+        flat out int v_label;
         void main() {
             vec4 vp = u_view * vec4(a_pos, 1.0);
             gl_Position = u_proj * vp;
             gl_PointSize = max(2.0, u_radius * u_proj[1][1] * u_viewH / -vp.z);
             v_depth = -vp.z;
-            if (u_mode == 0) v_color = u_palette[int(a_data.x)];
+            int code = int(a_data.x + 0.5);
+            // a digit only on balls big enough to read it
+            v_label = gl_PointSize >= 18.0 ? code / 8 - 1 : -1;
+            if (u_mode == 0) v_color = u_palette[code - (code / 8) * 8];
             else if (u_mode == 1) v_color = mix(vec3(0.16, 0.24, 0.55), vec3(1.0, 0.86, 0.25), a_data.y);
             else v_color = u_flat;
         }`;
@@ -33,8 +37,23 @@
         precision mediump float;
         in vec3 v_color;
         in float v_depth;
+        flat in int v_label;
         uniform float u_fogNear, u_fogFar;
         out vec4 outColor;
+        // seven-segment digit 0..4 in ball coordinates (-1..1), segments a b c d e f g = bits 0..6
+        float digit(vec2 c, int dgt) {
+            int m = dgt == 0 ? 63 : dgt == 1 ? 6 : dgt == 2 ? 91 : dgt == 3 ? 79 : 102;
+            const float W = 0.3, H = 0.48, T = 0.1;
+            float on = 0.0;
+            if ((m & 1) != 0 && abs(c.y - H) < T && abs(c.x) < W + T * 0.5) on = 1.0;
+            if ((m & 64) != 0 && abs(c.y) < T && abs(c.x) < W + T * 0.5) on = 1.0;
+            if ((m & 8) != 0 && abs(c.y + H) < T && abs(c.x) < W + T * 0.5) on = 1.0;
+            if ((m & 32) != 0 && abs(c.x + W) < T && c.y > 0.0 && c.y < H + T * 0.5) on = 1.0;
+            if ((m & 2) != 0 && abs(c.x - W) < T && c.y > 0.0 && c.y < H + T * 0.5) on = 1.0;
+            if ((m & 16) != 0 && abs(c.x + W) < T && c.y < 0.0 && c.y > -H - T * 0.5) on = 1.0;
+            if ((m & 4) != 0 && abs(c.x - W) < T && c.y < 0.0 && c.y > -H - T * 0.5) on = 1.0;
+            return on;
+        }
         void main() {
             vec2 c = gl_PointCoord * 2.0 - 1.0;
             c.y = -c.y;
@@ -45,6 +64,7 @@
             float diff = max(dot(n, l), 0.0);
             float spec = pow(max(dot(reflect(-l, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0);
             vec3 col = v_color * (0.22 + 0.78 * diff) + vec3(spec * 0.45);
+            if (v_label >= 0 && digit(c / 0.62, v_label) > 0.5) col = mix(col, vec3(0.03, 0.035, 0.06), 0.85);
             float fog = clamp((v_depth - u_fogNear) / (u_fogFar - u_fogNear), 0.0, 1.0);
             outColor = vec4(mix(col, vec3(0.02, 0.025, 0.045), fog * 0.85), 1.0);
         }`;
@@ -220,18 +240,21 @@
                 this.data = new Float32Array(n * 2);
             }
             const pos = this.pos, data = this.data;
+            const labels = this.view.labels && world.laws.valence[0] > 0;
             for (let i = 0; i < n; i++) {
                 pos[i * 3] = world.x[i];
                 pos[i * 3 + 1] = world.y[i];
                 pos[i * 3 + 2] = world.z[i];
-                data[i * 2] = world.type[i];
+                // free strong bonds right now (shown on big balls)
+                const free = labels ? Math.max(0, Math.min(4, EM.bonds.allowed(world, i) - world.deg[i])) + 1 : 0;
+                data[i * 2] = world.type[i] + 8 * free;
                 data[i * 2 + 1] = world.energy[i];
             }
             if (this.paletteFor !== world.laws) {
                 this.paletteFor = world.laws;
                 world.laws.color.forEach((c, t) => this.palette.set(hslToRgb(c), t * 3));
             }
-            const radius = world.laws.coreR * 0.75;
+            const radius = world.laws.radius;
             this.drawBalls(pos, data, n, radius, this.view.color === 'energy' ? 1 : 0);
 
             if (this.selection && this.selection.members.length) {

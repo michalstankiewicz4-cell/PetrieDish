@@ -15,7 +15,7 @@
 
     const start = () => {
         EM.app.clampCount();
-        EM.app.newLaws(fromLink ? EM.app.settings.lawsSeed : Math.floor(Math.random() * 1e9), EM.app.settings.types);
+        EM.app.newLaws(fromLink ? EM.app.settings.lawsSeed : Math.floor(Math.random() * 1e9));
         EM.loop.start();
     };
     EM.gpu.onLost = (msg) => {

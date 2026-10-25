@@ -5,6 +5,29 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.7.0] – 2026-10-25
+Nowa fizyka: model fotonów. **Stare ziarna praw i archiwum Labu nie pasują** – poprzednia
+wersja zostaje pod `v0.6/` (link w menu Help).
+### Zmienione
+- **Wszystkie fotony to ta sama cząstka o tym samym promieniu (3 px).** Różnią się stanem:
+  ładunek −2…+2 (kolor), masa zależna od ładunku, energia. Koniec typów z osobnymi prawami,
+  orientacji i reakcji (wrócą jako siła słaba).
+- **Twarda granica**: środki fotonów nigdy bliżej niż `dmin`, zależne od **ciśnienia**
+  (przy 1 kulki stykają się powierzchniami). Suwak Pressure działa na żywo.
+- **Siła elektromagnetyczna** jak w Gravitation: fala z `periods`, `waveOffset`, `phaseShift`,
+  przeciwne ładunki się przyciągają, jednakowe odpychają.
+- **Siła silna**: krótkie, nasycające się wiązania na styk; walencja to prawo wspólne dla
+  wszystkich i **maleje z energią** (gorący foton zrzuca wiązania).
+- **Energia przyspiesza**: losowe szarpnięcia rosną z energią (`agitation`).
+- **3D domyślne** (2D zostaje jako szybszy podgląd).
+- Lab: nowe archiwa (`emergence.lab.v2`, `.3d.v2`). Genom format 2 – pliki z v0.6 są odrzucane z informacją.
+### Dodane
+- **Liczba na kulce** = ile wiązań silnych foton może jeszcze przyjąć (View → *Free bonds on photons*;
+  widać po przybliżeniu, w 2D i 3D).
+- Kolor „by charge”, inspektor pokazuje ładunek i masę.
+- GPU: te same prawa (fala z offsetem, twarda granica w 5 przejściach, walencja zależna od energii).
+- `tools/smoke.js` sprawdza twardą granicę; `tools/gpu-check.html` porównuje nowy model CPU/GPU.
+
 ## [0.6.0] – 2026-10-24
 ### Dodane
 - **Górny pasek = menu główne projektu** (na całą szerokość):

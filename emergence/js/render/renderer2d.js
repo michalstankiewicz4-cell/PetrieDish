@@ -99,6 +99,7 @@
             if (v.enclosures && observer && observer.enclosures) this.drawEnclosures(observer.enclosures);
             if (v.bonds && world.bondCount > 0) this.drawBonds(world);
             this.drawPhotons(world);
+            if (v.labels && world.laws.valence[0] > 0 && world.laws.radius * cam.zoom >= 7) this.drawLabels(world);
             if (v.headings && world.laws.hasOrientation && cam.zoom >= 1.6) this.drawHeadings(world);
             if (this.selection) this.drawSelection(world);
 
@@ -159,8 +160,8 @@
 
         drawPhotons(world) {
             const ctx = this.ctx, x = world.x, y = world.y, n = world.n, type = world.type;
-            // a ball is about the size of the hard core (in world units), but never under ~1.5 screen px
-            const r = Math.max(world.laws.coreR * 0.55, 1.5 / this.camera.zoom);
+            // every photon has the same radius (world units), but never under ~1.5 screen px
+            const r = Math.max(world.laws.radius, 1.5 / this.camera.zoom);
             const size = r * 2;
             ctx.imageSmoothingEnabled = true;
 
@@ -181,6 +182,24 @@
                 const img = this.sprite(colors[t]);
                 for (let i = 0; i < n; i++) if (type[i] === t) ctx.drawImage(img, x[i] - r, y[i] - r, size, size);
             }
+        }
+
+        /** Free strong bonds on each visible photon (only when zoomed in). */
+        drawLabels(world) {
+            const ctx = this.ctx, cam = this.camera, x = world.x, y = world.y, deg = world.deg;
+            const r = world.laws.radius;
+            const x0 = cam.x - r, y0 = cam.y - r;
+            const x1 = cam.x + cam.screenW / cam.zoom + r, y1 = cam.y + cam.screenH / cam.zoom + r;
+            ctx.font = `600 ${(r * 1.25).toFixed(2)}px ui-monospace, monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'rgba(6, 8, 16, 0.85)';
+            for (let i = 0; i < world.n; i++) {
+                if (x[i] < x0 || x[i] > x1 || y[i] < y0 || y[i] > y1) continue;
+                ctx.fillText(String(Math.max(0, EM.bonds.allowed(world, i) - deg[i])), x[i], y[i] + r * 0.06);
+            }
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
         }
 
         drawHeadings(world) {

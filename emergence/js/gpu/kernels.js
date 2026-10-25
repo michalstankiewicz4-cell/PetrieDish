@@ -29,7 +29,7 @@
     const LAWS = {
         PAIR_STRIDE: 16,
         AMP: 0, K: 1, PH: 2, POL: 3, TOR: 4, AFF: 5, BLEN: 6, BFORM: 7,
-        BBRK: 8, BK: 9, BINDE: 10, ACT: 11, DEC: 12, RXTO: 13, RXTHR: 14,
+        BBRK: 8, BK: 9, BINDE: 10, ACT: 11, DEC: 12, RXTO: 13, RXTHR: 14, OFF: 15,
         TYPE_BASE: 1024, TYPE_STRIDE: 8,
         IM: 0, ABS: 1, LEAK: 2, THR: 3, VAL: 4
     };
@@ -43,6 +43,7 @@ struct Params {
   cellD: f32, n: u32, T: u32, cols: u32,
   rows: u32, layers: u32, cells: u32, dim: u32,
   flags: u32, lcols: u32, lrows: u32, llayers: u32,
+  restitution: f32, dmin: f32, agitation: f32, energyValence: f32,
 };
 struct Clock { step: u32, a: u32, b: u32, c: u32, };
 
@@ -52,6 +53,7 @@ const POL: u32 = ${LAWS.POL}u; const TOR: u32 = ${LAWS.TOR}u; const AFF: u32 = $
 const BLEN: u32 = ${LAWS.BLEN}u; const BFORM: u32 = ${LAWS.BFORM}u; const BBRK: u32 = ${LAWS.BBRK}u;
 const BK: u32 = ${LAWS.BK}u; const BINDE: u32 = ${LAWS.BINDE}u; const ACT: u32 = ${LAWS.ACT}u;
 const DEC: u32 = ${LAWS.DEC}u; const RXTO: u32 = ${LAWS.RXTO}u; const RXTHR: u32 = ${LAWS.RXTHR}u;
+const OFF: u32 = ${LAWS.OFF}u;
 const TB: u32 = ${LAWS.TYPE_BASE}u; const TS: u32 = ${LAWS.TYPE_STRIDE}u;
 const IM: u32 = ${LAWS.IM}u; const ABSO: u32 = ${LAWS.ABS}u; const LEAK: u32 = ${LAWS.LEAK}u;
 const THR: u32 = ${LAWS.THR}u; const VAL: u32 = ${LAWS.VAL}u;
@@ -75,6 +77,23 @@ fn cellCoords(p: vec3f) -> vec3u {
   return vec3u(min(u32(p.x / P.cellW), P.cols - 1u),
                min(u32(p.y / P.cellH), P.rows - 1u),
                min(u32(p.z / P.cellD), P.layers - 1u));
+}
+fn wrapPos(p: vec3f) -> vec3f {
+  var q = p;
+  if (q.x < 0.0) { q.x += P.W; } else if (q.x >= P.W) { q.x -= P.W; }
+  if (q.y < 0.0) { q.y += P.H; } else if (q.y >= P.H) { q.y -= P.H; }
+  if (P.dim == 3u) {
+    if (q.z < 0.0) { q.z += P.D; } else if (q.z >= P.D) { q.z -= P.D; }
+  } else {
+    q.z = 0.0;
+  }
+  // float rounding can land exactly on the far edge
+  q = min(q, vec3f(P.W, P.H, max(P.D, 1.0)) - vec3f(0.001));
+  return max(q, vec3f(0.0));
+}
+/** strong bonds a photon of class t with energy e may hold (fewer when hot) */
+fn allowedBonds(v: f32, e: f32) -> u32 {
+  return u32(max(0.0, v - floor(e * v * P.energyValence)));
 }
 fn deg4(s: vec4i) -> u32 { return u32(s.x >= 0) + u32(s.y >= 0) + u32(s.z >= 0) + u32(s.w >= 0); }
 `;
@@ -173,7 +192,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   let invR = 1.0 / P.R;
   let mySlots = partner[i];
   let orient = (P.flags & F_ORIENT) != 0u;
-  let bonding = (P.flags & F_BOND) != 0u && deg4(mySlots) < u32(laws[TB + ti * TS + VAL]);
+  let degI = deg4(mySlots);
+  let allowedI = allowedBonds(laws[TB + ti * TS + VAL], pi.w);
+  let bonding = (P.flags & F_BOND) != 0u && degI < allowedI;
   let stepSalt = clock.step * 8u;
 
   var f = vec3f(0.0);
@@ -213,7 +234,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
             fij = P.coreK * (dist / P.coreR - 1.0);
           } else {
             let near = 1.0 - dist * invR;
-            fij = laws[pij + AMP] * sin(laws[pij + KW] * dist + laws[pij + PH]) * P.forceScale * near;
+            let off = laws[pij + OFF];
+            fij = laws[pij + AMP] * (sin(laws[pij + KW] * dist + laws[pij + PH]) + off) / (1.0 + off) * P.forceScale * near;
             if (orient) {
               let ci = dot(hi, n);
               fij *= 1.0 + laws[pij + POL] * ci;
@@ -238,7 +260,7 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
               let act = laws[pp + ACT];
               let esum = select(pj.w + pi.w, pi.w + pj.w, i < j);
               let bonded = any(mySlots == vec4i(i32(j)));
-              if (!bonded && deg4(sj) < u32(laws[TB + tj * TS + VAL]) && dot(dv, dv) <= laws[pp + BINDE]
+              if (!bonded && deg4(sj) < allowedBonds(laws[TB + tj * TS + VAL], pj.w) && dot(dv, dv) <= laws[pp + BINDE]
                   && !(act > 0.0 && esum < act)
                   && rnd(lo, hiI, stepSalt + 2u) < aff * P.bondFormRate) {
                 let score = hash3(lo, hiI, stepSalt + 1u);
@@ -250,7 +272,8 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
       }
     }
   }
-  acc[i * 2u] = vec4f(f, turn2);
+  // .w: 2D turning when photons have orientation, otherwise "holds more bonds than allowed"
+  acc[i * 2u] = vec4f(f, select(f32(degI > allowedI), turn2, orient));
   acc[i * 2u + 1u] = vec4f(turn3, bitcast<f32>(best));
 }
 `;
@@ -310,7 +333,9 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
     let pp = select(tj * T + t, t * T + tj, i < j) * PS;
     let elo = select(pj.w, e0, i < j); let ehi = select(e0, pj.w, i < j);
     let dec = laws[pp + DEC];
-    if (dist > laws[pp + BBRK] || (dec > 0.0 && rnd(lo, hiI, stepSalt + 3u) < dec * (1.0 + elo + ehi))) {
+    let over = (P.flags & F_ORIENT) == 0u && (acc[i * 2u].w > 0.5 || acc[j * 2u].w > 0.5);
+    if (dist > laws[pp + BBRK] || (dec > 0.0 && rnd(lo, hiI, stepSalt + 3u) < dec * (1.0 + elo + ehi))
+        || (over && rnd(lo, hiI, stepSalt + 7u) < 0.25)) {
       slots[s] = -1;
       e += laws[pp + ACT] * 0.5;
       if (i < j) { atomicAdd(&counters[1], 1u); }
@@ -391,25 +416,16 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
   e = clamp(e, 0.0, 1.0);
 
   var u = (vel + a) * (1.0 - P.friction);
-  if (P.temperature > 0.0) {
+  let kick = P.temperature + P.agitation * e; // hot photons get harder random kicks
+  if (kick > 0.0) {
     var nz = vec3f(rnd(i, stepSalt + 6u, 0u), rnd(i, stepSalt + 6u, 1u), rnd(i, stepSalt + 6u, 2u)) - 0.5;
     if (P.dim != 3u) { nz.z = 0.0; }
-    u += nz * P.temperature;
+    u += nz * kick;
   }
   let v2 = dot(u, u);
   if (v2 > P.maxSpeed * P.maxSpeed) { u *= P.maxSpeed / sqrt(v2); }
 
-  var q = pos + u;
-  if (q.x < 0.0) { q.x += P.W; } else if (q.x >= P.W) { q.x -= P.W; }
-  if (q.y < 0.0) { q.y += P.H; } else if (q.y >= P.H) { q.y -= P.H; }
-  if (P.dim == 3u) {
-    if (q.z < 0.0) { q.z += P.D; } else if (q.z >= P.D) { q.z -= P.D; }
-  } else {
-    q.z = 0.0;
-  }
-  // float rounding can land exactly on the far edge
-  q = min(q, vec3f(P.W, P.H, max(P.D, 1.0)) - vec3f(0.001));
-  q = max(q, vec3f(0.0));
+  let q = wrapPos(pos + u);
 
   out[i * 3u] = vec4f(q, e);
   out[i * 3u + 1u] = vec4f(u, bitcast<f32>(t));
@@ -417,5 +433,73 @@ fn main(@builtin(global_invocation_id) gid: vec3u) {
 }
 `;
 
-    EM.gpuKernels = { LAWS, COUNT, SCAN, SCATTER, PAIRS, UPDATE };
+    /**
+     * Hard boundary (after update): photons closer than dmin push each other
+     * apart (each moves its own mass-weighted share) and lose their approach
+     * speed (+ bounce). Reads the new state, writes the corrected one into the
+     * other buffer - the grid of this step still finds every close neighbour
+     * (cells >= R, photons moved a few px).
+     */
+    const CONTACT = /* wgsl */ `
+@group(0) @binding(0) var<uniform> P: Params;
+${COMMON}
+@group(0) @binding(1) var<storage, read> st: array<vec4f>;
+@group(0) @binding(2) var<storage, read_write> out: array<vec4f>;
+@group(0) @binding(3) var<storage, read> laws: array<f32>;
+@group(0) @binding(4) var<storage, read> cellStart: array<u32>;
+@group(0) @binding(5) var<storage, read> sorted: array<u32>;
+
+@compute @workgroup_size(64)
+fn main(@builtin(global_invocation_id) gid: vec3u) {
+  let i = gid.x;
+  if (i >= P.n) { return; }
+  let s0 = st[i * 3u];
+  let s1 = st[i * 3u + 1u];
+  let pos = s0.xyz;
+  let vel = s1.xyz;
+  let wi = laws[TB + bitcast<u32>(s1.w) * TS + IM];
+  let d2min = P.dmin * P.dmin;
+  var dp = vec3f(0.0);
+  var dv = vec3f(0.0);
+
+  let c3 = vec3i(cellCoords(pos));
+  let cols = i32(P.cols); let rows = i32(P.rows); let layers = i32(P.layers);
+  let lx = select(0, -1, cols >= 3); let hx = select(0, 1, cols >= 2);
+  let ly = select(0, -1, rows >= 3); let hy = select(0, 1, rows >= 2);
+  let lz = select(0, -1, layers >= 3); let hz = select(0, 1, layers >= 2);
+  for (var oz = lz; oz <= hz; oz++) {
+    let cz = (c3.z + oz + layers) % layers;
+    for (var oy = ly; oy <= hy; oy++) {
+      let cy = (c3.y + oy + rows) % rows;
+      for (var ox = lx; ox <= hx; ox++) {
+        let cx = (c3.x + ox + cols) % cols;
+        let nc = u32((cz * rows + cy) * cols + cx);
+        let e = cellStart[nc + 1u];
+        for (var b = cellStart[nc]; b < e; b++) {
+          let j = sorted[b];
+          if (j == i) { continue; }
+          let pj = st[j * 3u];
+          let d = vec3f(wrapd(pj.x - pos.x, P.W), wrapd(pj.y - pos.y, P.H), wrapd(pj.z - pos.z, P.D));
+          let d2 = dot(d, d);
+          if (d2 >= d2min) { continue; }
+          var dist = sqrt(d2);
+          var n = vec3f(select(-1.0, 1.0, i < j), 0.0, 0.0); // on top of each other: split along x
+          if (dist > 1e-6) { n = d / dist; } else { dist = 0.0; }
+          let vj = st[j * 3u + 1u];
+          let wj = laws[TB + bitcast<u32>(vj.w) * TS + IM];
+          let ws = wi + wj;
+          dp -= n * ((P.dmin - dist) / ws * wi);
+          let vn = dot(vj.xyz - vel, n);
+          if (vn < 0.0) { dv -= n * (-(1.0 + P.restitution) * vn / ws * wi); }
+        }
+      }
+    }
+  }
+  out[i * 3u] = vec4f(wrapPos(pos + dp), s0.w);
+  out[i * 3u + 1u] = vec4f(vel + dv, s1.w);
+  out[i * 3u + 2u] = st[i * 3u + 2u];
+}
+`;
+
+    EM.gpuKernels = { LAWS, COUNT, SCAN, SCATTER, PAIRS, UPDATE, CONTACT };
 })(EM);

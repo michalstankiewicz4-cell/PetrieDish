@@ -1,6 +1,6 @@
 # Emergence – plan
 
-Cel: świat 2D, w którym z prostych „fotonów” same wyłaniają się kolejne poziomy
+Cel: świat (od v0.7 domyślnie 3D), w którym z prostych „fotonów” same wyłaniają się kolejne poziomy
 organizacji – atomy → molekuły → błony/komórki → organizmy wielokomórkowe – bez
 programowania któregokolwiek z tych poziomów. Uczenie maszynowe szuka **praw**,
 przy których to się dzieje, ale nie dotyka samej symulacji.
@@ -29,6 +29,9 @@ modułów, wersjonowanie i test regresji z **PetrieDish**.
    (własny generator losowy, nie `Math.random`).
 
 ## 2. Fizyka – składniki (to jest „wszechświat”)
+
+> Od v0.7 obowiązuje **model fotonów** (wszystkie identyczne, ciśnienie, siła silna i
+> elektromagnetyczna) – aktualne wzory w `docs/PHYSICS.md`. Tabela niżej opisuje model v0.1–v0.6.
 
 | Składnik | Co daje | Parametry w `Laws` |
 | --- | --- | --- |

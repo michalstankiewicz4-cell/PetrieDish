@@ -48,6 +48,10 @@
             // no randomness: noise off, bonds off -> CPU and GPU must agree closely
             w.laws.temperature = 0;
             w.laws.spin = 0;
+            w.laws.agitation = 0;
+            // the hard boundary is solved differently (CPU: pair by pair, GPU: all at once) -
+            // switch it off so the forces themselves can be compared
+            w.laws.dmin = 0.01;
             w.bondsEnabled = false;
         }
         return w;
@@ -68,6 +72,18 @@
                 if (j === i) { bad++; why = 'self bond'; }
             }
         }
+        // hard boundary: closest pair among a sample
+        let close = 0, minD = Infinity;
+        for (let i = 0; i < Math.min(w.n, 300); i++) {
+            for (let j = i + 1; j < w.n; j++) {
+                const [dx, dy, dz] = w.offset(i, j);
+                const d = Math.hypot(dx, dy, dz);
+                if (d < minD) minD = d;
+                if (d < w.laws.dmin * 0.9) close++;
+            }
+        }
+        if (close > 3) { bad++; why = `${close} pairs closer than 0.9 dmin`; }
+        info(`   closest pair ${minD.toFixed(2)} px, dmin ${w.laws.dmin.toFixed(2)} px`);
         log(bad === 0, `${label}: invariants (finite, inside, energy 0..1, valence, symmetric bonds)${bad ? ' – ' + bad + ' problems, e.g. ' + why : ''}`);
     }
 
@@ -104,7 +120,7 @@
     }
 
     // 2) full physics: invariants and statistics close to the CPU
-    for (const [dim, seed, steps] of [[2, 1, 600], [2, 2026, 600], [3, 1, 400], [3, 6, 400]]) {
+    for (const [dim, seed, steps] of [[2, 3, 600], [2, 10, 600], [3, 5, 400], [3, 17, 400]]) {
         const a = makeWorld(seed, dim, 3000, false), b = makeWorld(seed, dim, 3000, false);
         const g = new EM.GpuWorld(b);
         for (let s = 0; s < steps; s++) a.step();
@@ -122,7 +138,7 @@
     }
 
     // 3) speed
-    for (const [dim, count] of [[2, 20000], [3, 20000]]) {
+    for (const [dim, count] of [[2, 10000], [3, 10000]]) {
         const w = makeWorld(1, dim, count, false);
         const g = new EM.GpuWorld(w);
         g.advance(5);

@@ -16,6 +16,12 @@
     const MV = EM.config.MAX_VALENCE;
     const DAMPING = 0.15;
 
+    /** Strong bonds photon i may hold right now: fewer when it has more energy. */
+    function allowed(world, i) {
+        const L = world.laws, v = L.valence[world.type[i]];
+        return Math.max(0, v - Math.floor(world.energy[i] * v * L.energyValence));
+    }
+
     function isBonded(world, i, j) {
         const base = i * MV, partner = world.partner;
         for (let s = 0; s < world.deg[i]; s++) if (partner[base + s] === j) return true;
@@ -63,8 +69,8 @@
         const L = world.laws;
         const aff = L.bondAff[p];
         if (aff <= 0) return;
-        const deg = world.deg, type = world.type;
-        if (deg[i] >= L.valence[type[i]] || deg[j] >= L.valence[type[j]]) return;
+        const deg = world.deg;
+        if (deg[i] >= allowed(world, i) || deg[j] >= allowed(world, j)) return;
         const dvx = world.vx[j] - world.vx[i];
         const dvy = world.vy[j] - world.vy[i];
         const dvz = world.vz[j] - world.vz[i]; // 0 in 2D
@@ -109,7 +115,9 @@
                 const d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6;
                 const p = type[i] * T + type[j];
 
-                if (d > L.bondBreak[p] || (decay[p] > 0 && rng.next() < decay[p] * (1 + e[i] + e[j]))) {
+                // too much energy for this many bonds: shed them one by one
+                const over = deg[i] > allowed(world, i) || deg[j] > allowed(world, j);
+                if (d > L.bondBreak[p] || (decay[p] > 0 && rng.next() < decay[p] * (1 + e[i] + e[j])) || (over && rng.next() < 0.25)) {
                     release(world, i, j, p);
                     continue;
                 }
@@ -152,5 +160,5 @@
         world.bondCount = 0;
     }
 
-    EM.bonds = { tryForm, applySprings, forEach, isBonded, add, remove, clearAll };
+    EM.bonds = { allowed, tryForm, applySprings, forEach, isBonded, add, remove, clearAll };
 })(EM);

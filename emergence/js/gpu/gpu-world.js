@@ -22,6 +22,7 @@
     const MAX_BATCH = 32;           // steps in one command buffer
     const MAX_CELLS = 1 << 20;
     const CLOCK_STRIDE = 256;       // uniform offset alignment
+    const CONTACT_PASSES = 5;       // must be odd (the result has to end in the current buffer)
 
     const gpu = {
         supported: typeof navigator !== 'undefined' && !!navigator.gpu,
@@ -81,7 +82,8 @@
             scan: make(K.SCAN),
             scatter: make(K.SCATTER),
             pairs: make(K.PAIRS),
-            update: make(K.UPDATE)
+            update: make(K.UPDATE),
+            contact: make(K.CONTACT)
         };
     }
 
@@ -106,6 +108,7 @@
             out[o + K.LAWS.DEC] = L.decay[p];
             out[o + K.LAWS.RXTO] = L.rxTo[p];
             out[o + K.LAWS.RXTHR] = L.rxThr[p];
+            out[o + K.LAWS.OFF] = L.offset ? L.offset[p] : 0;
         }
         for (let t = 0; t < T; t++) {
             const o = K.LAWS.TYPE_BASE + t * K.LAWS.TYPE_STRIDE;
@@ -152,7 +155,7 @@
             const S = GPUBufferUsage.STORAGE, CD = GPUBufferUsage.COPY_DST, CS = GPUBufferUsage.COPY_SRC;
             const buf = (size, usage) => device.createBuffer({ size: Math.max(16, Math.ceil(size / 16) * 16), usage });
 
-            this.params = buf(112, GPUBufferUsage.UNIFORM | CD);
+            this.params = buf(128, GPUBufferUsage.UNIFORM | CD);
             this.clock = buf(MAX_BATCH * CLOCK_STRIDE, GPUBufferUsage.UNIFORM | CD);
             this.state = [buf(n * 48, S | CD | CS), buf(n * 48, S | CD | CS)];
             this.partner = buf(n * 16, S | CD | CS);
@@ -168,8 +171,19 @@
             this.staging = [0, 1].map(() => device.createBuffer({ size: this.readSize, usage: GPUBufferUsage.MAP_READ | CD }));
             this.stagingBusy = [false, false];
 
-            // params
-            const pb = new ArrayBuffer(112), pf = new Float32Array(pb), pu = new Uint32Array(pb);
+            this.writeParams();
+            device.queue.writeBuffer(this.counters, 0, new Uint32Array(4));
+            device.queue.writeBuffer(this.cellCount, 0, new Uint32Array(grid.cells));
+            this.upload();
+            this.uploadLight();
+
+            this.makeBindGroups();
+        }
+
+        /** Uniform parameters + laws buffer from the world's (possibly changed) laws. */
+        writeParams() {
+            const world = this.world, L = world.laws, grid = this.grid, light = world.light, n = this.n;
+            const pb = new ArrayBuffer(128), pf = new Float32Array(pb), pu = new Uint32Array(pb);
             const D = world.dim === 3 ? world.depth : 0;
             pf.set([world.width, world.height, D, L.R,
                 L.coreR, L.coreK, L.forceScale, L.friction,
@@ -180,14 +194,14 @@
             pu.set([n, L.T, grid.cols, grid.rows, grid.layers, grid.cells, world.dim,
                 (L.hasOrientation ? 1 : 0) | (L.hasReactions ? 2 : 0) | (world.bondsEnabled ? 4 : 0),
                 light.cols, light.rows, light.layers], 17);
-            device.queue.writeBuffer(this.params, 0, pb);
-            device.queue.writeBuffer(this.laws, 0, packLaws(L));
-            device.queue.writeBuffer(this.counters, 0, new Uint32Array(4));
-            device.queue.writeBuffer(this.cellCount, 0, new Uint32Array(grid.cells));
-            this.upload();
-            this.uploadLight();
+            pf.set([L.restitution || 0, L.dmin || L.coreR, L.agitation || 0, L.energyValence || 0], 28);
+            this.device.queue.writeBuffer(this.params, 0, pb);
+            this.device.queue.writeBuffer(this.laws, 0, packLaws(L));
+        }
 
-            this.makeBindGroups();
+        /** Call after the world's laws changed (e.g. pressure). */
+        updateLaws() {
+            if (gpu.device) this.writeParams();
         }
 
         makeBindGroups() {
@@ -205,7 +219,10 @@
                 scan: bg(P.scan, [this.params, this.cellCount, this.cellStart]),
                 scatter: bg(P.scatter, [this.params, this.cellInfo, this.cellStart, this.sorted]),
                 pairs: [0, 1].map((c) => bg(P.pairs, [this.params, this.state[c], this.partner, this.laws, this.cellStart, this.sorted, this.acc])),
-                update: [0, 1].map((c) => bg(P.update, [this.params, this.state[c], this.state[1 - c], this.acc, this.partner, this.laws, this.light, this.counters]))
+                update: [0, 1].map((c) => bg(P.update, [this.params, this.state[c], this.state[1 - c], this.acc, this.partner, this.laws, this.light, this.counters])),
+                // reads the updated state (1 - c), writes the corrected one back into c
+                contact: [0, 1].map((c) => bg(P.contact, [this.params, this.state[1 - c], this.state[c], this.laws, this.cellStart, this.sorted])),
+                contactBack: [0, 1].map((c) => bg(P.contact, [this.params, this.state[c], this.state[1 - c], this.laws, this.cellStart, this.sorted]))
             };
             this.clockBG = { pairs: clocks(P.pairs), update: clocks(P.update) };
         }
@@ -272,8 +289,15 @@
                 pass.setBindGroup(0, this.bg.update[c]);
                 pass.setBindGroup(1, this.clockBG.update[s]);
                 pass.dispatchWorkgroups(groups);
+                // hard boundary: CONTACT_PASSES (odd) Jacobi passes 1-c -> c -> 1-c ... -> c;
+                // dense clusters need more than one
+                pass.setPipeline(P.contact);
+                for (let k = 0; k < CONTACT_PASSES; k++) {
+                    pass.setBindGroup(0, k % 2 === 0 ? this.bg.contact[c] : this.bg.contactBack[c]);
+                    pass.dispatchWorkgroups(groups);
+                }
                 pass.end();
-                this.cur = 1 - c;
+                // the corrected state is back in buffer c
             }
             device.queue.submit([enc.finish()]);
             this.steps += k;

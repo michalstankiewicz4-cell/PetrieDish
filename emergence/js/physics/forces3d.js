@@ -22,7 +22,10 @@
         const x = world.x, y = world.y, z = world.z, fx = world.fx, fy = world.fy, fz = world.fz, type = world.type;
         const W = world.width, H = world.height, D = world.depth, hw = W / 2, hh = H / 2, hd = D / 2;
         const R = L.R, R2 = R * R, invR = 1 / R, coreR = L.coreR, coreK = L.coreK, fs = L.forceScale;
-        const amp = L.amp, kk = L.k, ph = L.phase, formDist = L.bondFormDist;
+        const amp = L.amp, kk = L.k, ph = L.phase, off = L.offset, formDist = L.bondFormDist;
+        // pairs closer than this may overlap after moving: the hard boundary checks them (World.contacts)
+        const nearR = L.dmin + 2 * L.maxSpeed, near2 = nearR * nearR;
+        world.nearCount = 0;
         const orient = L.hasOrientation, polar = L.polar, torque = L.torque;
         const hx = world.hx, hy = world.hy, hz = world.hz, tx = world.tx, ty = world.ty, tz = world.tz;
         const bonding = world.bondsEnabled, tryForm = EM.bonds.tryForm;
@@ -59,7 +62,9 @@
                         let dz = z[j] - zi;
                         if (dz > hd) dz -= D; else if (dz < -hd) dz += D;
                         const d2 = dx * dx + dy * dy + dz * dz;
-                        if (d2 >= R2 || d2 === 0) continue;
+                        if (d2 >= R2) continue;
+                        if (d2 < near2) world.addNear(i, j);
+                        if (d2 === 0) continue;
 
                         const d = Math.sqrt(d2);
                         const nx = dx / d, ny = dy / d, nz = dz / d;
@@ -75,7 +80,7 @@
                             let k0 = u | 0;
                             let fr = u - k0;
                             k0 &= SIN_MASK;
-                            fij = amp[pij] * (SIN[k0] + (SIN[k0 + 1] - SIN[k0]) * fr) * fall;
+                            fij = amp[pij] * (SIN[k0] + (SIN[k0 + 1] - SIN[k0]) * fr + off[pij]) / (1 + off[pij]) * fall;
                             const pji = tj * T + ti;
                             if (pji === pij) {
                                 fji = fij;
@@ -84,7 +89,7 @@
                                 k0 = u | 0;
                                 fr = u - k0;
                                 k0 &= SIN_MASK;
-                                fji = amp[pji] * (SIN[k0] + (SIN[k0 + 1] - SIN[k0]) * fr) * fall;
+                                fji = amp[pji] * (SIN[k0] + (SIN[k0 + 1] - SIN[k0]) * fr + off[pji]) / (1 + off[pji]) * fall;
                             }
 
                             if (orient) {

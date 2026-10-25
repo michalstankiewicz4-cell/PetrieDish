@@ -1,85 +1,78 @@
 /**
- * Genome of a world = all parameters of its physical laws.
+ * Genome of a world = the physical laws, as plain JSON (save, share, mutate
+ * by the ML lab). compile() turns it into the typed arrays the physics reads.
  *
- * The genome is plain JSON (easy to save, share, mutate by the ML lab).
- * compile() turns it into typed arrays used by the physics ("laws").
+ * Photon model (format 2, since v0.7):
+ *  - every photon is the same particle with the same radius; photons differ
+ *    only by their STATE: charge (-2..+2), and with it mass, plus energy.
+ *    The physics groups photons by charge, so `type` = charge + 2 (T = 5).
+ *  - hard boundary: centres never closer than dmin = 2 r (1 + 0.5 (1 - pressure));
+ *    at pressure 1 photons just touch.
+ *  - strong interaction: very short range, saturating (at most `valence`
+ *    partners) - holds touching photons together (bonds at contact distance).
+ *  - electromagnetic interaction: the Gravitation wave
+ *    f = sign * |q|avg * (sin(2 pi (periods d / R + phaseShift)) + offset) / (1 + offset) * (1 - d/R)
+ *    sign: opposite charges attract (+), like / neutral repel (-).
+ *  - energy: hot photons get stronger random kicks (agitation x e) and may
+ *    hold fewer strong bonds (valence - floor(e x valence x energyValence));
+ *    bonds above that limit break (chance 1/4 per step).
+ *  - weak interaction (changes of charge): planned.
  *
- * IMPORTANT: random() draws values in the order of the SPECS lists below.
- * Changing that order changes every existing seed - append new specs at the end.
+ * IMPORTANT: random() draws values in the order of SPECS - append new specs
+ * at the end, otherwise every existing seed changes.
  */
 (function (EM) {
     'use strict';
 
     const TAU = Math.PI * 2;
-    const FORMAT = 1;
+    const FORMAT = 2;
+    /** charge classes: type t has charge t - 2 */
+    const CHARGES = [-2, -1, 0, 1, 2];
+    const T = CHARGES.length;
 
-    /** Global parameters. */
-    const GLOBAL_SPECS = [
-        { key: 'range', min: 20, max: 48 },           // interaction range R (px)
-        { key: 'coreRadius', min: 3, max: 6 },        // hard-core repulsion radius (px)
-        { key: 'coreStrength', min: 0.5, max: 2 },
-        { key: 'forceScale', min: 0.05, max: 0.4 },   // amplitude of the wave force
+    const SPECS = [
+        // --- environment ---
+        { key: 'pressure', min: 0.3, max: 1 },        // 1 = photons may touch; lower keeps them further apart
         { key: 'friction', min: 0.03, max: 0.2 },     // velocity loss per step
         { key: 'temperature', min: 0, max: 0.2 },     // thermal noise
-        { key: 'symmetry', min: 0, max: 1 },          // 1 = action equals reaction, 0 = fully one-sided
-        { key: 'bondFormRate', min: 0.005, max: 0.1 }, // chance per contact step (x affinity)
-        // --- energy & environment (v0.1) ---
-        { key: 'lightAmbient', min: 0, max: 0.3 },    // light everywhere
+        { key: 'restitution', min: 0, max: 0.6 },     // bounce at the hard boundary (0 = no bounce)
+        // --- photon recipe: charges and mass ---
+        { key: 'neutralShare', min: 0, max: 0.5 },    // share of photons with charge 0
+        { key: 'doubleShare', min: 0, max: 0.35 },    // share of charged photons with |q| = 2
+        { key: 'positiveShare', min: 0.3, max: 0.7 }, // share of charged photons with q > 0
+        { key: 'massBase', min: 0.5, max: 2 },        // mass of a neutral photon
+        { key: 'massPerCharge', min: 0, max: 1 },     // + this x |q|
+        // --- electromagnetic interaction (Gravitation wave) ---
+        { key: 'range', min: 20, max: 48 },           // R (px)
+        { key: 'forceScale', min: 0.05, max: 0.3 },
+        { key: 'periods', min: 0.5, max: 3 },         // attract/repel shells inside R
+        { key: 'waveOffset', min: 0, max: 1 },        // 1 = sign never flips (pure Coulomb-like)
+        { key: 'phaseShift', min: 0, max: 1, wrap: true },
+        // --- strong interaction ---
+        { key: 'valence', min: 0, max: 4, int: true }, // saturation: max strong partners
+        { key: 'strongReach', min: 0.1, max: 0.6 },   // forms within dmin x (1 + reach)
+        { key: 'strongRate', min: 0.005, max: 0.1 },  // chance per contact step
+        { key: 'strongK', min: 0.05, max: 0.5 },      // stiffness
+        { key: 'breakStretch', min: 1.3, max: 2.5 },  // breaks beyond dmin x this
+        { key: 'bindEnergy', min: 0.05, max: 2 },     // max squared relative speed that still binds
+        { key: 'activation', min: 0, max: 1 },        // < 0.3 = 0; energy spent to bind (released on break)
+        { key: 'decay', min: 0, max: 1 },             // < 0.6 = 0; spontaneous break, faster with energy
+        // --- energy ---
+        { key: 'absorb', min: 0, max: 0.03 },         // light -> energy per step; < 0.01 = 0
+        { key: 'leak', min: 0.002, max: 0.03 },
+        { key: 'energyShare', min: 0, max: 0.2 },     // energy flow along strong bonds
+        { key: 'lightAmbient', min: 0, max: 0.3 },
         { key: 'sunCount', min: 0, max: 3, int: true },
-        { key: 'sunRadius', min: 0.1, max: 0.4 },     // x min(world width, height)
-        { key: 'sunDrift', min: 0, max: 0.3 },        // px per step
-        { key: 'dayPeriod', min: 0, max: 6000 },      // steps; < 500 = no day/night
-        { key: 'energyShare', min: 0, max: 0.2 },     // energy flowing along a bond per step
-        { key: 'reactionRate', min: 0, max: 0.05 },   // chance per bond per step that a reaction fires
-        { key: 'spin', min: 0, max: 0.2 }             // rotational noise of orientations
+        { key: 'sunRadius', min: 0.1, max: 0.4 },
+        { key: 'sunDrift', min: 0, max: 0.3 },
+        { key: 'dayPeriod', min: 0, max: 6000 },      // < 500 = no day/night
+        // --- energy and motion / bonding ---
+        { key: 'agitation', min: 0, max: 0.4 },       // random kick x energy: hot photons move faster
+        { key: 'energyValence', min: 0, max: 1 }      // allowed bonds = valence - floor(e x valence x this)
     ];
 
-    /** Directional pair parameters: [i][j] = how type i reacts to type j. */
-    const PAIR_SPECS = [
-        { key: 'amp', min: -1, max: 1 },              // + attracts, - repels (sign of the first ring)
-        { key: 'phase', min: 0, max: TAU, wrap: true },
-        { key: 'waves', min: 0.5, max: 3 },           // number of attract/repel rings within R
-        // --- orientation (v0.1): |value| < 0.5 compiles to 0, so most pairs ignore it ---
-        { key: 'polar', min: -1, max: 1 },            // force x (1 + polar * cos(angle between i's heading and j))
-        { key: 'torque', min: -1, max: 1 },           // + turns i's heading towards j, - away
-        // --- reactions (v0.1): i bonded to j may turn into another type ---
-        { key: 'rxChance', min: 0, max: 1 },          // < 0.75 compiles to "no reaction"
-        { key: 'rxTarget', min: 0, max: 7, int: true }, // new type of i (mod types)
-        { key: 'rxThreshold', min: 0.2, max: 0.9 }    // energy of i needed (and spent)
-    ];
-
-    /** Symmetric bond parameters: [i][j] == [j][i]. */
-    const BOND_SPECS = [
-        { key: 'bondAffinity', min: 0, max: 1 },      // < 0.4 means "never bonds" (see compile)
-        { key: 'bondLength', min: 1.1, max: 3 },      // x coreRadius
-        { key: 'bondStiffness', min: 0.02, max: 0.4 },
-        { key: 'bindEnergy', min: 0.05, max: 2 },     // max squared relative speed allowing a bond
-        { key: 'breakStretch', min: 1.4, max: 3 },    // bond breaks beyond length x this
-        // --- energy (v0.1) ---
-        { key: 'activation', min: 0, max: 1 },        // < 0.3 compiles to 0; energy (sum of both) spent to form
-        { key: 'decay', min: 0, max: 1 }              // < 0.6 compiles to 0; spontaneous break chance
-    ];
-
-    /** Per-type parameters. */
-    const TYPE_SPECS = [
-        { key: 'valence', min: 0, max: 4, int: true }, // max bonds of this type
-        { key: 'hue', min: 0, max: 360, wrap: true },
-        // --- energy & motion (v0.1) ---
-        { key: 'mass', min: 0.5, max: 2 },
-        { key: 'absorb', min: 0, max: 0.03 },         // light -> energy per step; < 0.01 compiles to 0
-        { key: 'leak', min: 0.002, max: 0.03 },       // energy lost per step (fraction)
-        { key: 'thrust', min: 0, max: 0.08 }          // push along heading x energy; < 0.03 compiles to 0
-    ];
-
-    const AFFINITY_THRESHOLD = 0.4;
-    /** Specs a genome saved before they existed gets (neutral = "off"). */
-    const NEUTRAL = {
-        global: { lightAmbient: 0.1, sunCount: 1, sunRadius: 0.25, sunDrift: 0, dayPeriod: 0, energyShare: 0, reactionRate: 0, spin: 0.02 },
-        pair: { polar: 0, torque: 0, rxChance: 0, rxTarget: 0, rxThreshold: 0.5 },
-        bond: { activation: 0, decay: 0 },
-        type: { mass: 1, absorb: 0, leak: 0.01, thrust: 0 }
-    };
-    const gate = (v, threshold) => (Math.abs(v) < threshold ? 0 : v);
+    /** Values a genome saved before a spec existed gets. */
+    const NEUTRAL = {};
 
     function draw(rng, spec) {
         if (spec.int) return Math.min(spec.max, spec.min + Math.floor(rng.next() * (spec.max - spec.min + 1)));
@@ -96,141 +89,115 @@
         return spec.int ? Math.round(v) : v;
     }
 
-    /** New random genome. Same (seed, types) always gives the same genome. */
-    function random(seed, types) {
-        const T = Math.max(1, Math.min(EM.config.MAX_TYPES, types | 0));
+    /** New random laws. The same seed always gives the same laws. */
+    function random(seed) {
         const rng = new EM.Rng(seed);
-        const g = { format: FORMAT, seed: seed >>> 0, types: T, global: {}, pair: {}, bond: {}, type: {} };
-
-        GLOBAL_SPECS.forEach((s) => { g.global[s.key] = draw(rng, s); });
-
-        PAIR_SPECS.forEach((s) => {
-            const arr = new Array(T * T);
-            for (let i = 0; i < T; i++) for (let j = 0; j < T; j++) arr[i * T + j] = draw(rng, s);
-            g.pair[s.key] = arr;
-        });
-
-        BOND_SPECS.forEach((s) => {
-            const arr = new Array(T * T);
-            for (let i = 0; i < T; i++) {
-                for (let j = i; j < T; j++) {
-                    const v = draw(rng, s);
-                    arr[i * T + j] = v;
-                    arr[j * T + i] = v;
-                }
-            }
-            g.bond[s.key] = arr;
-        });
-
-        TYPE_SPECS.forEach((s) => {
-            g.type[s.key] = Array.from({ length: T }, () => draw(rng, s));
-        });
-        // spread colours around the wheel, the drawn hue only jitters it
-        g.type.hue = g.type.hue.map((h, i) => clampSpec(TYPE_SPECS[1], i * 360 / T + (h - 180) * 0.15));
-
+        const g = { format: FORMAT, seed: seed >>> 0, types: T, global: {} };
+        SPECS.forEach((s) => { g.global[s.key] = draw(rng, s); });
         return g;
+    }
+
+    /** Mutated copy: each value changes with probability `rate` by sigma x its range. */
+    function mutate(genome, rng, { rate = 0.15, sigma = 0.12 } = {}) {
+        const g = JSON.parse(JSON.stringify(genome));
+        SPECS.forEach((s) => {
+            if (rng.next() < rate) g.global[s.key] = clampSpec(s, g.global[s.key] + rng.normal() * sigma * (s.max - s.min));
+        });
+        return g;
+    }
+
+    /** Minimal distance of two photon centres at a given pressure. */
+    function contactDistance(pressure) {
+        const p = Math.max(0, Math.min(1, pressure));
+        return 2 * EM.config.PHOTON_RADIUS * (1 + 0.5 * (1 - p));
     }
 
     /**
-     * Returns a mutated copy. Each value changes with probability `rate` by a
-     * normal step of `sigma` x (its range). Symmetric bond values stay symmetric.
+     * Fills everything that depends on the pressure (hard boundary, strong
+     * interaction distances). Used by compile() and when the pressure changes live.
      */
-    function mutate(genome, rng, { rate = 0.15, sigma = 0.12 } = {}) {
-        const g = JSON.parse(JSON.stringify(genome));
-        const T = g.types;
-        const step = (s, v) => (rng.next() < rate ? clampSpec(s, v + rng.normal() * sigma * (s.max - s.min)) : v);
-
-        GLOBAL_SPECS.forEach((s) => { g.global[s.key] = step(s, g.global[s.key]); });
-        PAIR_SPECS.forEach((s) => { g.pair[s.key] = g.pair[s.key].map((v) => step(s, v)); });
-        BOND_SPECS.forEach((s) => {
-            const arr = g.bond[s.key];
-            for (let i = 0; i < T; i++) {
-                for (let j = i; j < T; j++) {
-                    const v = step(s, arr[i * T + j]);
-                    arr[i * T + j] = v;
-                    arr[j * T + i] = v;
-                }
-            }
-        });
-        TYPE_SPECS.forEach((s) => { g.type[s.key] = g.type[s.key].map((v) => step(s, v)); });
-        return g;
+    function applyPressure(L, pressure) {
+        const G = L.genes;
+        L.pressure = Math.max(0, Math.min(1, pressure));
+        const dmin = L.dmin = contactDistance(L.pressure);
+        L.coreR = dmin;
+        for (let p = 0; p < T * T; p++) {
+            L.bondLen[p] = dmin;
+            L.bondFormDist[p] = dmin * (1 + G.strongReach);
+            L.bondBreak[p] = dmin * G.breakStretch;
+        }
+        return L;
     }
 
-    /** Typed arrays and derived values used by the physics. */
+    /** Typed arrays (per charge pair / charge class) used by the physics. */
     function compile(g) {
-        const T = g.types;
         const G = g.global;
-        const s = G.symmetry;
-        const P = g.pair, B = g.bond;
         const n = T * T;
-
-        const amp = new Float32Array(n), phase = new Float32Array(n), k = new Float32Array(n);
+        const amp = new Float32Array(n), phase = new Float32Array(n), k = new Float32Array(n), offset = new Float32Array(n);
         const bondAff = new Float32Array(n), bondLen = new Float32Array(n), bondFormDist = new Float32Array(n);
         const bondBreak = new Float32Array(n), bondK = new Float32Array(n), bindE = new Float32Array(n);
-        const polar = new Float32Array(n), torque = new Float32Array(n);
         const activation = new Float32Array(n), decay = new Float32Array(n);
+        const polar = new Float32Array(n), torque = new Float32Array(n);
         const rxTo = new Int8Array(n).fill(-1), rxThr = new Float32Array(n);
-        let hasOrientation = false, hasReactions = false;
 
+        const act = G.activation < 0.3 ? 0 : G.activation;
+        const dec = G.decay < 0.6 ? 0 : (G.decay - 0.6) * 0.005;
         for (let i = 0; i < T; i++) {
             for (let j = 0; j < T; j++) {
-                const p = i * T + j, q = j * T + i;
-                // symmetry blends each directional value with its mirror
-                amp[p] = s * (P.amp[p] + P.amp[q]) / 2 + (1 - s) * P.amp[p];
-                phase[p] = s * (P.phase[p] + P.phase[q]) / 2 + (1 - s) * P.phase[p];
-                const waves = s * (P.waves[p] + P.waves[q]) / 2 + (1 - s) * P.waves[p];
-                k[p] = TAU * waves / G.range;
-
-                bondAff[p] = Math.max(0, (B.bondAffinity[p] - AFFINITY_THRESHOLD) / (1 - AFFINITY_THRESHOLD));
-                bondLen[p] = B.bondLength[p] * G.coreRadius;
-                bondFormDist[p] = bondLen[p] * 1.25;
-                bondBreak[p] = bondLen[p] * B.breakStretch[p];
-                bondK[p] = B.bondStiffness[p];
-                bindE[p] = B.bindEnergy[p];
-
-                polar[p] = gate(P.polar[p], 0.5);
-                torque[p] = gate(P.torque[p], 0.5) * 0.05;
-                if (polar[p] || torque[p]) hasOrientation = true;
-                activation[p] = B.activation[p] < 0.3 ? 0 : B.activation[p];
-                decay[p] = B.decay[p] < 0.6 ? 0 : (B.decay[p] - 0.6) * 0.005;
-                const target = P.rxTarget[p] % T;
-                if (P.rxChance[p] >= 0.75 && target !== i) {
-                    rxTo[p] = target;
-                    rxThr[p] = P.rxThreshold[p];
-                    hasReactions = true;
-                }
+                const p = i * T + j, qi = CHARGES[i], qj = CHARGES[j];
+                // Gravitation: opposite charges attract, like (and neutral) repel
+                const sign = qi * qj < 0 ? 1 : -1;
+                amp[p] = sign * (Math.abs(qi) + Math.abs(qj)) / 2;
+                k[p] = TAU * G.periods / G.range;
+                phase[p] = TAU * G.phaseShift;
+                offset[p] = G.waveOffset;
+                bondAff[p] = G.valence > 0 ? 1 : 0;
+                bondK[p] = G.strongK;
+                bindE[p] = G.bindEnergy;
+                activation[p] = act;
+                decay[p] = dec;
             }
         }
 
-        const valence = new Uint8Array(T);
-        const invMass = new Float32Array(T), absorb = new Float32Array(T), leak = new Float32Array(T), thrust = new Float32Array(T);
-        const color = [];
-        const Ty = g.type;
+        const valence = new Uint8Array(T), invMass = new Float32Array(T);
+        const absorb = new Float32Array(T), leak = new Float32Array(T), thrust = new Float32Array(T);
+        const weights = new Float32Array(T);
+        const charged = 1 - G.neutralShare;
         for (let t = 0; t < T; t++) {
-            valence[t] = Math.min(EM.config.MAX_VALENCE, Ty.valence[t]);
-            invMass[t] = 1 / Ty.mass[t];
-            absorb[t] = Ty.absorb[t] < 0.01 ? 0 : Ty.absorb[t];
-            leak[t] = Ty.leak[t];
-            thrust[t] = Ty.thrust[t] < 0.03 ? 0 : Ty.thrust[t];
-            color.push(`hsl(${Ty.hue[t].toFixed(0)}, 80%, 62%)`);
+            const q = CHARGES[t], aq = Math.abs(q);
+            valence[t] = Math.min(EM.config.MAX_VALENCE, G.valence);
+            invMass[t] = 1 / (G.massBase + G.massPerCharge * aq);
+            absorb[t] = G.absorb < 0.01 ? 0 : G.absorb;
+            leak[t] = G.leak;
+            if (q === 0) weights[t] = G.neutralShare;
+            else weights[t] = charged * (aq === 2 ? G.doubleShare : 1 - G.doubleShare) * (q > 0 ? G.positiveShare : 1 - G.positiveShare);
         }
 
-        return {
+        const L = {
+            format: FORMAT,
+            genes: G,
             T,
+            charge: Int8Array.from(CHARGES),
+            /** share of each charge class at spawn */
+            typeWeights: weights,
+            radius: EM.config.PHOTON_RADIUS,
             R: G.range,
-            coreR: G.coreRadius,
-            coreK: G.coreStrength,
+            coreR: 0, // = dmin, set by applyPressure
+            coreK: 1,
             forceScale: G.forceScale,
             friction: G.friction,
             temperature: G.temperature,
-            bondFormRate: G.bondFormRate,
+            restitution: G.restitution,
+            agitation: G.agitation,
+            energyValence: G.energyValence,
+            bondFormRate: G.strongRate,
             maxSpeed: EM.config.MAX_SPEED,
-            amp, phase, k,
+            amp, phase, k, offset,
             bondAff, bondLen, bondFormDist, bondBreak, bondK, bindE,
-            valence, color,
-            // orientation
-            polar, torque, hasOrientation, spin: G.spin,
-            // energy
+            valence,
+            color: EM.config.CHARGE_COLORS.slice(),
+            // orientation is not part of this model (kept for shared code)
+            polar, torque, hasOrientation: false, spin: 0,
             invMass, absorb, leak, thrust, activation, decay, energyShare: G.energyShare,
             light: {
                 ambient: G.lightAmbient,
@@ -239,29 +206,25 @@
                 drift: G.sunDrift,
                 dayPeriod: G.dayPeriod < 500 ? 0 : G.dayPeriod
             },
-            // reactions
-            rxTo, rxThr, hasReactions, reactionRate: G.reactionRate
+            // weak interaction (charge changes) - planned
+            rxTo, rxThr, hasReactions: false, reactionRate: 0
         };
+        return applyPressure(L, G.pressure);
     }
 
     /**
-     * Force of type `j` on type `i` at distance d (positive = attraction).
-     * Same formula as the physics; used by the UI to draw force curves.
+     * Force of class j on class i at distance d (positive = attraction),
+     * electromagnetic + hard core. Used by the UI for force curves.
      */
     function forceAt(laws, i, j, d) {
         if (d < laws.coreR) return laws.coreK * (d / laws.coreR - 1);
         if (d >= laws.R) return 0;
-        const p = i * laws.T + j;
-        return laws.forceScale * laws.amp[p] * Math.sin(laws.k[p] * d + laws.phase[p]) * (1 - d / laws.R);
+        const p = i * laws.T + j, off = laws.offset[p];
+        return laws.forceScale * laws.amp[p] * (Math.sin(laws.k[p] * d + laws.phase[p]) + off) / (1 + off) * (1 - d / laws.R);
     }
 
-    /** Adds parameters introduced after the genome was saved, with neutral values. */
     function fillMissing(g) {
-        const n = g.types * g.types;
-        Object.entries(NEUTRAL.global).forEach(([k, v]) => { if (typeof g.global[k] !== 'number') g.global[k] = v; });
-        Object.entries(NEUTRAL.pair).forEach(([k, v]) => { if (!Array.isArray(g.pair[k])) g.pair[k] = new Array(n).fill(v); });
-        Object.entries(NEUTRAL.bond).forEach(([k, v]) => { if (!Array.isArray(g.bond[k])) g.bond[k] = new Array(n).fill(v); });
-        Object.entries(NEUTRAL.type).forEach(([k, v]) => { if (!Array.isArray(g.type[k])) g.type[k] = new Array(g.types).fill(v); });
+        Object.entries(NEUTRAL).forEach(([key, v]) => { if (typeof g.global[key] !== 'number') g.global[key] = v; });
         return g;
     }
 
@@ -271,21 +234,20 @@
 
     function fromJSON(text) {
         const g = JSON.parse(text);
-        if (!g || g.format !== FORMAT || !(g.types >= 1 && g.types <= EM.config.MAX_TYPES)) {
-            throw new Error('Unsupported genome file');
-        }
-        const n = g.types * g.types;
+        if (g && g.format === 1) throw new Error('these laws are from Emergence v0.6 or older (classic physics) – open them in the v0.6 version');
+        if (!g || g.format !== FORMAT || !g.global) throw new Error('Unsupported genome file');
         fillMissing(g);
-        PAIR_SPECS.concat(BOND_SPECS).forEach((s) => {
-            const src = PAIR_SPECS.includes(s) ? g.pair : g.bond;
-            if (!Array.isArray(src[s.key]) || src[s.key].length !== n) throw new Error(`Genome: bad ${s.key}`);
+        SPECS.forEach((s) => {
+            if (typeof g.global[s.key] !== 'number') throw new Error(`Genome: bad ${s.key}`);
         });
+        g.types = T;
         return g;
     }
 
     EM.genome = {
         FORMAT,
-        SPECS: { GLOBAL_SPECS, PAIR_SPECS, BOND_SPECS, TYPE_SPECS },
-        random, mutate, compile, forceAt, toJSON, fromJSON, fillMissing
+        CHARGES,
+        SPECS,
+        random, mutate, compile, applyPressure, contactDistance, forceAt, toJSON, fromJSON, fillMissing
     };
 })(EM);

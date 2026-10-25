@@ -1,120 +1,118 @@
-# Fizyka – wzory (v0.3)
+# Fizyka – wzory (v0.7, model fotonów)
 
-Tylko to, co jest w `js/physics/`. Oznaczenia: `i`, `j` – fotony, `d` – odległość
-(przez krawędź torusa), `n = (dx, dy) / d` – kierunek i → j, `p = typ_i · T + typ_j`.
-Jednostki: piksele i kroki symulacji. Wszystkie parametry pochodzą z genomu praw
-(`js/core/genome.js`), zakresy w nawiasach to zakresy losowania.
+Tylko to, co jest w `js/physics/` (i to samo w `js/gpu/kernels.js`). Oznaczenia: `i`, `j` –
+fotony, `d` – odległość środków (przez krawędź torusa), `n` – kierunek i → j, `e` – energia
+fotonu (0–1), `q` – ładunek. Jednostki: piksele i kroki symulacji. Parametry pochodzą z
+genomu praw (`js/core/genome.js`, format 2); w nawiasach zakresy losowania.
 
-## Krok symulacji (`World.step`)
+Poprzedni model (typy z macierzami praw, orientacja, reakcje) – wersja v0.6 w folderze
+`v0.6/` (osobna strona, osobne archiwum Labu).
 
-1. Siatka przestrzenna (sortowanie przez zliczanie, komórka ≥ R).
-2. Kierunki `h_i = (cos θ_i, sin θ_i)` (gdy prawa mają orientację).
-3. Światło: dryf słońc, co 10 kroków nowe pole.
-4. Siły parami + kandydaci do wiązań (`forces.js`).
-5. Sprężyny wiązań, przepływ energii, rozpad (`bonds.js`).
-6. Reakcje (`reactions.js`).
-7. Całkowanie (`World.integrate`).
+## Foton
 
-## Siły parami (każda para raz)
+Wszystkie fotony to **ta sama cząstka** o tym samym promieniu `r = 3 px`
+(`EM.config.PHOTON_RADIUS`). Różnią się tylko stanem:
 
-| Strefa | Siła na i (dodatnia = do j) |
-| --- | --- |
-| `d < coreR` (3–6) | `coreK · (d / coreR − 1)` – odpychanie, coreK 0.5–2 |
-| `coreR ≤ d < R` (R 20–48) | `F_ij = forceScale · amp[p] · sin(k[p] · d + phase[p]) · (1 − d/R)` |
-| `d ≥ R` | 0 |
+| Stan | Co to | Zmienia się |
+| --- | --- | --- |
+| pozycja, prędkość | 2D albo 3D, torus | co krok |
+| ładunek `q` | −2, −1, 0, +1, +2; w kodzie `type = q + 2` (kolor) | na razie stały (siła słaba – plan) |
+| masa | `massBase (0.5–2) + massPerCharge (0–1) · |q|` | z ładunkiem |
+| energia `e` | 0–1 | światło, wyciek, wiązania |
+| wiązania silne | do 4 partnerów | tworzą się i pękają |
 
-- `k[p] = 2π · waves[p] / R`, waves 0.5–3 → 0.5–3 „pierścieni” przyciągania/odpychania.
-- `amp` −1…1, `phase` 0–2π, `forceScale` 0.05–0.4. Parametry są **kierunkowe**:
-  `F_ij ≠ F_ji`, wymieszane przez `symmetry` (0 = całkiem jednostronne, 1 = akcja = reakcja).
-- **Orientacja** (gdy |polar| ≥ 0.5 lub |torque| ≥ 0.5 dla jakiejś pary):
-  - `F_ij ← F_ij · (1 + polar[p] · (h_i · n))` – „głowa” i „ogon” czują sąsiada inaczej;
-  - `θ_i += torque[p] · 0.05 · (h_i × n) · (1 − d/R)` – obrót do (+) lub od (−) sąsiada.
-- Sinus z tablicy 4096 wartości z interpolacją liniową.
+Skład na starcie: `neutralShare` (0–0.5) fotonów obojętnych; wśród naładowanych
+`doubleShare` (0–0.35) z |q| = 2 i `positiveShare` (0.3–0.7) dodatnich.
 
-## Wiązania
+## Krok (`World.step`)
 
-- **Powstanie** – para w odległości `< 1.25 · bondLength` próbuje, gdy:
-  `affinity > 0` (wylosowane < 0.4 = nigdy się nie wiąże), obie mają wolną walencję
-  (walencja typu 0–4), kwadrat prędkości względnej `≤ bindEnergy` (0.05–2),
-  `e_i + e_j ≥ activation` (0 albo 0.3–1), a losowanie `< affinity · bondFormRate` (0.005–0.1).
-  Energia aktywacji jest zużywana (proporcjonalnie do energii obu fotonów).
-- **Sprężyna**: `F = bondK · (d − bondLength) + 0.15 · (v_j − v_i) · n`,
-  `bondLength = (1.1–3) · coreR`, `bondK` 0.02–0.4.
-- **Przepływ energii**: `Δ = (e_j − e_i) · energyShare · 0.5` (energyShare 0–0.2).
-- **Rozpad**: `d > breakStretch · bondLength` (1.4–3) albo losowo z szansą
-  `decay · (1 + e_i + e_j)` (decay 0 albo do 0.002). Przy rozpadzie każdy foton
-  odzyskuje `activation / 2` energii.
+1. Siatka przestrzenna (komórki ≥ R).
+2. Pary: siła elektromagnetyczna + miękki rdzeń, kandydaci do wiązań silnych, lista bliskich par.
+3. Wiązania silne: sprężyny, przepływ energii, pękanie.
+4. Całkowanie: światło, wyciek, tarcie, szarpnięcia (temperatura + energia), limit prędkości.
+5. **Twarda granica** (`World.contacts`).
 
-## Reakcje
+## Twarda granica i ciśnienie
 
-Dla fotonu i związanego z j (typy a, b): jeśli tabela ma reakcję `a+b → c`
-(~25% par), `e_i ≥ próg` (0.2–0.9) i losowanie `< reactionRate` (0–0.05), to
-i zmienia typ na c i traci `próg` energii. Najwyżej jedna reakcja na foton na krok.
-Gdy nowy typ ma mniejszą walencję, nadmiarowe wiązania pękają. Liczba fotonów
-się nie zmienia.
+Środki dwóch fotonów nie zbliżają się bardziej niż
 
-## Energia i ruch (`World.integrate`)
+`dmin = 2 r · (1 + 0.5 · (1 − ciśnienie))`
 
-- `e += absorb[typ] · światło(x, y)` (absorb 0 albo 0.01–0.03), potem `e −= leak · e` (0.002–0.03).
-- Przyspieszenie `a = F / masa` (masa typu 0.5–2).
-- **Napęd** (typy z thrust 0.03–0.08): gdy `e > 0.05`: `a += h · thrust · e`, `e −= thrust · e / 2`.
-- Obrót: `θ += suma momentów + szum · spin` (spin 0–0.2).
-- `v = (v + a) · (1 − friction) + szum` (friction 0.03–0.2, szum ±temperature/2, temperature 0–0.2).
-- Limit prędkości 4, zawijanie torusa. Energia przycinana do 0–1.
+Ciśnienie (0–1, losowane 0.3–1, suwak **Pressure** działa na żywo) to właściwość środowiska:
+przy 1 fotony stykają się powierzchniami (`dmin = 2r`), przy niższym trzymają się dalej.
+Po ruchu nakładające się pary są rozsuwane (lżejszy foton przesuwa się bardziej, pęd zachowany)
+i tracą prędkość zbliżania, z odbiciem `restitution` (0–0.6). CPU: do 4 przejść po bliskich
+parach; GPU: 5 przejść równoległych.
+
+## Siła elektromagnetyczna (fala z Gravitation)
+
+Dla `dmin ≤ d < R` (R 20–48), dodatnia = przyciąganie:
+
+`F = forceScale · znak · (|q_i| + |q_j|)/2 · (sin(2π · (periods · d / R + phaseShift)) + offset) / (1 + offset) · (1 − d/R)`
+
+- `znak = +1` gdy ładunki przeciwne, `−1` gdy jednakowe albo jeden obojętny.
+- `periods` 0.5–3 – liczba powłok przyciągania/odpychania w zasięgu R;
+  `phaseShift` 0–1 przesuwa je; `waveOffset` 0–1: 0 = klasyczna fala (jednakowe ładunki
+  przyciągają się w niektórych powłokach), 1 = znak nigdy się nie zmienia (jak Coulomb).
+- `forceScale` 0.05–0.3. Dwa obojętne fotony nie czują tej siły.
+- Poniżej `dmin` działa jeszcze miękkie odpychanie `d/dmin − 1` (zanim zadziała twarda granica).
+
+## Siła silna (wiązania)
+
+Bardzo krótki zasięg, nasycająca się, taka sama dla wszystkich fotonów:
+
+- **Powstaje**, gdy `d < dmin · (1 + strongReach)` (0.1–0.6), oba fotony mają wolne miejsce,
+  kwadrat prędkości względnej `≤ bindEnergy` (0.05–2), razem mają energię aktywacji
+  (`activation`: 0 albo 0.3–1, zużywana) i losowanie `< strongRate` (0.005–0.1).
+- **Sprężyna** o długości spoczynkowej `dmin` (styk) i sztywności `strongK` (0.05–0.5) + tłumienie 0.15.
+- **Pęka**, gdy `d > dmin · breakStretch` (1.3–2.5), losowo z szansą `decay · (1 + e_i + e_j)`
+  (decay 0 albo do 0.002) albo gdy foton ma więcej wiązań niż mu wolno (szansa 1/4 na krok).
+  Przy pęknięciu każdy foton odzyskuje połowę energii aktywacji.
+- **Walencja** jest narzuconym prawem (`valence` 0–4, ta sama dla wszystkich) i **maleje z energią**:
+
+  `dozwolone = valence − ⌊e · valence · energyValence⌋` (energyValence 0–1)
+
+  Gorący foton zrzuca wiązania, zimny może je odzyskać. Liczba na kulce (View → *Free bonds on
+  photons*) = dozwolone − obecne.
+- Wzdłuż wiązania płynie energia: `Δ = (e_j − e_i) · energyShare · 0.5` (0–0.2).
+
+## Energia i ruch
+
+- `e += absorb · światło(x)` (absorb 0 albo 0.01–0.03), potem `e −= leak · e` (0.002–0.03).
+- `a = F / masa`; `v = (v + a) · (1 − friction) + szarpnięcie`, friction 0.03–0.2.
+- **Szarpnięcie** (losowe, każda oś): amplituda `temperature + agitation · e`
+  (temperature 0–0.2, agitation 0–0.4) – im więcej energii, tym szybciej foton się porusza.
+- Limit prędkości 4 px/krok, zawijanie torusa, energia przycinana do 0–1.
 
 ## Światło
 
-`L(x, y) = min(1.5, ambient + Σ exp(−d²/(2r²))) · dzień`, siatka 32 px.
-ambient 0–0.3, 0–3 słońc o promieniu (0.1–0.4) · min(W, H), dryf 0–0.3 px/krok,
-`dzień = 0.5 + 0.5 · sin(2π · krok / okres)` gdy okres ≥ 500 (inaczej 1).
+`L(x) = min(1.5, ambient + Σ exp(−d²/(2s²))) · dzień`, siatka 32 px (w 3D sześciany).
+ambient 0–0.3, 0–3 słońc o promieniu (0.1–0.4) · bok świata, dryf 0–0.3 px/krok,
+`dzień = 0.5 + 0.5 · sin(2π · krok / okres)` gdy okres ≥ 500.
 
-## 3D (od v0.2)
+## 2D i 3D
 
-Te same prawa (ten sam genom) w sześcianie zawijanym na wszystkich ścianach
-(3-torus). Wybór: panel World → Space albo klawisz `3`.
+Te same wzory; w 3D świat to sześcian zawijany na wszystkich ścianach
+(bok = ∛(liczba · 4500) px, w 2D pole = liczba · 220 px²). 3D jest domyślne.
 
-- **Rozmiar świata:** bok = ∛(liczba fotonów · 4500) px (w 2D: pole = liczba · 220 px²).
-  W 3D jest rzadziej, bo każdy foton ma tam znacznie więcej sąsiadów w tym samym zasięgu.
-- **Siatka:** komórki o boku ≥ R/2, sąsiedzi szukani w bloku 5×5×5 (62 komórki „do przodu” + własna).
-- **Siły:** te same wzory z wektorem `n = (dx, dy, dz)/d` (`forces3d.js`).
-- **Orientacja:** kierunek to wektor jednostkowy `h`. `polar` jak w 2D (`h · n`).
-  Moment: `h += torque · 0.05 · (n − (h·n) h) · (1 − d/R)` (składowa n prostopadła do h),
-  plus szum obrotowy, potem normalizacja.
-- **Wiązania, energia, reakcje:** bez zmian (wiązania liczą też oś z).
-- **Światło:** pole 3D (sześciany 32 px), słońca to kule gaussowskie dryfujące w 3D.
-- **Zamknięcia:** woksele (~1.25 długości wiązania), flood fill przez ściany (6 sąsiadów);
-  wnęka liczy się, gdy jest szczelnie otoczona związaną materią.
-- **Determinizm:** świat 2D losuje dokładnie to samo co w v0.1 (dodatkowe losowania
-  tylko w 3D) – ziarna 2D dają identyczny przebieg.
+## Backend GPU
 
-## Backend GPU (od v0.3)
-
-Te same prawa i wzory, liczone w WebGPU (`js/gpu/kernels.js`, `js/gpu/gpu-world.js`)
-jako „jeden wątek na foton”. Różnice względem CPU:
-
-- **Siły zbierane, nie rozdzielane:** każdy foton sumuje siły od sąsiadów sam
-  (komórki ≥ R, sąsiedztwo 3×3 albo 3×3×3), więc nie trzeba atomowych dodawań floatów.
-  Prawdziwy `sin` zamiast tablicy (różnica ~1e-4).
-- **Wiązania przez wzajemne propozycje:** w kroku każdy foton wybiera jednego
-  kandydata (ten z najwyższą wartością skrótu pary); wiązanie powstaje, gdy dwa
-  fotony wybrały siebie nawzajem. Najwyżej jedno nowe wiązanie na foton na krok.
-- **Losowość z funkcji skrótu** `hash(id_niższy, id_wyższy, krok)` – oba końce
-  wiązania liczą tę samą liczbę, więc decyzje o tworzeniu i rozpadzie są symetryczne.
-  Parametry pary bierze się od fotonu o niższym indeksie.
-- **Energia (przepływ, aktywacja, uwolnienie)** liczona z energii z początku kroku
-  (równolegle, nie po kolei).
-- **Reakcje:** foton zmienia typ tylko wtedy, gdy nowy typ ma walencję ≥ liczba jego
-  wiązań (na CPU nadmiarowe wiązania pękają) – dlatego reakcji jest trochę mniej.
-- Kolejność fotonów w komórkach zależy od atomowych operacji → przebieg na GPU
-  **nie jest powtarzalny** co do bitu. CPU pozostaje wzorcem; Lab liczy na CPU.
-
-Kontrola: `tools/gpu-check.html` (z serwera lokalnego). Po 3 krokach bez szumu
-pozycje CPU i GPU różnią się o < 1e-3 px; po 400–600 krokach udział związanych
-fotonów, średnia energia i liczba utworzonych wiązań różnią się o kilka procent.
+Te same wzory w WebGPU (jeden wątek na foton). Różnice: siły zbierane od sąsiadów (bez
+atomowych dodawań), prawdziwy `sin`, wiązania przez wzajemne propozycje (najwyżej jedno nowe
+na foton na krok), losowość z funkcji skrótu (symetryczna dla obu końców wiązania), energia
+liczona z początku kroku, twarda granica w 5 przejściach równoległych. Przebieg nie jest
+powtarzalny co do bitu; statystyki zgodne z CPU (`tools/gpu-check.html`).
 
 ## Determinizm
 
-Cała fizyka używa `EM.Rng` (mulberry32): genom z `lawsSeed`, pozycje/szum z
-`worldSeed`. `Math.random` tylko w UI (nowe ziarna) i Labie (wybór kandydatów).
-Kolejność losowań w `genome.random` = kolejność list SPECS – nowe parametry
-dopisywać na końcu list.
+Fizyka na CPU używa tylko `EM.Rng` (mulberry32): prawa z `lawsSeed`, pozycje i szum z
+`worldSeed`. Nowe parametry dopisywać na **końcu** `SPECS` w `genome.js`.
+
+## Plan (pomysły do dalszych kroków)
+
+- **Kąty wiązań** – nie na sztywno: dozwolony zakres kąta zależny od szybkości/energii
+  (szybki foton trudniej złapać → szerszy dozwolony kąt).
+- **Moc wiązania** zależna od stanu fotonów.
+- **Wymiana właściwości przez wiązanie** (ładunek, masa, energia) zamiast rozszczepiania i fuzji.
+- **Siła słaba** – zmiany ładunku.
+- Edytor fotonu (formuły jak w Gravitation) i filtry podglądu (rozmiar, kolor).

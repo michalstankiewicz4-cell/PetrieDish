@@ -62,7 +62,7 @@
     }
 
     class Search {
-        constructor(storageKey = 'emergence.lab.v1') {
+        constructor(storageKey = 'emergence.lab.v2') {
             this.storageKey = storageKey;
             /** @type {Array<{name, genome, descriptor, f, novelty, interest, parent, origin, top, at}>} */
             this.archive = [];
@@ -74,11 +74,10 @@
         }
 
         /** Next genome to evaluate. */
-        propose(types) {
+        propose() {
             if (this.archive.length < MIN_ARCHIVE_FOR_MUTATION || this.rng.next() < RANDOM_SHARE) {
                 const seed = Math.floor(this.rng.next() * 1e9);
-                const t = types || 4 + Math.floor(this.rng.next() * 3);
-                return { genome: EM.genome.random(seed, t), parent: null, origin: 'random' };
+                return { genome: EM.genome.random(seed), parent: null, origin: 'random' };
             }
             const parent = this.tournament(3);
             const genome = EM.genome.mutate(parent.genome, this.rng, { rate: 0.2, sigma: 0.12 });
@@ -166,7 +165,7 @@
                 const raw = localStorage.getItem(this.storageKey);
                 if (!raw) return;
                 const data = JSON.parse(raw);
-                this.archive = (data.archive || []).filter((a) => a && a.genome && a.descriptor);
+                this.archive = (data.archive || []).filter((a) => a && a.genome && a.genome.format === EM.genome.FORMAT && a.descriptor);
                 this.archive.forEach((a) => {
                     a.f = features(a.descriptor);
                     if (!a.elements) a.elements = [];

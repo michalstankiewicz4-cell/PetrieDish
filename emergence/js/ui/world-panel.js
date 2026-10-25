@@ -11,12 +11,16 @@
     });
 
     // ---------- laws ----------
-    const lawsSeed = $('lawsSeed'), types = $('typesInput'), typesValue = $('typesValue');
+    const lawsSeed = $('lawsSeed'), pressure = $('pressureInput'), pressureValue = $('pressureValue');
 
-    $('newLawsBtn').addEventListener('click', () => app.newLaws(undefined, +types.value));
-    $('loadLawsBtn').addEventListener('click', () => app.newLaws(+lawsSeed.value >>> 0, +types.value));
-    lawsSeed.addEventListener('keydown', (e) => { if (e.key === 'Enter') app.newLaws(+lawsSeed.value >>> 0, +types.value); });
-    types.addEventListener('input', () => { typesValue.textContent = types.value; });
+    $('newLawsBtn').addEventListener('click', () => app.newLaws());
+    $('loadLawsBtn').addEventListener('click', () => app.newLaws(+lawsSeed.value >>> 0));
+    lawsSeed.addEventListener('keydown', (e) => { if (e.key === 'Enter') app.newLaws(+lawsSeed.value >>> 0); });
+    // pressure acts live on the running world (environment, not a restart)
+    pressure.addEventListener('input', () => {
+        app.setPressure(+pressure.value);
+        pressureValue.textContent = (+pressure.value).toFixed(2);
+    });
     $('mutateBtn').addEventListener('click', () => app.mutate());
 
     $('exportBtn').addEventListener('click', () => {
@@ -60,7 +64,7 @@
 
     // ---------- view ----------
     const view = EM.renderer.view;
-    [['viewBonds', 'bonds'], ['viewLight', 'light'], ['viewHeadings', 'headings'], ['viewEnclosures', 'enclosures']].forEach(([id, key]) => {
+    [['viewBonds', 'bonds'], ['viewLight', 'light'], ['viewEnclosures', 'enclosures'], ['viewLabels', 'labels']].forEach(([id, key]) => {
         const box = $(id);
         box.checked = view[key];
         box.addEventListener('change', () => { view[key] = box.checked; });
@@ -72,13 +76,15 @@
 
     // ---------- refresh ----------
     const hud = $('hudStats'), originEl = $('lawsOrigin');
-    const ORIGIN = { seed: 'from seed', mutation: 'mutated (export to keep)', lab: 'from Lab (export to keep)', file: 'from file' };
+    const ORIGIN = { seed: 'from seed', mutation: 'mutated (export to keep)', lab: 'from Lab (export to keep)', file: 'from file', edited: 'edited (export to keep)' };
 
     function syncControls() {
         const s = app.settings;
         lawsSeed.value = s.lawsSeed;
-        types.value = s.types;
-        typesValue.textContent = s.types;
+        if (app.world) {
+            pressure.value = app.world.laws.pressure;
+            pressureValue.textContent = app.world.laws.pressure.toFixed(2);
+        }
         const lim = app.countLimits();
         count.min = lim.min;
         count.max = s.backend === 'gpu' ? lim.max : 20000;

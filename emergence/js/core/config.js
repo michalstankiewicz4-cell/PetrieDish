@@ -11,7 +11,7 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
 (function (EM) {
     'use strict';
 
-    EM.VERSION = '0.6.0';
+    EM.VERSION = '0.7.0';
 
     EM.debug = false;
     EM.log = (...args) => { if (EM.debug) console.log(...args); };
@@ -21,6 +21,10 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
         /** Max bonds per photon (slots reserved in the bond table). Per-type valence is <= this. */
         MAX_VALENCE: 4,
         MAX_SPEED: 4,
+        /** Every photon has the same radius (px). Closest approach of two centres: 2 r at pressure 1. */
+        PHOTON_RADIUS: 3,
+        /** Colour per charge class (type = charge + 2): -2, -1, 0, +1, +2. */
+        CHARGE_COLORS: ['hsl(222, 85%, 60%)', 'hsl(192, 85%, 62%)', 'hsl(230, 12%, 74%)', 'hsl(32, 92%, 60%)', 'hsl(356, 85%, 62%)'],
 
         DEFAULT_COUNT: 6000,
         DEFAULT_COUNT_3D: 2000,

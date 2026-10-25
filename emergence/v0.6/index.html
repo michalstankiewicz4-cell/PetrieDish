@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergence v0.6 (classic physics)</title>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/panels.css">
+    <link rel="stylesheet" href="css/topbar.css">
+    <link rel="stylesheet" href="css/atlas.css">
+
+    <!-- Plain <script defer> in dependency order: no build step, works from file:// and GitHub Pages.
+         physics/ and observe/ never touch the DOM (they also run in the Lab's Web Workers). -->
+    <script defer src="js/core/config.js"></script>
+    <script defer src="js/core/rng.js"></script>
+    <script defer src="js/core/genome.js"></script>
+    <script defer src="js/core/spatial-hash.js"></script>
+    <script defer src="js/core/spatial-hash3.js"></script>
+    <script defer src="js/physics/light.js"></script>
+    <script defer src="js/physics/bonds.js"></script>
+    <script defer src="js/physics/forces.js"></script>
+    <script defer src="js/physics/forces3d.js"></script>
+    <script defer src="js/physics/reactions.js"></script>
+    <script defer src="js/physics/world.js"></script>
+    <script defer src="js/gpu/kernels.js"></script>
+    <script defer src="js/gpu/gpu-world.js"></script>
+    <script defer src="js/observe/structures.js"></script>
+    <script defer src="js/observe/catalog.js"></script>
+    <script defer src="js/observe/enclosures.js"></script>
+    <script defer src="js/observe/observer.js"></script>
+    <script defer src="js/observe/elements.js"></script>
+    <script defer src="js/lab/runner.js"></script>
+    <script defer src="js/lab/search.js"></script>
+    <script defer src="js/lab/pool.js"></script>
+    <script defer src="js/lab/lab.js"></script>
+    <script defer src="js/render/camera.js"></script>
+    <script defer src="js/render/mat4.js"></script>
+    <script defer src="js/render/renderer2d.js"></script>
+    <script defer src="js/render/renderer3d.js"></script>
+    <script defer src="js/render/tiles.js"></script>
+    <script defer src="js/app/setup.js"></script>
+    <script defer src="js/app/controller.js"></script>
+    <script defer src="js/app/loop.js"></script>
+    <script defer src="js/ui/dom.js"></script>
+    <script defer src="js/ui/world-panel.js"></script>
+    <script defer src="js/ui/observe-panel.js"></script>
+    <script defer src="js/ui/lab-panel.js"></script>
+    <script defer src="js/ui/input.js"></script>
+    <script defer src="js/ui/atlas.js"></script>
+    <script defer src="js/ui/topbar.js"></script>
+    <script defer src="js/main.js"></script>
+</head>
+<body>
+    <div id="stage">
+        <canvas id="world"></canvas>
+        <canvas id="world3d" hidden></canvas>
+        <div id="fastOverlay" class="fast-overlay" hidden>
+            <div class="fast-title">⏩ FAST FORWARD</div>
+            <div id="fastStats"></div>
+            <button id="fastStopBtn">■ Stop</button>
+            <div class="fast-hint">drawing is off · T / Esc / Space = stop</div>
+        </div>
+    </div>
+
+    <!-- TOP BAR: main menu of the project -->
+    <header class="topbar" id="topbar">
+        <a class="tb-brand" href="#" id="tbBrand" title="Emergence – photons, laws, elements">
+            <span class="tb-logo"></span><span class="tb-name">EMERGENCE</span> <span id="version"></span>
+        </a>
+        <nav class="tb-menu">
+            <button class="tb-item" data-toggle="worldPanel" title="Laws, world, time and view">☰<span class="lbl"> World</span></button>
+            <button class="tb-item" data-toggle="observePanel" title="Metrics, catalogue, Lab">◉<span class="lbl"> Observe</span></button>
+            <button class="tb-item" data-atlas="table" title="Periodic table (Tab)">⊞<span class="lbl"> Elements</span></button>
+            <button class="tb-item" data-atlas="ml" title="Machine learning – search for laws">◈<span class="lbl"> Machine learning</span></button>
+        </nav>
+        <div class="tb-controls">
+            <button class="tb-btn" id="tbPlay" title="Play / pause (Space)">❚❚</button>
+            <button class="tb-btn" id="tbFast" title="Fast forward without drawing (T)">⏩</button>
+            <button class="tb-btn" id="tbNew" title="New laws (N)">🎲</button>
+            <div class="tb-seg" id="tbDim" title="Space: 2D / 3D (3)">
+                <button data-space="2">2D</button><button data-space="3">3D</button>
+            </div>
+            <div class="tb-seg" id="tbBackend" title="Compute: CPU (exact) / GPU (WebGPU) (G)">
+                <button data-backend="cpu">CPU</button><button data-backend="gpu">GPU</button>
+            </div>
+        </div>
+        <div class="tb-stats" id="hudStats"></div>
+        <div class="tb-right">
+            <button class="tb-item" id="tbHelpBtn" title="Keys and links">?<span class="lbl"> Help</span></button>
+            <div class="tb-drop" id="tbHelp" hidden>
+                <h4>Keys</h4>
+                <dl>
+                    <dt>Space</dt><dd>play / pause</dd>
+                    <dt>T</dt><dd>fast forward (no drawing)</dd>
+                    <dt>Tab</dt><dd>periodic table &amp; ML</dd>
+                    <dt>N / M</dt><dd>new laws / mutate</dd>
+                    <dt>3</dt><dd>2D ↔ 3D</dd>
+                    <dt>G</dt><dd>CPU ↔ GPU</dd>
+                    <dt>F</dt><dd>fit the view</dd>
+                    <dt>Esc</dt><dd>close / stop</dd>
+                </dl>
+                <h4>Project</h4>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/tree/main/emergence#readme" target="_blank" rel="noopener">README – how to use</a>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/docs/PHYSICS.md" target="_blank" rel="noopener">Physics – all formulas</a>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/docs/PLAN.md" target="_blank" rel="noopener">Plan – milestones M0–M6</a>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+                <a href="https://github.com/michalstankiewicz4-cell/PetrieDish" target="_blank" rel="noopener">GitHub repository</a>
+                <a href="../../">PetrieDish (sister project)</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- LEFT: laws, world, time, view -->
+    <aside class="panel left open" id="worldPanel">
+        <details open>
+            <summary>Laws</summary>
+            <div class="row">
+                <label for="lawsSeed">Laws seed</label>
+                <input type="number" id="lawsSeed" min="0" step="1">
+                <button id="loadLawsBtn">Load</button>
+            </div>
+            <div class="row">
+                <label for="typesInput">Photon types</label>
+                <input type="range" id="typesInput" min="2" max="8" step="1">
+                <span class="value" id="typesValue"></span>
+            </div>
+            <div class="row buttons">
+                <button id="newLawsBtn" title="N">🎲 New laws</button>
+                <button id="mutateBtn" title="M">🧬 Mutate</button>
+            </div>
+            <div class="row buttons">
+                <button id="exportBtn">⤓ Export</button>
+                <button id="importBtn">⤒ Import</button>
+            </div>
+            <p class="hint" id="lawsOrigin"></p>
+        </details>
+
+        <details open>
+            <summary>World</summary>
+            <div class="row">
+                <label for="dimSelect">Space</label>
+                <select id="dimSelect" title="3 = switch">
+                    <option value="2">2D (plane)</option>
+                    <option value="3">3D (cube)</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="backendSelect">Compute</label>
+                <select id="backendSelect" title="GPU = WebGPU, many more photons (not bit-exact like the CPU)">
+                    <option value="cpu">CPU (exact)</option>
+                    <option value="gpu">GPU (WebGPU)</option>
+                </select>
+            </div>
+            <div class="row">
+                <label for="countInput">Photons</label>
+                <input type="range" id="countInput" min="500" max="20000" step="500">
+                <span class="value" id="countValue"></span>
+            </div>
+            <div class="row buttons">
+                <button id="applyCountBtn">Apply</button>
+                <button id="restartBtn" title="Same laws, same start">↺ Restart</button>
+                <button id="reseedBtn" title="Same laws, new start">⟳ New start</button>
+            </div>
+        </details>
+
+        <details open>
+            <summary>Time</summary>
+            <div class="row buttons">
+                <button id="playBtn" title="Space">❚❚ Pause</button>
+                <button id="fastBtn" title="T – compute as fast as possible without drawing, until Stop">⏩ Fast forward</button>
+            </div>
+            <div class="row">
+                <label for="speedInput">Steps / frame</label>
+                <input type="range" id="speedInput" min="1" max="10" step="1">
+                <span class="value" id="speedValue"></span>
+            </div>
+        </details>
+
+        <details open>
+            <summary>View</summary>
+            <label class="check"><input type="checkbox" id="viewBonds"> Bonds</label>
+            <label class="check"><input type="checkbox" id="viewLight"> Light</label>
+            <label class="check" data-dim="2"><input type="checkbox" id="viewHeadings"> Headings (zoom in)</label>
+            <label class="check" data-dim="3" hidden><input type="checkbox" id="viewSpin"> Auto-rotate</label>
+            <label class="check"><input type="checkbox" id="viewEnclosures"> Enclosures</label>
+            <div class="row">
+                <label for="viewColor">Colour</label>
+                <select id="viewColor">
+                    <option value="type">by type</option>
+                    <option value="energy">by energy</option>
+                </select>
+                <button id="fitBtn" title="F">Fit</button>
+            </div>
+            <p class="hint" data-dim="2">Wheel = zoom · drag = move · click = inspect · Space = pause · T = fast forward · 3 = 3D · G = GPU</p>
+            <p class="hint" data-dim="3" hidden>Drag = rotate · right-drag = move · wheel = zoom · click = inspect · T = fast forward · 3 = 2D · G = GPU</p>
+        </details>
+    </aside>
+
+    <!-- RIGHT: observers + lab -->
+    <aside class="panel right open" id="observePanel">
+        <details open>
+            <summary>Observe</summary>
+            <canvas id="historyChart" width="300" height="70"></canvas>
+            <table class="metrics" id="metricsTable"></table>
+        </details>
+
+        <details open>
+            <summary>Catalogue <span class="badge" id="catalogCount">0</span></summary>
+            <p class="hint">Structures that stayed the same shape long enough. Click to highlight.</p>
+            <div class="catalog" id="catalogGrid"></div>
+        </details>
+
+        <details>
+            <summary>Lab – search for laws</summary>
+            <p class="hint">Runs many small worlds without drawing and keeps the laws whose
+                behaviour is new and neither gas nor a frozen lump. It only chooses laws –
+                it never touches a running world.</p>
+            <div class="row">
+                <label for="labCount">Photons / test</label>
+                <input type="number" id="labCount" min="300" max="6000" step="100">
+            </div>
+            <div class="row">
+                <label for="labSteps">Steps / test</label>
+                <input type="number" id="labSteps" min="500" max="20000" step="500">
+            </div>
+            <div class="row">
+                <label for="labWorkers">Workers</label>
+                <input type="number" id="labWorkers" min="1" step="1">
+            </div>
+            <div class="row buttons">
+                <button id="labStartBtn">▶ Start search</button>
+                <button id="labClearBtn">Clear</button>
+            </div>
+            <p class="hint" id="labStatus"></p>
+            <table class="results">
+                <thead><tr><th>#</th><th>laws</th><th>score</th><th>bond</th><th>shapes</th><th>max</th><th>encl</th><th></th></tr></thead>
+                <tbody id="labResults"></tbody>
+            </table>
+        </details>
+    </aside>
+
+    <div class="inspector" id="inspector" hidden>
+        <button class="close" id="inspectorClose">×</button>
+        <div id="inspectorBody"></div>
+    </div>
+
+    <!-- ATLAS (Tab): periodic table of emergent elements + machine-learning view -->
+    <section class="atlas" id="atlas" hidden>
+        <header class="atlas-head">
+            <nav class="atlas-tabs">
+                <button data-tab="table" class="on">Periodic table</button>
+                <button data-tab="ml">Machine learning</button>
+            </nav>
+            <div class="atlas-summary" id="atlasSummary"></div>
+            <button class="atlas-close" id="atlasClose" title="Tab / Esc">✕ close</button>
+        </header>
+        <div class="atlas-body">
+            <div class="atlas-page" id="pageTable">
+                <div class="pt-layout">
+                    <div class="pt-grid" id="ptGrid"></div>
+                    <aside class="pt-detail" id="ptDetail"></aside>
+                </div>
+                <div class="pt-legend" id="ptLegend"></div>
+            </div>
+            <div class="atlas-page" id="pageMl" hidden>
+                <div class="ml-grid">
+                    <div class="ml-card ml-span-4">
+                        <h3>Search <small id="mlMode"></small></h3>
+                        <div class="ml-stats" id="mlStats"></div>
+                        <div class="ml-controls">
+                            <button id="mlStartBtn">▶ Start search</button>
+                            <div class="ml-workers" id="mlWorkers"></div>
+                        </div>
+                    </div>
+                    <div class="ml-card ml-span-8">
+                        <h3>Learning curve <small>every tested universe · best so far · elements found</small></h3>
+                        <canvas id="mlCurve" height="190"></canvas>
+                    </div>
+                    <div class="ml-card ml-span-7">
+                        <h3>Map of universes <small>x = bonded matter · y = variety of shapes · size = elements · click = load</small></h3>
+                        <canvas id="mlMap" height="300"></canvas>
+                    </div>
+                    <div class="ml-card ml-span-5">
+                        <h3>Elements the lab has made <small>share of archived universes</small></h3>
+                        <div class="ml-mini" id="mlMini"></div>
+                        <h3 style="margin-top:14px">How it learns</h3>
+                        <p class="ml-text">
+                            Each test is a new universe: random laws or a <b>mutation</b> of an interesting one.
+                            It runs without drawing and is described by general numbers only.
+                            Score = <code>viability × (novelty + persistence + enclosures + elements)</code>:
+                            not a gas, not one lump, <b>unlike what was seen before</b>, and producing many
+                            different stable sizes – our elements. Nothing tells it which shape to build.
+                        </p>
+                    </div>
+                    <div class="ml-card ml-span-12">
+                        <h3>Best universes <small>load one to watch it at full size</small></h3>
+                        <div class="ml-best" id="mlBest"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <div class="ml-tip" id="mlTip" hidden></div>
+</body>
+</html>

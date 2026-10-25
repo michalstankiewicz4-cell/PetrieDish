@@ -31,7 +31,7 @@ let failures = 0;
 const fail = (msg) => { failures++; console.log('  FAIL ' + msg); };
 
 function makeWorld(lawsSeed, count, dim = 2, worldSeed = 1) {
-    const genome = EM.genome.random(lawsSeed, 5);
+    const genome = EM.genome.random(lawsSeed);
     if (dim === 3) {
         const side = Math.round(Math.cbrt(count * 4500));
         return new EM.World({ width: side, height: side, depth: side, count, genome, seed: worldSeed });
@@ -65,6 +65,20 @@ function checkInvariants(w, label) {
         }
     }
     if (bad) fail(`${label}: ${bad} photons with NaN/Infinity`);
+    // hard boundary: (almost) no pair closer than dmin - brute force on a sample
+    const dmin = w.laws.dmin, lim = dmin * 0.9;
+    let close = 0, minD = Infinity;
+    const sample = Math.min(w.n, 600);
+    for (let i = 0; i < sample; i++) {
+        for (let j = i + 1; j < w.n; j++) {
+            const [dx, dy, dz] = w.offset(i, j);
+            const d = Math.hypot(dx, dy, dz);
+            if (d < minD) minD = d;
+            if (d < lim) close++;
+        }
+    }
+    if (close > sample * 0.01) fail(`${label}: ${close} pairs closer than 0.9 dmin (min ${minD.toFixed(2)}, dmin ${dmin.toFixed(2)})`);
+    w._minD = minD;
     if (bonds / 2 !== w.bondCount) fail(`${label}: bondCount ${w.bondCount} != table ${bonds / 2}`);
 }
 
@@ -85,11 +99,11 @@ for (const [seed, dim] of CASES) {
     checkInvariants(a, label);
     const m = obs.metrics;
     console.log(`  ${label}: bonded ${Math.round((1 - m.freeFraction) * 100)}%, shapes ${m.shapesNow}, catalogue ${m.catalog}, ` +
-        `largest ${m.largest}, enclosures ${m.enclosures}, reactions ${a.reactions}`);
+        `largest ${m.largest}, enclosures ${m.enclosures}, elements ${m.elements}, closest ${a._minD.toFixed(2)} / dmin ${a.laws.dmin.toFixed(2)}`);
 }
 
 // genome round trip + mutation keeps the format valid
-const g = EM.genome.random(7, 6);
+const g = EM.genome.random(7);
 const back = EM.genome.fromJSON(EM.genome.toJSON(g));
 if (JSON.stringify(back) !== JSON.stringify(g)) fail('genome JSON round trip changed the genome');
 const mutated = EM.genome.mutate(g, new EM.Rng(3));
@@ -97,7 +111,7 @@ try { EM.genome.compile(mutated); } catch (e) { fail('mutated genome does not co
 
 // lab runner on a tiny budget, both dimensions
 for (const dim of [2, 3]) {
-    const run = EM.lab.runAll(EM.genome.random(5, 5), { count: 400, steps: 400, dim });
+    const run = EM.lab.runAll(EM.genome.random(5), { count: 400, steps: 400, dim });
     if (!run.descriptor || !isFinite(run.descriptor.freeFraction)) fail(`lab runner (${dim}D) returned no descriptor`);
 }
 

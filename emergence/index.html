@@ -106,6 +106,7 @@
                 <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/docs/PLAN.md" target="_blank" rel="noopener">Plan – milestones M0–M6</a>
                 <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
                 <a href="https://github.com/michalstankiewicz4-cell/PetrieDish" target="_blank" rel="noopener">GitHub repository</a>
+                <a href="v0.6/">Previous physics (v0.6, photon types)</a>
                 <a href="../">PetrieDish (sister project)</a>
             </div>
         </div>
@@ -121,9 +122,9 @@
                 <button id="loadLawsBtn">Load</button>
             </div>
             <div class="row">
-                <label for="typesInput">Photon types</label>
-                <input type="range" id="typesInput" min="2" max="8" step="1">
-                <span class="value" id="typesValue"></span>
+                <label for="pressureInput" title="Environment: how close photons may come (1 = surfaces touch)">Pressure</label>
+                <input type="range" id="pressureInput" min="0" max="1" step="0.01">
+                <span class="value" id="pressureValue"></span>
             </div>
             <div class="row buttons">
                 <button id="newLawsBtn" title="N">🎲 New laws</button>
@@ -181,13 +182,13 @@
             <summary>View</summary>
             <label class="check"><input type="checkbox" id="viewBonds"> Bonds</label>
             <label class="check"><input type="checkbox" id="viewLight"> Light</label>
-            <label class="check" data-dim="2"><input type="checkbox" id="viewHeadings"> Headings (zoom in)</label>
             <label class="check" data-dim="3" hidden><input type="checkbox" id="viewSpin"> Auto-rotate</label>
             <label class="check"><input type="checkbox" id="viewEnclosures"> Enclosures</label>
+            <label class="check" title="Number on each photon (zoom in): how many more strong bonds it may take now"><input type="checkbox" id="viewLabels"> Free bonds on photons</label>
             <div class="row">
                 <label for="viewColor">Colour</label>
                 <select id="viewColor">
-                    <option value="type">by type</option>
+                    <option value="type">by charge</option>
                     <option value="energy">by energy</option>
                 </select>
                 <button id="fitBtn" title="F">Fit</button>

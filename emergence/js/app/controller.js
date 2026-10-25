@@ -9,11 +9,11 @@
     const VOLUME_PER_PHOTON = 4500; // px^3 per photon in 3D (a bit sparser: in 3D every photon has many more neighbours)
 
     const settings = {
-        dim: 2,
+        dim: 3,
         lawsSeed: 1,
         worldSeed: 1,
         types: EM.config.DEFAULT_TYPES,
-        count: EM.config.DEFAULT_COUNT,
+        count: EM.config.DEFAULT_COUNT_3D,
         stepsPerFrame: 2,
         running: true,
         /** 'cpu' (reference, deterministic) | 'gpu' (WebGPU, many photons) */
@@ -85,10 +85,9 @@
         },
 
         /** New laws from a seed. */
-        newLaws(seed = Math.floor(Math.random() * 1e9), types = settings.types) {
+        newLaws(seed = Math.floor(Math.random() * 1e9)) {
             settings.lawsSeed = seed >>> 0;
-            settings.types = types;
-            app.genome = EM.genome.random(settings.lawsSeed, settings.types);
+            app.genome = EM.genome.random(settings.lawsSeed);
             app.origin = 'seed';
             app.rebuild();
         },
@@ -161,6 +160,19 @@
             return true;
         },
 
+        /** Environment pressure (0..1), live: changes how close photons may come. */
+        setPressure(p) {
+            if (!app.world) return;
+            app.genome.global.pressure = p;
+            app.world.setPressure(p);
+            if (app.gpu) app.gpu.updateLaws();
+            if (app.origin === 'seed') {
+                app.origin = 'edited';
+                app.writeHash();
+                app.emit();
+            }
+        },
+
         togglePlay() {
             if (app.fast) {
                 app.setFast(false); // Space during fast forward = stop it, keep running
@@ -187,7 +199,7 @@
                 history.replaceState(null, '', location.pathname + location.search);
                 return;
             }
-            const h = `#laws=${settings.lawsSeed}&types=${settings.types}&n=${settings.count}&world=${settings.worldSeed}&d=${settings.dim}${settings.backend === 'gpu' ? '&gpu=1' : ''}`;
+            const h = `#laws=${settings.lawsSeed}&n=${settings.count}&world=${settings.worldSeed}&d=${settings.dim}${settings.backend === 'gpu' ? '&gpu=1' : ''}`;
             history.replaceState(null, '', h);
         },
 
@@ -195,14 +207,14 @@
             const params = new URLSearchParams(location.hash.slice(1));
             const num = (k) => (params.has(k) && isFinite(+params.get(k)) ? +params.get(k) : null);
             if (num('laws') !== null) settings.lawsSeed = num('laws') >>> 0;
-            if (num('types') !== null) settings.types = Math.max(1, Math.min(EM.config.MAX_TYPES, num('types')));
             if (num('gpu') === 1) settings.backend = 'gpu';
             if (num('n') !== null) {
                 const L = EM.config.COUNT_LIMITS_GPU;
                 settings.count = Math.max(L.min, Math.min(L.max, num('n')));
             }
             if (num('world') !== null) settings.worldSeed = num('world') >>> 0;
-            if (num('d') === 3) settings.dim = 3;
+            if (num('d') === 2) settings.dim = 2;
+            else if (num('d') === 3) settings.dim = 3;
             return params.has('laws');
         }
     };

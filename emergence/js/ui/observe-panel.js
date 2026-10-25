@@ -156,8 +156,8 @@
         }
         EM.renderer.selection = { members, label: 'photon ' + i };
         const t = w.type[i];
-        showInspector(`<span class="swatch" style="background:${w.laws.color[t]}"></span><b>photon #${i}</b>, type ${t}<br>` +
-            `energy ${fmt(w.energy[i], 3)}, bonds ${w.deg[i]}/${w.laws.valence[t]}, speed ${fmt(Math.hypot(w.vx[i], w.vy[i]), 2)}<br>${shape}`);
+        showInspector(`<span class="swatch" style="background:${w.laws.color[t]}"></span><b>photon #${i}</b>, charge ${w.laws.charge[t] > 0 ? '+' : ''}${w.laws.charge[t]}, mass ${fmt(1 / w.laws.invMass[t], 2)}<br>` +
+            `energy ${fmt(w.energy[i], 3)}, strong bonds ${w.deg[i]}/${w.laws.valence[t]}, speed ${fmt(Math.hypot(w.vx[i], w.vy[i], w.vz[i]), 2)}<br>${shape}`);
     }
 
     // ---------- refresh ----------

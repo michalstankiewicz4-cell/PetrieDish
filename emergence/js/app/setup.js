@@ -13,7 +13,8 @@
     const view = {
         bonds: true,
         light: true,
-        headings: true,
+        headings: false, // photons have no orientation in the current model
+        labels: true,    // free strong bonds as a number on each photon (when zoomed in)
         enclosures: true,
         color: 'type' // 'type' | 'energy'
     };

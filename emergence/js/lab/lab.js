@@ -21,7 +21,7 @@
         useDim(dim) {
             if (lab.running) lab.stop();
             lab.dim = dim;
-            if (!lab.searches[dim]) lab.searches[dim] = new EM.lab.Search(dim === 3 ? 'emergence.lab.3d.v1' : 'emergence.lab.v1');
+            if (!lab.searches[dim]) lab.searches[dim] = new EM.lab.Search(dim === 3 ? 'emergence.lab.3d.v2' : 'emergence.lab.v2');
             lab.search = lab.searches[dim];
             lab.opts.count = dim === 3 ? 800 : 1500;
             lab.last = null;

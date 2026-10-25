@@ -3,9 +3,14 @@
  * Workers / WebGPU later). No DOM, no knowledge of atoms, molecules or cells -
  * only positions, velocities, headings, internal energy, types and bonds.
  *
- * One step: grid -> pair forces (+ bond candidates, torques) -> bond springs
- * (+ energy flow, decay) -> reactions -> integrate (light, leak, thrust,
- * friction, noise, rotation, torus wrap).
+ * One step: grid -> pair forces (electromagnetic wave + hard core, strong-bond
+ * candidates, list of near pairs) -> strong bonds (springs, energy flow,
+ * decay) -> integrate (light, leak, friction, noise, torus wrap) ->
+ * hard boundary (near pairs closer than dmin are pushed apart, their approach
+ * speed removed - see contacts()).
+ *
+ * Photons are identical particles; `type` is only their charge class
+ * (charge = type - 2, see genome.js).
  *
  * Dimensions: depth = 0 -> 2D (heading = angle theta), depth > 0 -> 3D
  * (3-torus, heading = unit vector hx/hy/hz). The z arrays exist in 2D too but
@@ -69,6 +74,10 @@
             this.partner = new Int32Array(n * MV).fill(-1);
             this.bondCount = 0;
 
+            /** near pairs [i, j, ...] found by the pair loop - checked by contacts() after moving */
+            this.near = new Int32Array(Math.max(1024, n * 8));
+            this.nearCount = 0;
+
             this.grid = this.dim === 3
                 ? new EM.SpatialHash3(width, height, this.depth, this.laws.R)
                 : new EM.SpatialHash(width, height, this.laws.R);
@@ -81,22 +90,35 @@
             this.light = new EM.Light(this);
         }
 
-        /** Uniform random positions, small random velocities, random types. */
+        /** Charge class drawn from the laws' charge mix. */
+        drawType(u) {
+            const w = this.laws.typeWeights;
+            let total = 0;
+            for (let t = 0; t < w.length; t++) total += w[t];
+            let acc = 0;
+            for (let t = 0; t < w.length; t++) {
+                acc += w[t] / total;
+                if (u < acc) return t;
+            }
+            return w.length - 1;
+        }
+
+        /** Uniform random positions, small random velocities, charges from the laws. */
         spawn() {
-            const rng = this.rng, T = this.laws.T;
+            const rng = this.rng;
             for (let i = 0; i < this.n; i++) {
                 this.x[i] = rng.next() * this.width;
                 this.y[i] = rng.next() * this.height;
                 this.vx[i] = (rng.next() - 0.5);
                 this.vy[i] = (rng.next() - 0.5);
-                this.type[i] = Math.floor(rng.next() * T);
+                this.type[i] = this.drawType(rng.next());
                 this.theta[i] = rng.next() * Math.PI * 2;
             }
         }
 
         /** 3D: positions in the cube, random heading on the unit sphere. */
         spawn3d() {
-            const rng = this.rng, T = this.laws.T;
+            const rng = this.rng;
             for (let i = 0; i < this.n; i++) {
                 this.x[i] = rng.next() * this.width;
                 this.y[i] = rng.next() * this.height;
@@ -104,7 +126,7 @@
                 this.vx[i] = (rng.next() - 0.5);
                 this.vy[i] = (rng.next() - 0.5);
                 this.vz[i] = (rng.next() - 0.5);
-                this.type[i] = Math.floor(rng.next() * T);
+                this.type[i] = this.drawType(rng.next());
                 const u = rng.next() * 2 - 1, phi = rng.next() * Math.PI * 2, s = Math.sqrt(1 - u * u);
                 this.hx[i] = s * Math.cos(phi);
                 this.hy[i] = s * Math.sin(phi);
@@ -133,6 +155,7 @@
             EM.bonds.applySprings(this);
             EM.reactions.apply(this);
             this.integrate();
+            this.contacts();
             this.steps++;
         }
 
@@ -151,7 +174,93 @@
             EM.bonds.applySprings(this);
             EM.reactions.apply(this);
             this.integrate3d();
+            this.contacts();
             this.steps++;
+        }
+
+        /**
+         * Hard boundary: two photon centres never stay closer than dmin (set by
+         * the pressure). Overlapping near pairs are pushed apart (lighter photon
+         * moves more) and their approach speed is removed, with a bounce of
+         * `restitution`. Momentum is conserved.
+         */
+        contacts() {
+            // a push can create a new overlap with a third photon: a few sweeps settle dense clusters
+            for (let it = 0; it < World.CONTACT_SWEEPS; it++) {
+                if (this.contactSweep(it === 0) === 0) break;
+            }
+        }
+
+        /** One pass over the near pairs. Returns how many pairs overlapped. */
+        contactSweep(firstSweep) {
+            const L = this.laws, dmin = L.dmin, e1 = 1 + L.restitution;
+            const near = this.near, m = this.nearCount;
+            const x = this.x, y = this.y, z = this.z, vx = this.vx, vy = this.vy, vz = this.vz;
+            const type = this.type, invMass = L.invMass;
+            const W = this.width, H = this.height, D = this.depth, hw = W / 2, hh = H / 2, hd = D / 2;
+            const d2min = dmin * dmin;
+            let overlaps = 0;
+            for (let k = 0; k < m; k += 2) {
+                const i = near[k], j = near[k + 1];
+                let dx = x[j] - x[i];
+                if (dx > hw) dx -= W; else if (dx < -hw) dx += W;
+                let dy = y[j] - y[i];
+                if (dy > hh) dy -= H; else if (dy < -hh) dy += H;
+                let dz = 0;
+                if (D) {
+                    dz = z[j] - z[i];
+                    if (dz > hd) dz -= D; else if (dz < -hd) dz += D;
+                }
+                const d2 = dx * dx + dy * dy + dz * dz;
+                if (d2 >= d2min) continue;
+                overlaps++;
+                let d = Math.sqrt(d2), nx, ny, nz;
+                if (d > 1e-6) {
+                    nx = dx / d; ny = dy / d; nz = dz / d;
+                } else {
+                    // exactly on top of each other: separate along x
+                    nx = 1; ny = 0; nz = 0; d = 0;
+                }
+                const wi = invMass[type[i]], wj = invMass[type[j]], ws = wi + wj;
+                const push = (dmin - d) / ws;
+                x[i] -= nx * push * wi; y[i] -= ny * push * wi;
+                x[j] += nx * push * wj; y[j] += ny * push * wj;
+                if (D) { z[i] -= nz * push * wi; z[j] += nz * push * wj; }
+                // remove the approach speed (impulse along n)
+                const vn = (vx[j] - vx[i]) * nx + (vy[j] - vy[i]) * ny + (vz[j] - vz[i]) * nz;
+                if (firstSweep && vn < 0) {
+                    const imp = -e1 * vn / ws;
+                    vx[i] -= nx * imp * wi; vy[i] -= ny * imp * wi;
+                    vx[j] += nx * imp * wj; vy[j] += ny * imp * wj;
+                    if (D) { vz[i] -= nz * imp * wi; vz[j] += nz * imp * wj; }
+                }
+                this.wrap(i);
+                this.wrap(j);
+            }
+            return overlaps;
+        }
+
+        wrap(i) {
+            const W = this.width, H = this.height, D = this.depth;
+            if (this.x[i] < 0) this.x[i] += W; else if (this.x[i] >= W) this.x[i] -= W;
+            if (this.y[i] < 0) this.y[i] += H; else if (this.y[i] >= H) this.y[i] -= H;
+            if (D) { if (this.z[i] < 0) this.z[i] += D; else if (this.z[i] >= D) this.z[i] -= D; }
+        }
+
+        /** Changes the pressure (environment) of a running world. */
+        setPressure(p) {
+            EM.genome.applyPressure(this.laws, p);
+        }
+
+        /** Records a near pair for contacts() (called by the pair loops). */
+        addNear(i, j) {
+            if (this.nearCount + 2 > this.near.length) {
+                const bigger = new Int32Array(this.near.length * 2);
+                bigger.set(this.near);
+                this.near = bigger;
+            }
+            this.near[this.nearCount++] = i;
+            this.near[this.nearCount++] = j;
         }
 
         integrate3d() {
@@ -161,7 +270,7 @@
             const tx = this.tx, ty = this.ty, tz = this.tz;
             const type = this.type, e = this.energy;
             const invMass = L.invMass, absorb = L.absorb, leak = L.leak, thrust = L.thrust;
-            const keep = 1 - L.friction, noise = L.temperature;
+            const keep = 1 - L.friction, noise = L.temperature, agit = L.agitation || 0;
             const maxV = L.maxSpeed, maxV2 = maxV * maxV;
             const W = this.width, H = this.height, D = this.depth;
             const rng = this.rng, light = this.light;
@@ -196,10 +305,12 @@
                 e[i] = en > 1 ? 1 : (en < 0 ? 0 : en);
 
                 let ux = (vx[i] + ax) * keep, uy = (vy[i] + ay) * keep, uz = (vz[i] + az) * keep;
-                if (noise > 0) {
-                    ux += (rng.next() - 0.5) * noise;
-                    uy += (rng.next() - 0.5) * noise;
-                    uz += (rng.next() - 0.5) * noise;
+                // thermal noise + agitation: the more energy, the harder the random kick
+                const kick = noise + agit * e[i];
+                if (kick > 0) {
+                    ux += (rng.next() - 0.5) * kick;
+                    uy += (rng.next() - 0.5) * kick;
+                    uz += (rng.next() - 0.5) * kick;
                 }
                 const v2 = ux * ux + uy * uy + uz * uz;
                 if (v2 > maxV2) {
@@ -222,7 +333,7 @@
             const type = this.type, e = this.energy, theta = this.theta, turn = this.turn;
             const invMass = L.invMass, absorb = L.absorb, leak = L.leak, thrust = L.thrust;
             const keep = 1 - L.friction;
-            const noise = L.temperature;
+            const noise = L.temperature, agit = L.agitation || 0;
             const maxV = L.maxSpeed, maxV2 = maxV * maxV;
             const W = this.width, H = this.height;
             const rng = this.rng, light = this.light;
@@ -254,9 +365,10 @@
 
                 let ux = (vx[i] + ax) * keep;
                 let uy = (vy[i] + ay) * keep;
-                if (noise > 0) {
-                    ux += (rng.next() - 0.5) * noise;
-                    uy += (rng.next() - 0.5) * noise;
+                const kick = noise + agit * e[i];
+                if (kick > 0) {
+                    ux += (rng.next() - 0.5) * kick;
+                    uy += (rng.next() - 0.5) * kick;
                 }
                 const v2 = ux * ux + uy * uy;
                 if (v2 > maxV2) {
@@ -302,5 +414,7 @@
         }
     }
 
+    /** max passes of the hard boundary per step (stops early when nothing overlaps) */
+    World.CONTACT_SWEEPS = 4;
     EM.World = World;
 })(EM);
