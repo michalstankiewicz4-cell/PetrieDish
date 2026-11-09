@@ -184,7 +184,7 @@
         async setBackend(backend) {
             if (backend === settings.backend) return true;
             if (backend === 'gpu') {
-                alert('The GPU backend does not support the Gravitation photon model (v0.9) yet – the physics runs on the CPU.');
+                alert(EM.t('The GPU backend does not support the Gravitation photon model (v0.9) yet – the physics runs on the CPU.'));
                 app.emit();
                 return false;
             }

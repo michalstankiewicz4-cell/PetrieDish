@@ -65,7 +65,7 @@
             ctx.stroke();
             ctx.fillStyle = c.color;
             ctx.font = '10px ui-monospace, monospace';
-            ctx.fillText(c.label, 4 + k * 70, 10);
+            ctx.fillText(EM.t(c.label), 4 + k * 70, 10);
         });
     }
 

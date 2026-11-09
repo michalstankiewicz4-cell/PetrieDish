@@ -48,6 +48,13 @@
         gpuBtn.title = 'GPU: not yet for the Gravitation photon model';
     }
 
+    // language
+    $('tbLang').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
+        EM.i18n.set(b.dataset.lang);
+        EM.ui.refresh();
+        sync();
+    }));
+
     // help dropdown
     const help = $('tbHelp'), helpBtn = $('tbHelpBtn');
     helpBtn.addEventListener('click', (e) => {
@@ -80,11 +87,12 @@
         const s = app.settings;
         const play = $('tbPlay');
         play.textContent = app.fast ? '▶' : (s.running ? '❚❚' : '▶');
-        play.title = s.running ? 'Pause (Space)' : 'Play (Space)';
+        play.title = EM.t(s.running ? 'Pause (Space)' : 'Play (Space)');
         $('tbFast').classList.toggle('active', app.fast);
         $('tbFast').textContent = app.fast ? '■' : '⏩';
         $('tbDim').querySelectorAll('button').forEach((b) => b.classList.toggle('on', +b.dataset.space === s.dim));
         $('tbBackend').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.backend === s.backend));
+        $('tbLang').querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.lang === EM.i18n.lang));
     }
 
     app.onChange(sync);

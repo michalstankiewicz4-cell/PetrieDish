@@ -96,7 +96,7 @@
         apply(true);
     });
     $('edDefaultsBtn').addEventListener('click', () => {
-        if (confirm('Back to Gravitation\'s formulas and the default environment?')) app.resetLaws();
+        if (confirm(EM.t("Back to Gravitation's formulas and the default environment?"))) app.resetLaws();
     });
 
     // ---------- environment ----------
@@ -151,7 +151,7 @@
                 sum += v;
             }
             const f = (v) => fmt(v, Math.abs(v) >= 100 ? 0 : 2);
-            return `<tr><td>${label}</td><td>${f(mn)} · <b>${f(sum / w.n)}</b> · ${f(mx)}</td></tr>`;
+            return `<tr><td data-no-i18n>${label}</td><td>${f(mn)} · <b>${f(sum / w.n)}</b> · ${f(mx)}</td></tr>`;
         });
         $('edStats').innerHTML = '<tr><td></td><td class="hint">min · <b>mean</b> · max</td></tr>' + rows.join('');
     }
@@ -266,7 +266,7 @@
         });
         if (!pairs.length) {
             ctx.fillStyle = '#7c86a8';
-            ctx.fillText('every photon is neutral – no electromagnetic force', padL + 6, top + H / 2 - 8);
+            ctx.fillText(EM.t('every photon is neutral – no electromagnetic force'), padL + 6, top + H / 2 - 8);
         }
     }
 
@@ -284,7 +284,7 @@
         try {
             app.loadGenome(EM.genome.fromJSON(text), 'file');
         } catch (e) {
-            alert('Cannot load: ' + e.message);
+            alert(EM.t('Cannot load: ') + e.message);
         }
     });
     window.addEventListener('keydown', (e) => {
@@ -309,5 +309,6 @@
         .observe(panel, { attributes: true, attributeFilter: ['class'] });
     window.addEventListener('resize', drawAll);
 
+    EM.i18n.onChange(syncAll);
     EM.ui.photonEditor = { sync: syncAll };
 })(EM);

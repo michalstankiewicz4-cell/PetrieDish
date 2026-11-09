@@ -15,6 +15,7 @@ appears; it only picks laws, it never touches a running world.
 
 ## Use
 
+- **EN / PL** in the top bar switches the language (Polish: whole interface, element names).
 - **Top bar** – main menu: World / Observe panels, Elements, Machine learning,
   play, fast forward, new laws, 2D/3D, CPU/GPU, live stats, Help (keys and links).
 - **Photon formulas** (top bar → Photon, or E): Gravitation-style formula rows – edits act live –

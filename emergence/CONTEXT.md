@@ -14,11 +14,11 @@
   pole światła jak siatka substancji z CellsEvolution, struktura/wersjonowanie z PetrieDish.
 - **Technologia:** czysty JS, bez bundlera, `<script defer>`, namespace `EM`
   (`globalThis.EM` – ten sam kod działa w Web Workerze i w Node).
-- Język UI: angielski; dokumentacja i rozmowa: polski.
+- Język UI: angielski + polski (przełącznik EN/PL, `js/ui/i18n.js`); dokumentacja i rozmowa: polski.
 
 ## Stan
 
-- **Wersja:** 0.9.0 (2026-11-09) – **model z Gravitation** (formuły fotonu) + ciśnienie, temperatura, wiązania z kątami; Lab i GPU wyłączone. Poprzednie: `v0.6/`, `v0.8/` (zamrożone kopie) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
+- **Wersja:** 0.10.0 (2026-11-09; 0.10 = przełącznik języka EN/PL) – **model z Gravitation** (formuły fotonu) + ciśnienie, temperatura, wiązania z kątami; Lab i GPU wyłączone. Poprzednie: `v0.6/`, `v0.8/` (zamrożone kopie) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
@@ -71,6 +71,7 @@
 | `js/observe/elements.js` | tablica Mendelejewa (118 pól), `census(observer)`: Z = liczba fotonów stabilnej struktury |
 | `js/core/formulas.js` | formuły fotonu jak w Gravitation: role, domyślne wiersze, kompilacja, `run` z seeded `rand` |
 | `js/ui/photon-editor.js` | edytor formuł (prawy panel, `E`): wiersze → `app.setFormulas`, środowisko → `app.setEnv`, statystyki, wykres siły |
+| `js/ui/i18n.js` | język EN/PL: słownik `DICT` (angielski → polski), `PATTERNS` (teksty z liczbami), `EM.t()`, polskie nazwy pierwiastków |
 | `v0.6/`, `v0.8/` | zamrożone kopie poprzednich modeli (nie edytować) |
 | `js/ui/topbar.js`, `css/topbar.css` | górny pasek = menu główne (sekcje, szybkie przyciski, statystyki, Help) |
 | `js/ui/atlas.js`, `css/atlas.css` | Atlas pod Tab: tablica pierwiastków + podgląd ML |
@@ -93,6 +94,8 @@
 5. Determinizm: fizyka używa wyłącznie `EM.Rng`. Po każdej zmianie `node tools/smoke.js`.
 6. Nowe parametry praw dopisywać na **końcu** list SPECS (inaczej zmienią się wszystkie ziarna).
 7. Każda zmiana fizyki → `docs/PHYSICS.md` + wpis w `CHANGELOG.md`.
+9. Nowy tekst w interfejsie (po angielsku) → dopisać tłumaczenie do `DICT` w `js/ui/i18n.js`
+   (teksty z liczbami: `EM.t('… {n} …', { n })` albo wzorzec w `PATTERNS`).
 8. Zmiana wzoru w `js/physics/` → ta sama zmiana w `js/gpu/kernels.js` i `tools/gpu-check.html`
    (CPU to wzorzec; GPU ma się zgadzać statystycznie).
 
@@ -108,6 +111,8 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-11-09 – v0.10.0:** przełącznik języka EN/PL (tłumaczenie całego interfejsu w locie).
 
 - **2026-11-09 – v0.9.0:** powrót do formuł i siły z Gravitation + ciśnienie (długość wiązania),
   temperatura (osłabia siłę), wiązania z kątami; edytor formuł; Lab i GPU wyłączone; v0.8 zamrożona.

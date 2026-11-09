@@ -13,6 +13,7 @@
     document.getElementById('labCount').value = EM.lab.controller.opts.count;
     EM.ui.labRender();
 
+    EM.i18n.start();
     const start = () => {
         EM.app.clampCount();
         EM.app.newLaws(fromLink ? EM.app.settings.lawsSeed : Math.floor(Math.random() * 1e9));

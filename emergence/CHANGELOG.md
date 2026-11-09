@@ -5,6 +5,13 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.10.0] – 2026-11-09
+### Dodane
+- **Język polski** – przełącznik **EN / PL** w górnym pasku (zapamiętywany; domyślnie język
+  przeglądarki). Tłumaczone są panele, edytor, pomoc, podpowiedzi, wykresy i tablica pierwiastków
+  (polskie nazwy wszystkich 118 pierwiastków). Nazwy zmiennych w formułach zostają (to kod).
+- `js/ui/i18n.js`: słownik + wzorce dla tekstów z liczbami + `EM.t()` dla tekstów z kodu.
+
 ## [0.9.0] – 2026-11-09
 Powrót do danych z **Gravitation** – prostsze zależności. Poprzednie modele: `v0.6/` i `v0.8/`
 (linki w menu Help). Stare pliki praw (format 1 i 2) są odrzucane z informacją.

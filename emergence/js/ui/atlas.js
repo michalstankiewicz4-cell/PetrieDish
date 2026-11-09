@@ -47,7 +47,7 @@
         d.style.setProperty('--c', COLORS[el.category]);
         d.style.gridRow = el.row;
         d.style.gridColumn = el.col;
-        d.title = `${el.z} ${el.name}`;
+        d.title = `${el.z} ${EM.i18n.elementName(el.z, el.name)}`;
         d.innerHTML = `<span class="z">${el.z}</span><span class="sym">${el.symbol}</span><span class="iso"></span><span class="cnt"></span>`;
         d.addEventListener('click', () => {
             state.selZ = state.selZ === el.z ? null : el.z;
@@ -143,8 +143,9 @@
                     cell.el.classList.add('new');
                 }
             }
-            const iso = e.isotopes ? `, ${e.isotopes} isotope(s)` : '';
-            cell.el.title = `${z} ${TABLE[k].name} – ${now ? e.now + ' now' : seen ? 'discovered, none now' : 'not yet'}${iso}`;
+            const iso = e.isotopes ? EM.t(', {n} isotope(s)', { n: e.isotopes }) : '';
+            const status = now ? EM.t('{n} now', { n: e.now }) : seen ? EM.t('discovered, none now') : EM.t('not yet');
+            cell.el.title = `${z} ${EM.i18n.elementName(z, TABLE[k].name)} – ${status}${iso}`;
         });
 
         const discovered = c.everDistinct + (c.freePhotons > 0 ? 1 : 0);
@@ -184,13 +185,12 @@
         const seen = z === 1 ? e.now > 0 : e.isotopes > 0;
         box.style.setProperty('--c', COLORS[el.category]);
         let html = `<div class="big"><div class="sym${seen ? '' : ' off'}">${el.symbol}</div>
-            <div><h4>${el.name}</h4><div class="cat">${EM.elements.CATEGORIES[el.category]} · Z = ${z}</div></div></div>`;
+            <div><h4>${EM.i18n.elementName(z, el.name)}</h4><div class="cat">${EM.t(EM.elements.CATEGORIES[el.category])} · Z = ${z}</div></div></div>`;
         if (z === 1) {
             html += `<dl><dt>free photons now</dt><dd>${fmt(e.now)}</dd></dl>
                 <p class="hint">A single photon without bonds – the raw material of every other element.</p>`;
         } else if (!seen) {
-            html += `<p class="hint">Not formed yet in this universe. It needs a structure of exactly ${z} photons
-                that keeps its shape for ${EM.config.STABLE_PASSES} observer passes.</p>`;
+            html += `<p class="hint">${EM.t('Not formed yet in this universe. It needs a structure of exactly {z} photons that keeps its shape for {k} observer passes.', { z, k: EM.config.STABLE_PASSES })}</p>`;
         } else {
             html += `<dl><dt>present now</dt><dd>${e.now}</dd><dt>isotopes (shapes)</dt><dd>${e.isotopes}</dd>
                 <dt>first at step</dt><dd>${fmt(e.first)}</dd></dl><div class="pt-iso"></div>`;
@@ -293,7 +293,7 @@
 
     function drawCurve(log) {
         const { ctx, w, h } = setupCanvas($('mlCurve'));
-        if (!log.length) return empty(ctx, w, h, 'Start the search – every tested universe appears here');
+        if (!log.length) return empty(ctx, w, h, EM.t('Start the search – every tested universe appears here'));
         const padL = 34, padB = 18, top = 26;
         const plotH = h - padB - top, elH = plotH * 0.28;
         const maxI = Math.max(0.1, ...log.map((p) => p.interest));
@@ -338,7 +338,7 @@
         ctx.lineWidth = 1;
 
         ctx.font = '10px ui-monospace, monospace';
-        [['#50ffaa', 'best so far'], ['#7aa2ff', 'score of each universe'], ['rgba(80,255,170,0.6)', `elements (max ${maxE})`]].forEach(([c, t], k) => {
+        [['#50ffaa', EM.t('best so far')], ['#7aa2ff', EM.t('score of each universe')], ['rgba(80,255,170,0.6)', EM.t('elements (max {n})', { n: maxE })]].forEach(([c, t], k) => {
             ctx.fillStyle = c;
             ctx.fillRect(padL + k * 170, 6, 8, 8);
             ctx.fillStyle = '#c9d2ee';
@@ -359,7 +359,7 @@
     function drawMap(s) {
         const { ctx, w, h } = setupCanvas(mapCanvas);
         mapPoints = [];
-        if (!s.archive.length) return empty(ctx, w, h, 'No universes yet');
+        if (!s.archive.length) return empty(ctx, w, h, EM.t('No universes yet'));
         const pad = 26;
         ctx.strokeStyle = 'rgba(255,255,255,0.06)';
         for (let g = 0; g <= 4; g++) {
@@ -369,14 +369,14 @@
         }
         ctx.fillStyle = '#7c86a8';
         ctx.font = '10px ui-monospace, monospace';
-        ctx.fillText('gas', pad, h - 8);
+        ctx.fillText(EM.t('gas'), pad, h - 8);
         ctx.textAlign = 'right';
-        ctx.fillText('all bonded →', w - pad, h - 8);
+        ctx.fillText(EM.t('all bonded →'), w - pad, h - 8);
         ctx.textAlign = 'left';
         ctx.save();
         ctx.translate(11, h - pad);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText('more kinds of shapes →', 0, 0);
+        ctx.fillText(EM.t('more kinds of shapes →'), 0, 0);
         ctx.restore();
 
         const maxI = Math.max(0.05, ...s.archive.map((a) => a.interest));
@@ -407,9 +407,9 @@
         if (best) ring(best, '#ffffff', 3);
         if (lab.last) ring(lab.last, '#ffb86b', 3 + 2 * Math.abs(Math.sin(performance.now() / 300)));
         ctx.fillStyle = '#c9d2ee';
-        ctx.fillText('○ best   ', w - 150, 14);
+        ctx.fillText(EM.t('○ best'), w - 150, 14);
         ctx.fillStyle = '#ffb86b';
-        ctx.fillText('○ newest', w - 90, 14);
+        ctx.fillText(EM.t('○ newest'), w - 90, 14);
     }
 
     function pointAt(e) {
@@ -465,7 +465,7 @@
             d.style.background = share > 0
                 ? `color-mix(in srgb, ${colorOf(z)} ${Math.round(20 + share * 80)}%, #0a0c18)`
                 : '';
-            d.title = `${TABLE[k].name}: ${z === 1 ? 'free photons – every universe' : counts[z] + ' of ' + archive.length + ' universes'}`;
+            d.title = `${EM.i18n.elementName(z, TABLE[k].name)}: ${z === 1 ? EM.t('free photons – every universe') : EM.t('{a} of {b} universes', { a: counts[z], b: archive.length })}`;
         });
     }
 
@@ -507,6 +507,13 @@
         if (state.open && state.tab === 'ml' && lab.running) drawMap(lab.search);
         setTimeout(pulse, 120);
     })();
+
+    EM.i18n.onChange(() => {
+        $('ptDetail')._key = null;
+        $('mlBest')._key = null;
+        cells.forEach((cell, k) => { cell.el.title = `${k + 1} ${EM.i18n.elementName(k + 1, TABLE[k].name)}`; });
+        refresh();
+    });
 
     EM.ui.atlas = {
         toggle,

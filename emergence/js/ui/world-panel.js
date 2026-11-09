@@ -43,7 +43,7 @@
         try {
             app.loadGenome(EM.genome.fromJSON(text), 'file');
         } catch (e) {
-            alert('Cannot load laws: ' + e.message);
+            alert(EM.t('Cannot load laws: ') + e.message);
         }
     });
 

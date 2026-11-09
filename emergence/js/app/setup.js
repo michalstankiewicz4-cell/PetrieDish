@@ -56,7 +56,7 @@
         setDim(dim) {
             this.dim = dim;
             const use3d = dim === 3 && get3d();
-            if (dim === 3 && !use3d) alert('3D view needs WebGL2: ' + error3d);
+            if (dim === 3 && !use3d) alert(EM.t('3D view needs WebGL2: ') + error3d);
             canvas2d.hidden = !!use3d;
             canvas3d.hidden = !use3d;
             this.selection = this._selection;
