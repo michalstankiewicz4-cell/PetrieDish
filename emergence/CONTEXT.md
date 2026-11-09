@@ -18,7 +18,7 @@
 
 ## Stan
 
-- **Wersja:** 0.8.0 (2026-10-25) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
+- **Wersja:** 0.9.0 (2026-11-09) – **model z Gravitation** (formuły fotonu) + ciśnienie, temperatura, wiązania z kątami; Lab i GPU wyłączone. Poprzednie: `v0.6/`, `v0.8/` (zamrożone kopie) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
@@ -37,7 +37,14 @@
      będzie rysowanie 2D (Canvas) i obserwatorzy – ew. renderer 2D w WebGL, obserwatorzy w workerze.
   4. Detektor „poziomów”: skupiska zamknięć (M6) i drzewo pochodzenia struktur (M5).
 
-### Model fotonów (od v0.7) – decyzje użytkownika
+### Model z Gravitation (od v0.9) – decyzje użytkownika (2026-11-09)
+- Dane fotonu z pierwszego silnika (Gravitation): formuły jak w jego edytorze, ta sama siła.
+- Do tego: ciśnienie → długość wiązania, temperatura → osłabia siłę (wybrane: wyższa = słabsza).
+- Wiązania zostają, kąty wiązań – zrobione od razu (`bondAngle` w formułach).
+- Lab wyłączony na razie (strojenie ręczne); GPU też (nie zna modelu).
+- Uzasadnienie użytkownika: model v0.7/v0.8 miał zbyt skomplikowane zależności.
+
+### Model fotonów (v0.7–v0.8, zamrożony w `v0.8/`) – decyzje użytkownika
 - Wszystkie fotony identyczne, ten sam promień; różnią się stanem (ładunek, masa z ładunku, energia).
 - Twarda granica regulowana ciśnieniem; najbliżej = stykanie się powierzchniami.
 - Siły: silna (wiązania na styk, walencja narzucona prawem i zależna od energii),
@@ -62,7 +69,9 @@
 | `js/observe/*` | detektory – tylko czytają świat |
 | `js/lab/*` | wyszukiwanie praw (runner, search, pool, worker) |
 | `js/observe/elements.js` | tablica Mendelejewa (118 pól), `census(observer)`: Z = liczba fotonów stabilnej struktury |
-| `js/ui/photon-editor.js` | edytor fotonu (prawy panel, `E`): suwaki praw (`app.setGene`, na żywo poza `EM.genome.RESTART_KEYS`), podgląd fotonu, wykres sił |
+| `js/core/formulas.js` | formuły fotonu jak w Gravitation: role, domyślne wiersze, kompilacja, `run` z seeded `rand` |
+| `js/ui/photon-editor.js` | edytor formuł (prawy panel, `E`): wiersze → `app.setFormulas`, środowisko → `app.setEnv`, statystyki, wykres siły |
+| `v0.6/`, `v0.8/` | zamrożone kopie poprzednich modeli (nie edytować) |
 | `js/ui/topbar.js`, `css/topbar.css` | górny pasek = menu główne (sekcje, szybkie przyciski, statystyki, Help) |
 | `js/ui/atlas.js`, `css/atlas.css` | Atlas pod Tab: tablica pierwiastków + podgląd ML |
 | `js/gpu/*` | backend WebGPU: `kernels.js` (shadery WGSL), `gpu-world.js` (`EM.gpu.init`, `EM.GpuWorld`) |
@@ -99,6 +108,10 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-11-09 – v0.9.0:** powrót do formuł i siły z Gravitation + ciśnienie (długość wiązania),
+  temperatura (osłabia siłę), wiązania z kątami; edytor formuł; Lab i GPU wyłączone; v0.8 zamrożona.
+  `tools/gpu-check.html` dotyczy modelu v0.8 (nieaktualny).
 
 - **2026-10-25 – v0.8.0:** edytor fotonu (suwaki wszystkich praw, zmiany na żywo, podgląd
   fotonu i sił), restart nie zmienia kamery. Nowe prawo = wpis w `INFO` w photon-editor.js.

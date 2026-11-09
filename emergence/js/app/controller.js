@@ -5,8 +5,22 @@
 (function (EM) {
     'use strict';
 
-    const AREA_PER_PHOTON = 220;    // px^2 per photon in 2D - density stays the same when the count changes
-    const VOLUME_PER_PHOTON = 4500; // px^3 per photon in 3D (a bit sparser: in 3D every photon has many more neighbours)
+    const AREA_PER_PHOTON = 1500;    // px^2 per photon in 2D - density stays the same when the count changes
+    const VOLUME_PER_PHOTON = 40000; // px^3 per photon in 3D (a bit sparser: in 3D every photon has many more neighbours)
+
+    /** formulas + environment the user edited - kept between visits (like Gravitation) */
+    const LS_LAWS = 'emergence.laws.v3';
+
+    function loadSavedLaws() {
+        try {
+            const raw = localStorage.getItem(LS_LAWS);
+            if (!raw) return null;
+            const g = EM.genome.fromJSON(raw);
+            return { vars: g.vars, env: g.env };
+        } catch (e) {
+            return null;
+        }
+    }
 
     const settings = {
         dim: 3,
@@ -90,20 +104,36 @@
             app.emit();
         },
 
-        /** New laws from a seed. */
+        /**
+         * New randomness for the formulas (the seed of rand()); the formulas and
+         * the environment stay what the user set in the editor.
+         */
         newLaws(seed = Math.floor(Math.random() * 1e9)) {
             settings.lawsSeed = seed >>> 0;
-            app.genome = EM.genome.random(settings.lawsSeed);
+            const saved = app.genome ? { vars: app.genome.vars, env: app.genome.env } : loadSavedLaws();
+            app.genome = EM.genome.random(settings.lawsSeed, saved && saved.vars);
+            if (saved) app.genome.env = Object.assign(EM.genome.defaultEnv(), JSON.parse(JSON.stringify(saved.env)));
             app.origin = 'seed';
             app.rebuild();
         },
 
-        /** Small random change of the current laws. */
+        /** The Lab is off in this model: "mutate" = new randomness of the same formulas. */
         mutate() {
-            const rng = new EM.Rng(Math.floor(Math.random() * 1e9));
-            app.genome = EM.genome.mutate(app.genome, rng, { rate: 0.2, sigma: 0.15 });
-            app.origin = 'mutation';
+            app.newLaws();
+        },
+
+        /** Back to Gravitation's formulas and the default environment. */
+        resetLaws() {
+            app.genome = EM.genome.random(settings.lawsSeed);
+            app.saveLaws();
+            app.origin = 'seed';
             app.rebuild();
+        },
+
+        saveLaws() {
+            try {
+                localStorage.setItem(LS_LAWS, EM.genome.toJSON(app.genome));
+            } catch (e) { /* storage off */ }
         },
 
         /** Same laws, new starting positions. */
@@ -113,9 +143,9 @@
         },
 
         loadGenome(genome, origin = 'file') {
-            app.genome = EM.genome.fillMissing(JSON.parse(JSON.stringify(genome)));
-            settings.types = app.genome.types;
+            app.genome = EM.genome.fromJSON(JSON.stringify(genome));
             settings.lawsSeed = app.genome.seed >>> 0;
+            app.saveLaws();
             app.origin = origin;
             app.rebuild();
         },
@@ -153,6 +183,11 @@
          */
         async setBackend(backend) {
             if (backend === settings.backend) return true;
+            if (backend === 'gpu') {
+                alert('The GPU backend does not support the Gravitation photon model (v0.9) yet – the physics runs on the CPU.');
+                app.emit();
+                return false;
+            }
             if (backend === 'gpu' && !(await EM.gpu.init())) {
                 alert('GPU backend needs WebGPU: ' + EM.gpu.error);
                 app.emit();
@@ -166,32 +201,34 @@
             return true;
         },
 
-        /** Environment pressure (0..1), live: changes how close photons may come. */
+        /** Environment pressure (0..1), live: sets the bond length. */
         setPressure(p) {
-            app.setGene('pressure', p);
+            app.setEnv('pressure', p);
+        },
+
+        /** One environment number (pressure, temperature, bond settings), live. */
+        setEnv(key, value) {
+            if (!app.world) return;
+            app.genome.env[key] = value;
+            app.world.laws.env = app.genome.env;
+            app.world.setEnv();
+            app.saveLaws();
+            app.lawListeners.forEach((fn) => fn(key, value, true));
         },
 
         /**
-         * Changes one law (photon editor). Most act live on the running world;
-         * RESTART_KEYS are stored and used from the next restart.
-         * @returns {boolean} true when the change is already live
+         * New formulas (editor), live: every photon keeps its charge, mass and
+         * energy, everything else is recomputed (like Gravitation).
+         * @returns {Array} errors per row (null = ok)
          */
-        setGene(key, value) {
-            if (!app.world) return false;
-            app.genome.global[key] = value;
-            const live = !EM.genome.RESTART_KEYS.includes(key);
-            if (live) {
-                app.world.setLaws(EM.genome.compile(app.genome));
-                if (app.gpu) app.gpu.updateLaws();
-            }
-            app.pendingRestart = app.pendingRestart || !live;
-            app.lawListeners.forEach((fn) => fn(key, value, live));
-            if (app.origin === 'seed') {
-                app.origin = 'edited';
-                app.writeHash();
-                app.emit();
-            }
-            return live;
+        setFormulas(vars) {
+            app.genome.vars = EM.formulas.normalize(vars);
+            const laws = EM.genome.compile(app.genome);
+            if (app.world) app.world.setLaws(laws);
+            app.saveLaws();
+            app.lawListeners.forEach((fn) => fn('formulas', null, true));
+            // compile errors + errors while running (e.g. a name used before its row)
+            return EM.formulas.run(laws.compiled, new EM.Rng(1)).errors;
         },
 
         togglePlay() {
@@ -216,27 +253,22 @@
 
         /** Laws from a seed are shareable as a link; mutated / lab laws need the JSON file. */
         writeHash() {
-            if (app.origin !== 'seed') {
-                history.replaceState(null, '', location.pathname + location.search);
-                return;
-            }
-            const h = `#laws=${settings.lawsSeed}&n=${settings.count}&world=${settings.worldSeed}&d=${settings.dim}${settings.backend === 'gpu' ? '&gpu=1' : ''}`;
+            const h = `#seed=${settings.lawsSeed}&n=${settings.count}&world=${settings.worldSeed}&d=${settings.dim}${settings.backend === 'gpu' ? '&gpu=1' : ''}`;
             history.replaceState(null, '', h);
         },
 
         readHash() {
             const params = new URLSearchParams(location.hash.slice(1));
             const num = (k) => (params.has(k) && isFinite(+params.get(k)) ? +params.get(k) : null);
-            if (num('laws') !== null) settings.lawsSeed = num('laws') >>> 0;
-            if (num('gpu') === 1) settings.backend = 'gpu';
+            if (num('seed') !== null) settings.lawsSeed = num('seed') >>> 0;
             if (num('n') !== null) {
-                const L = EM.config.COUNT_LIMITS_GPU;
+                const L = EM.config.COUNT_LIMITS;
                 settings.count = Math.max(L.min, Math.min(L.max, num('n')));
             }
             if (num('world') !== null) settings.worldSeed = num('world') >>> 0;
             if (num('d') === 2) settings.dim = 2;
             else if (num('d') === 3) settings.dim = 3;
-            return params.has('laws');
+            return params.has('seed');
         }
     };
 

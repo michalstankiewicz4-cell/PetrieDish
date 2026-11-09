@@ -30,8 +30,8 @@ modułów, wersjonowanie i test regresji z **PetrieDish**.
 
 ## 2. Fizyka – składniki (to jest „wszechświat”)
 
-> Od v0.7 obowiązuje **model fotonów** (wszystkie identyczne, ciśnienie, siła silna i
-> elektromagnetyczna) – aktualne wzory w `docs/PHYSICS.md`. Tabela niżej opisuje model v0.1–v0.6.
+> Od v0.9 obowiązuje **model z Gravitation** (formuły fotonu, fala siły) + ciśnienie, temperatura
+> i wiązania z kątami – aktualne wzory w `docs/PHYSICS.md`. Tabela niżej opisuje model v0.1–v0.6.
 
 | Składnik | Co daje | Parametry w `Laws` |
 | --- | --- | --- |
@@ -104,8 +104,8 @@ spełniające miarę, a efekt widać w pełnej symulacji.
 emergence/
   index.html
   css/                 base (tokeny, HUD), panels
-  js/core/             config (EM, wersja), rng, genome (prawa), spatial-hash (2D), spatial-hash3 (3D)
-  js/physics/          light, bonds, forces (2D), forces3d, reactions, world (2D/3D)
+  js/core/             config (EM, wersja), rng, formulas (formuły fotonu), genome (prawa)
+  js/physics/          light, bonds, world (siła, wiązania, ruch, twarda granica; 2D/3D)
   js/observe/          structures (odcisk kształtu), catalog, enclosures, observer
   js/lab/              runner (bez okna), search (novelty), pool, lab, worker
   js/gpu/              kernels (WGSL), gpu-world (WebGPU, lustro stanu w World)

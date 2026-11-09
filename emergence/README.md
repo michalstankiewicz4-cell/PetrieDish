@@ -2,11 +2,13 @@
 
 Run → https://michalstankiewicz4-cell.github.io/PetrieDish/emergence/
 
-A 3D (or 2D) world of identical "photons" – same radius, different charge and energy –
-with seeded physical laws: a hard boundary set by the pressure, a short saturating strong
-interaction (bonds; hot photons hold fewer), the electromagnetic wave from Gravitation and
-light as the energy source. The previous model (photon types, orientation, reactions) lives
-on at [v0.6/](https://michalstankiewicz4-cell.github.io/PetrieDish/emergence/v0.6/). Nothing above the photon level is
+A 3D (or 2D) world of "photons" defined like in **Gravitation**: every photon runs a list of
+formulas (charge, mass, speed, force, range, wave periods, …) and the force between two photons
+is Gravitation's wave. On top: **pressure** sets the bond length, **temperature** weakens the
+force, and photons form **bonds** with a valence and a minimal angle between bonds.
+Earlier models: [v0.6/](https://michalstankiewicz4-cell.github.io/PetrieDish/emergence/v0.6/)
+(photon types) and [v0.8/](https://michalstankiewicz4-cell.github.io/PetrieDish/emergence/v0.8/)
+(identical photons, strong + EM forces). Nothing above the photon level is
 programmed – molecules, membranes and (one day) cells have to emerge. The
 **Lab** searches the space of laws for worlds where something new and lasting
 appears; it only picks laws, it never touches a running world.
@@ -15,8 +17,9 @@ appears; it only picks laws, it never touches a running world.
 
 - **Top bar** – main menu: World / Observe panels, Elements, Machine learning,
   play, fast forward, new laws, 2D/3D, CPU/GPU, live stats, Help (keys and links).
-- **Photon editor** (top bar → Photon, or E): every law as a slider – most act live –
-  with a picture of the photon and the force curves.
+- **Photon formulas** (top bar → Photon, or E): Gravitation-style formula rows – edits act live –
+  plus the environment (pressure, temperature, bonds), property statistics and a force curve.
+  The Lab and the GPU backend are off for this model.
 - **World panel** (left): new / mutated laws, **Pressure** (live), Space 3D / 2D, photon count,
   restart, speed, view options (*Free bonds on photons*: a number on every ball, zoom in to see it).
 - **Observe panel** (right): metrics, history chart, the catalogue of stable structures

@@ -1,118 +1,90 @@
-# Fizyka – wzory (v0.7, model fotonów)
+# Fizyka – wzory (v0.9, model fotonów z Gravitation)
 
-Tylko to, co jest w `js/physics/` (i to samo w `js/gpu/kernels.js`). Oznaczenia: `i`, `j` –
-fotony, `d` – odległość środków (przez krawędź torusa), `n` – kierunek i → j, `e` – energia
-fotonu (0–1), `q` – ładunek. Jednostki: piksele i kroki symulacji. Parametry pochodzą z
-genomu praw (`js/core/genome.js`, format 2); w nawiasach zakresy losowania.
+Tylko to, co jest w `js/physics/`. Fotony i siła pochodzą z silnika **Gravitation**
+(jego edytor fotonu i wzór na siłę), do tego **ciśnienie**, **temperatura** i **wiązania z kątami**.
 
-Poprzedni model (typy z macierzami praw, orientacja, reakcje) – wersja v0.6 w folderze
-`v0.6/` (osobna strona, osobne archiwum Labu).
+Poprzednie modele działają dalej jako osobne strony: `v0.6/` (typy fotonów, orientacja, reakcje)
+i `v0.8/` (identyczne fotony, siła silna i elektromagnetyczna, światło).
 
-## Foton
+## Foton = formuły (edytor jak w Gravitation)
 
-Wszystkie fotony to **ta sama cząstka** o tym samym promieniu `r = 3 px`
-(`EM.config.PHOTON_RADIUS`). Różnią się tylko stanem:
+Każdy foton liczy po kolei wiersze formuł (`js/core/formulas.js`); `rand(a, b)` daje każdemu
+fotonowi inną wartość. Wiersz może używać nazw z wierszy **nad nim**; wiersze pomocnicze (bez roli)
+tylko podają nazwę dalej. Funkcje: rand, abs, min, max, sqrt, pow, round, floor, ceil.
 
-| Stan | Co to | Zmienia się |
+| Rola | Domyślnie (Gravitation) | Znaczenie |
 | --- | --- | --- |
-| pozycja, prędkość | 2D albo 3D, torus | co krok |
-| ładunek `q` | −2, −1, 0, +1, +2; w kodzie `type = q + 2` (kolor) | na razie stały (siła słaba – plan) |
-| masa | `massBase (0.5–2) + massPerCharge (0–1) · |q|` | z ładunkiem |
-| energia `e` | 0–1 | światło, wyciek, wiązania |
-| wiązania silne | do 4 partnerów | tworzą się i pękają |
+| charge | `rand(-1, 1)` | ładunek; znak = kolor (− niebieski, 0 biały, + pomarańczowy) |
+| mass | `rand(0.5, 3)` | bezwładność |
+| speed | `100 / mass` | prędkość w px/s – **zawsze stała**, siły zmieniają tylko kierunek |
+| energy | `9` | liczba używana w innych formułach |
+| force | `abs(charge) * 5000` | amplituda siły |
+| forceRange | `abs(charge) * 50` | zasięg siły (px) |
+| (pcount) | `3` | pomocnicza |
+| periods | `energy / pcount` | liczba okresów fali w zasięgu |
+| waveOffset | `1` | 0 = klasyczna fala, 1 = znak siły nigdy się nie zmienia |
+| phaseShift | `0` | przesunięcie fali (w okresach) |
+| valence | `3` | ile wiązań foton może mieć (0–4) – **nasze** |
+| bondAngle | `60` | najmniejszy kąt między dwoma wiązaniami fotonu (°) – **nasze** |
 
-Skład na starcie: `neutralShare` (0–0.5) fotonów obojętnych; wśród naładowanych
-`doubleShare` (0–0.35) z |q| = 2 i `positiveShare` (0.3–0.7) dodatnich.
+Zmiana formuł działa na żywo: foton zachowuje ładunek, masę i energię, reszta liczy się od nowa
+(jak `refreshAllPhotons` w Gravitation). Błąd w formule → wartość zapasowa i czerwony komunikat.
+Formuły i środowisko zapisują się w przeglądarce (localStorage), Export/Import jako JSON.
 
-## Krok (`World.step`)
+## Krok (dt = 1/60 s)
 
-1. Siatka przestrzenna (komórki ≥ R).
-2. Pary: siła elektromagnetyczna + miękki rdzeń, kandydaci do wiązań silnych, lista bliskich par.
-3. Wiązania silne: sprężyny, przepływ energii, pękanie.
-4. Całkowanie: światło, wyciek, tarcie, szarpnięcia (temperatura + energia), limit prędkości.
-5. **Twarda granica** (`World.contacts`).
+1. **Siatka** – komórki ≥ największy zasięg siły.
+2. **Pary** – siła z Gravitation, parametry uśrednione z obu fotonów:
 
-## Twarda granica i ciśnienie
+   `range = (r_i + r_j)/2`, `amp = (F_i + F_j)/2`, `periods`, `waveOffset`, `phaseShift` – średnie
 
-Środki dwóch fotonów nie zbliżają się bardziej niż
+   `f = znak · amp · (sin(2π · (periods · d / range + phaseShift)) + offset) / (1 + offset) · (1 − d / range) · (1 − temperatura)`
 
-`dmin = 2 r · (1 + 0.5 · (1 − ciśnienie))`
+   `znak = +1` (przyciąganie) dla przeciwnych ładunków, `−1` dla jednakowych albo z zerem.
+   Siła działa na oba fotony (akcja = reakcja).
+3. **Nowe wiązania** – fotony bliżej niż `1.3 · długość wiązania`, oba mają wolne miejsce
+   (`valence`), kierunek nowego wiązania tworzy z każdym istniejącym wiązaniem obu fotonów kąt
+   ≥ ich `bondAngle`, losowanie `< bondChance`.
+4. **Wiązania** – sprężyna do długości wiązania (`bondStrength · (d − długość)`); pęka, gdy
+   `d > długość · bondBreak` albo gdy foton ma więcej wiązań niż `valence` (po zmianie formuły).
+   **Kąty:** dwa wiązania fotonu bliżej niż jego `bondAngle` – ich końce są odpychane
+   (`angleStiffness · (cos − cos bondAngle)`).
+5. **Ruch** – `v += F / m · dt`, potem `|v|` wraca do `speed` fotonu (jak w Gravitation),
+   `x += v · dt`, zawijanie torusa.
+6. **Twarda granica** – kulki (promień 3 px) nigdy na siebie nie wchodzą: nakładające się pary
+   są rozsuwane (lżejsza bardziej), prędkość zbliżania znika (następny krok przywraca `speed`).
 
-Ciśnienie (0–1, losowane 0.3–1, suwak **Pressure** działa na żywo) to właściwość środowiska:
-przy 1 fotony stykają się powierzchniami (`dmin = 2r`), przy niższym trzymają się dalej.
-Po ruchu nakładające się pary są rozsuwane (lżejszy foton przesuwa się bardziej, pęd zachowany)
-i tracą prędkość zbliżania, z odbiciem `restitution` (0–0.6). CPU: do 4 przejść po bliskich
-parach; GPU: 5 przejść równoległych.
+## Środowisko
 
-## Siła elektromagnetyczna (fala z Gravitation)
+| Parametr | Domyślnie | Działanie |
+| --- | --- | --- |
+| **Ciśnienie** (0–1) | 0.8 | **długość wiązania** = 2r · (1 + 1.5 · (1 − ciśnienie)): przy 1 kulki się stykają, przy 0 wiązanie jest 2.5× dłuższe |
+| **Temperatura** (0–1) | 0 | **osłabia siłę**: × (1 − temperatura) |
+| Bond strength | 1500 | sztywność wiązania |
+| Bond breaks at | 2 | wiązanie pęka po rozciągnięciu × tyle |
+| Bond chance | 0.2 | szansa na wiązanie na krok przy styku |
+| Angle stiffness | 1500 | jak mocno pilnowany jest kąt między wiązaniami |
 
-Dla `dmin ≤ d < R` (R 20–48), dodatnia = przyciąganie:
+## Świat
 
-`F = forceScale · znak · (|q_i| + |q_j|)/2 · (sin(2π · (periods · d / R + phaseShift)) + offset) / (1 + offset) · (1 − d/R)`
+Torus 2D albo 3D (domyślnie), bok/pole rośnie z liczbą fotonów (1500 px² albo 40 000 px³ na foton –
+rzadziej niż wcześniej, bo zasięg sił sięga 50 px). Bez rozszczepiania i fuzji (`splitTime` z
+Gravitation pominięty – w planie wymiana właściwości przez wiązanie).
 
-- `znak = +1` gdy ładunki przeciwne, `−1` gdy jednakowe albo jeden obojętny.
-- `periods` 0.5–3 – liczba powłok przyciągania/odpychania w zasięgu R;
-  `phaseShift` 0–1 przesuwa je; `waveOffset` 0–1: 0 = klasyczna fala (jednakowe ładunki
-  przyciągają się w niektórych powłokach), 1 = znak nigdy się nie zmienia (jak Coulomb).
-- `forceScale` 0.05–0.3. Dwa obojętne fotony nie czują tej siły.
-- Poniżej `dmin` działa jeszcze miękkie odpychanie `d/dmin − 1` (zanim zadziała twarda granica).
+## Co jest wyłączone w tym modelu
 
-## Siła silna (wiązania)
-
-Bardzo krótki zasięg, nasycająca się, taka sama dla wszystkich fotonów:
-
-- **Powstaje**, gdy `d < dmin · (1 + strongReach)` (0.1–0.6), oba fotony mają wolne miejsce,
-  kwadrat prędkości względnej `≤ bindEnergy` (0.05–2), razem mają energię aktywacji
-  (`activation`: 0 albo 0.3–1, zużywana) i losowanie `< strongRate` (0.005–0.1).
-- **Sprężyna** o długości spoczynkowej `dmin` (styk) i sztywności `strongK` (0.05–0.5) + tłumienie 0.15.
-- **Pęka**, gdy `d > dmin · breakStretch` (1.3–2.5), losowo z szansą `decay · (1 + e_i + e_j)`
-  (decay 0 albo do 0.002) albo gdy foton ma więcej wiązań niż mu wolno (szansa 1/4 na krok).
-  Przy pęknięciu każdy foton odzyskuje połowę energii aktywacji.
-- **Walencja** jest narzuconym prawem (`valence` 0–4, ta sama dla wszystkich) i **maleje z energią**:
-
-  `dozwolone = valence − ⌊e · valence · energyValence⌋` (energyValence 0–1)
-
-  Gorący foton zrzuca wiązania, zimny może je odzyskać. Liczba na kulce (View → *Free bonds on
-  photons*) = dozwolone − obecne.
-- Wzdłuż wiązania płynie energia: `Δ = (e_j − e_i) · energyShare · 0.5` (0–0.2).
-
-## Energia i ruch
-
-- `e += absorb · światło(x)` (absorb 0 albo 0.01–0.03), potem `e −= leak · e` (0.002–0.03).
-- `a = F / masa`; `v = (v + a) · (1 − friction) + szarpnięcie`, friction 0.03–0.2.
-- **Szarpnięcie** (losowe, każda oś): amplituda `temperature + agitation · e`
-  (temperature 0–0.2, agitation 0–0.4) – im więcej energii, tym szybciej foton się porusza.
-- Limit prędkości 4 px/krok, zawijanie torusa, energia przycinana do 0–1.
-
-## Światło
-
-`L(x) = min(1.5, ambient + Σ exp(−d²/(2s²))) · dzień`, siatka 32 px (w 3D sześciany).
-ambient 0–0.3, 0–3 słońc o promieniu (0.1–0.4) · bok świata, dryf 0–0.3 px/krok,
-`dzień = 0.5 + 0.5 · sin(2π · krok / okres)` gdy okres ≥ 500.
-
-## 2D i 3D
-
-Te same wzory; w 3D świat to sześcian zawijany na wszystkich ścianach
-(bok = ∛(liczba · 4500) px, w 2D pole = liczba · 220 px²). 3D jest domyślne.
-
-## Backend GPU
-
-Te same wzory w WebGPU (jeden wątek na foton). Różnice: siły zbierane od sąsiadów (bez
-atomowych dodawań), prawdziwy `sin`, wiązania przez wzajemne propozycje (najwyżej jedno nowe
-na foton na krok), losowość z funkcji skrótu (symetryczna dla obu końców wiązania), energia
-liczona z początku kroku, twarda granica w 5 przejściach równoległych. Przebieg nie jest
-powtarzalny co do bitu; statystyki zgodne z CPU (`tools/gpu-check.html`).
+- **Lab (uczenie maszynowe)** – prawa stroi się ręcznie w edytorze.
+- **GPU** – shadery znają jeszcze model v0.8; liczy CPU.
+- Światło i przepływ energii (energia to stała właściwość z formuły).
 
 ## Determinizm
 
-Fizyka na CPU używa tylko `EM.Rng` (mulberry32): prawa z `lawsSeed`, pozycje i szum z
-`worldSeed`. Nowe parametry dopisywać na **końcu** `SPECS` w `genome.js`.
+Pozycje i kierunki z ziarna świata, wartości `rand()` w formułach z ziarna (`Seed` w panelu).
+Te same formuły + te same ziarna = ten sam przebieg (sprawdza `node tools/smoke.js`).
 
-## Plan (pomysły do dalszych kroków)
+## Plan
 
-- **Kąty wiązań** – nie na sztywno: dozwolony zakres kąta zależny od szybkości/energii
-  (szybki foton trudniej złapać → szerszy dozwolony kąt).
-- **Moc wiązania** zależna od stanu fotonów.
-- **Wymiana właściwości przez wiązanie** (ładunek, masa, energia) zamiast rozszczepiania i fuzji.
-- **Siła słaba** – zmiany ładunku.
-- Edytor fotonu (formuły jak w Gravitation) i filtry podglądu (rozmiar, kolor).
+- Moc wiązania zależna od właściwości fotonów (formuła).
+- Dozwolony kąt zależny od szybkości (można już wpisać np. `bondAngle = 40 + speed / 4`).
+- Wymiana właściwości przez wiązanie zamiast rozpadu i fuzji.
+- GPU i Lab dla tego modelu.

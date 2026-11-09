@@ -99,7 +99,7 @@
             if (v.enclosures && observer && observer.enclosures) this.drawEnclosures(observer.enclosures);
             if (v.bonds && world.bondCount > 0) this.drawBonds(world);
             this.drawPhotons(world);
-            if (v.labels && world.laws.valence[0] > 0 && world.laws.radius * cam.zoom >= 7) this.drawLabels(world);
+            if (v.labels && world.maxValence > 0 && world.laws.radius * cam.zoom >= 7) this.drawLabels(world);
             if (v.headings && world.laws.hasOrientation && cam.zoom >= 1.6) this.drawHeadings(world);
             if (this.selection) this.drawSelection(world);
 

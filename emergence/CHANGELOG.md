@@ -5,6 +5,28 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.9.0] – 2026-11-09
+Powrót do danych z **Gravitation** – prostsze zależności. Poprzednie modele: `v0.6/` i `v0.8/`
+(linki w menu Help). Stare pliki praw (format 1 i 2) są odrzucane z informacją.
+### Zmienione
+- **Foton = formuły jak w edytorze Gravitation** (charge, mass, speed, energy, force, forceRange,
+  periods, waveOffset, phaseShift + wiersze pomocnicze), domyślnie dokładnie wartości z Gravitation.
+  Każdy foton ma własne wartości (`rand`), prędkość jest stała, siły zmieniają kierunek.
+- **Siła z Gravitation** (fala uśredniona z obu fotonów, znak z iloczynu ładunków).
+- **Ciśnienie → długość wiązania**, **temperatura → osłabia siłę** (suwaki w panelu World i w edytorze).
+- **Wiązania z kątami**: `valence` i `bondAngle` to dwa nowe wiersze formuł; nowe wiązanie musi mieć
+  kąt ≥ bondAngle do istniejących, a zbyt ciasne wiązania są rozpychane.
+- Rzadszy świat (zasięg sił do 50 px), 3D domyślnie 1500 fotonów.
+- Hash w adresie: `#seed=…` (formuły zapisują się w przeglądarce; do dzielenia się – Export).
+### Dodane
+- **Edytor formuł** (⚛ Photon, `E`): wiersze z błędami na czerwono, przesuwanie, wiersze pomocnicze,
+  środowisko, min/średnia/max każdej właściwości w świecie, wykres siły dla typowych fotonów.
+- Inspektor fotonu pokazuje wszystkie jego właściwości.
+### Wyłączone (na razie)
+- Lab (uczenie maszynowe) i backend GPU – nie znają jeszcze tego modelu.
+### Usunięte
+- Stare moduły sił, siatek i reakcji (są w kopiach `v0.6/`, `v0.8/`).
+
 ## [0.8.0] – 2026-10-25
 ### Dodane
 - **Edytor fotonu** (górny pasek → Photon, klawisz `E`, prawy panel zamiast Observe):

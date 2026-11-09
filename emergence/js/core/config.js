@@ -11,7 +11,7 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
 (function (EM) {
     'use strict';
 
-    EM.VERSION = '0.8.0';
+    EM.VERSION = '0.9.0';
 
     EM.debug = false;
     EM.log = (...args) => { if (EM.debug) console.log(...args); };
@@ -23,13 +23,15 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
         MAX_SPEED: 4,
         /** Every photon has the same radius (px). Closest approach of two centres: 2 r at pressure 1. */
         PHOTON_RADIUS: 3,
+        /** The Lab (machine learning) is off for the Gravitation photon model (v0.9) - laws are tuned by hand. */
+        LAB_ENABLED: false,
         /** Colour per charge class (type = charge + 2): -2, -1, 0, +1, +2. */
         CHARGE_COLORS: ['hsl(222, 85%, 60%)', 'hsl(192, 85%, 62%)', 'hsl(230, 12%, 74%)', 'hsl(32, 92%, 60%)', 'hsl(356, 85%, 62%)'],
 
-        DEFAULT_COUNT: 6000,
-        DEFAULT_COUNT_3D: 2000,
+        DEFAULT_COUNT: 2000,
+        DEFAULT_COUNT_3D: 1500,
         DEFAULT_TYPES: 5,
-        COUNT_LIMITS: { min: 500, max: 30000 },
+        COUNT_LIMITS: { min: 100, max: 10000 },
         /** GPU backend (WebGPU): many more photons. */
         DEFAULT_COUNT_GPU: 40000,
         COUNT_LIMITS_GPU: { min: 500, max: 200000 },

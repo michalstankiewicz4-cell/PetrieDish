@@ -76,6 +76,8 @@ button.active {
 }
 
 input[type="number"],
+input[type="text"],
+input:not([type]),
 select {
     background: rgba(0, 0, 0, 0.35);
     border: 1px solid var(--panel-border);

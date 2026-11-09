@@ -156,8 +156,10 @@
         }
         EM.renderer.selection = { members, label: 'photon ' + i };
         const t = w.type[i];
-        showInspector(`<span class="swatch" style="background:${w.laws.color[t]}"></span><b>photon #${i}</b>, charge ${w.laws.charge[t] > 0 ? '+' : ''}${w.laws.charge[t]}, mass ${fmt(1 / w.laws.invMass[t], 2)}<br>` +
-            `energy ${fmt(w.energy[i], 3)}, strong bonds ${w.deg[i]}/${w.laws.valence[t]}, speed ${fmt(Math.hypot(w.vx[i], w.vy[i], w.vz[i]), 2)}<br>${shape}`);
+        const q = w.charge[i];
+        showInspector(`<span class="swatch" style="background:${w.laws.color[t]}"></span><b>photon #${i}</b>, charge ${q > 0 ? '+' : ''}${fmt(q, 2)}, mass ${fmt(w.mass[i], 2)}, speed ${fmt(w.speed[i], 1)} px/s<br>` +
+            `energy ${fmt(w.energyRaw[i], 2)}, force ${fmt(w.force[i], 0)} up to ${fmt(w.range[i], 1)} px, periods ${fmt(w.periods[i], 2)}<br>` +
+            `bonds ${w.deg[i]}/${w.valence[i]}, bond angle ≥ ${fmt(w.bondAngle[i], 0)}°<br>${shape}`);
     }
 
     // ---------- refresh ----------

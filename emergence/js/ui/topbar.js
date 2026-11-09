@@ -41,10 +41,11 @@
     $('tbNew').addEventListener('click', () => app.newLaws());
     $('tbDim').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => app.setDim(+b.dataset.space)));
     $('tbBackend').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => app.setBackend(b.dataset.backend)));
-    if (!EM.gpu.supported) {
+    {
+        // the GPU kernels do not know the Gravitation photon model (v0.9) yet
         const gpuBtn = $('tbBackend').querySelector('[data-backend="gpu"]');
         gpuBtn.disabled = true;
-        gpuBtn.title = 'WebGPU is not available in this browser';
+        gpuBtn.title = 'GPU: not yet for the Gravitation photon model';
     }
 
     // help dropdown

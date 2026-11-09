@@ -14,14 +14,10 @@
          physics/ and observe/ never touch the DOM (they also run in the Lab's Web Workers). -->
     <script defer src="js/core/config.js"></script>
     <script defer src="js/core/rng.js"></script>
+    <script defer src="js/core/formulas.js"></script>
     <script defer src="js/core/genome.js"></script>
-    <script defer src="js/core/spatial-hash.js"></script>
-    <script defer src="js/core/spatial-hash3.js"></script>
     <script defer src="js/physics/light.js"></script>
     <script defer src="js/physics/bonds.js"></script>
-    <script defer src="js/physics/forces.js"></script>
-    <script defer src="js/physics/forces3d.js"></script>
-    <script defer src="js/physics/reactions.js"></script>
     <script defer src="js/physics/world.js"></script>
     <script defer src="js/gpu/kernels.js"></script>
     <script defer src="js/gpu/gpu-world.js"></script>
@@ -109,7 +105,8 @@
                 <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/docs/PLAN.md" target="_blank" rel="noopener">Plan – milestones M0–M6</a>
                 <a href="https://github.com/michalstankiewicz4-cell/PetrieDish/blob/main/emergence/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
                 <a href="https://github.com/michalstankiewicz4-cell/PetrieDish" target="_blank" rel="noopener">GitHub repository</a>
-                <a href="v0.6/">Previous physics (v0.6, photon types)</a>
+                <a href="v0.8/">Previous model v0.8 (strong + EM forces)</a>
+                <a href="v0.6/">Previous model v0.6 (photon types)</a>
                 <a href="../">PetrieDish (sister project)</a>
             </div>
         </div>
@@ -120,18 +117,23 @@
         <details open>
             <summary>Laws</summary>
             <div class="row">
-                <label for="lawsSeed">Laws seed</label>
+                <label for="lawsSeed" title="Randomness of rand() in the photon formulas">Seed</label>
                 <input type="number" id="lawsSeed" min="0" step="1">
                 <button id="loadLawsBtn">Load</button>
             </div>
             <div class="row">
-                <label for="pressureInput" title="Environment: how close photons may come (1 = surfaces touch)">Pressure</label>
+                <label for="pressureInput" title="Bond length: 1 = bonded photons touch, 0 = 2.5 x longer">Pressure</label>
                 <input type="range" id="pressureInput" min="0" max="1" step="0.01">
                 <span class="value" id="pressureValue"></span>
             </div>
+            <div class="row">
+                <label for="temperatureInput" title="Weakens the force between photons: force x (1 − temperature)">Temperature</label>
+                <input type="range" id="temperatureInput" min="0" max="1" step="0.01">
+                <span class="value" id="temperatureValue"></span>
+            </div>
             <div class="row buttons">
-                <button id="newLawsBtn" title="N">🎲 New laws</button>
-                <button id="mutateBtn" title="M">🧬 Mutate</button>
+                <button id="newLawsBtn" title="N – same formulas, new random values">🎲 New seed</button>
+                <button id="editFormulasBtn" title="E – photon formulas">⚛ Formulas</button>
             </div>
             <div class="row buttons">
                 <button id="exportBtn">⤓ Export</button>
@@ -204,34 +206,38 @@
     <!-- RIGHT (alternative): photon editor - what a photon is and how photons interact -->
     <aside class="panel right editor" id="editorPanel" data-side="right">
         <div class="ed-head">
-            <b>⚛ Photon editor</b>
-            <span class="hint" id="edOrigin"></span>
-        </div>
-        <div class="ed-restart" id="edRestart" hidden>
-            Some changes (↻) take effect in a new world.
-            <button id="edRestartBtn">↻ Restart now</button>
+            <b>⚛ Photon formulas</b>
+            <span class="hint">like Gravitation</span>
         </div>
         <details open>
-            <summary>Photon</summary>
-            <canvas id="edPhoton" height="128"></canvas>
-            <div class="row">
-                <label for="edEnergy" title="Preview only: how a photon with this energy behaves">Preview energy</label>
-                <input type="range" id="edEnergy" min="0" max="1" step="0.01" value="0">
-                <span class="value" id="edEnergyValue"></span>
+            <summary>Formulas</summary>
+            <p class="hint">Every photon runs these rows top to bottom; <code>rand(a, b)</code> gives each photon its own value.
+                A row can use the names above it. Functions: rand, abs, min, max, sqrt, pow, round, floor, ceil.
+                Changes act live: photons keep their charge, mass and energy, everything else is recomputed.</p>
+            <div id="edRows"></div>
+            <div class="row buttons">
+                <button id="edAddBtn" title="A helper variable later rows can use">＋ Helper variable</button>
+                <button id="edDefaultsBtn" title="Gravitation's formulas and the default environment">⟲ Defaults</button>
             </div>
-            <p class="hint" id="edPhotonText"></p>
         </details>
         <details open>
-            <summary>Forces between two photons</summary>
-            <canvas id="edForces" height="170"></canvas>
-            <p class="hint">Force on a photon vs distance of the centres. Positive = attraction.
-                Grey = hard boundary (pressure), blue = strong bonds form, dashed = strong bond breaks.</p>
+            <summary>Environment</summary>
+            <div id="edEnv"></div>
         </details>
-        <div id="edGroups"></div>
+        <details open>
+            <summary>Photons in this world</summary>
+            <table class="metrics" id="edStats"></table>
+        </details>
+        <details open>
+            <summary>Force between two photons</summary>
+            <canvas id="edForces" height="170"></canvas>
+            <p class="hint">Two typical photons of this world (charge ±, average of the other values), force vs distance; positive = attraction.
+                Grey = they touch, blue = bond length (pressure), dashed = a bond breaks.</p>
+        </details>
         <div class="row buttons ed-foot">
-            <button id="edApplyBtn" title="New world with these laws (same start)">↻ Restart with these laws</button>
-            <button id="edResetBtn" title="Laws from the seed again">⟲ Seed laws</button>
-            <button id="edExportBtn" title="Save the laws as JSON">⤓ Export</button>
+            <button id="edRestartBtn" title="New world with these formulas">↻ Restart</button>
+            <button id="edExportBtn" title="Save formulas and environment as JSON">⤓ Export</button>
+            <button id="edImportBtn" title="Load formulas and environment">⤒ Import</button>
         </div>
     </aside>
 

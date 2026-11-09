@@ -231,7 +231,10 @@
     // ---------- machine learning ----------
     const tip = $('mlTip');
     const startBtn = $('mlStartBtn');
-    startBtn.addEventListener('click', () => (lab.running ? lab.stop() : lab.start()));
+    startBtn.addEventListener('click', () => {
+        if (!EM.config.LAB_ENABLED) return;
+        if (lab.running) lab.stop(); else lab.start();
+    });
 
     const symbolsOf = (list, max = 14) => {
         const chips = list.slice(0, max).map((z) => `<span style="--c:${colorOf(z)}">${TABLE[z - 1].symbol}</span>`).join('');
@@ -248,7 +251,8 @@
             `<div class="ml-stat"><b>${s.archive.length}</b><span>kept in archive</span></div>` +
             `<div class="ml-stat"><b>${best ? best.interest.toFixed(2) : '–'}</b><span>best score</span></div>` +
             `<div class="ml-stat"><b>${maxEl}</b><span>most elements in one</span></div>`;
-        startBtn.textContent = lab.running ? '■ Stop search' : '▶ Start search';
+        startBtn.textContent = !EM.config.LAB_ENABLED ? 'Lab is off in this model' : lab.running ? '■ Stop search' : '▶ Start search';
+        startBtn.disabled = !EM.config.LAB_ENABLED;
         startBtn.classList.toggle('active', lab.running);
         const pool = lab.pool;
         const size = pool ? pool.size : lab.opts.workers;

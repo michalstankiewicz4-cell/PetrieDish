@@ -19,6 +19,12 @@
 
     // ---------- laws ----------
     const lawsSeed = $('lawsSeed'), pressure = $('pressureInput'), pressureValue = $('pressureValue');
+    const temperature = $('temperatureInput'), temperatureValue = $('temperatureValue');
+    temperature.addEventListener('input', () => {
+        app.setEnv('temperature', +temperature.value);
+        temperatureValue.textContent = (+temperature.value).toFixed(2);
+    });
+    $('editFormulasBtn').addEventListener('click', () => document.querySelector('[data-toggle="editorPanel"]').click());
 
     $('newLawsBtn').addEventListener('click', () => app.newLaws());
     $('loadLawsBtn').addEventListener('click', () => app.newLaws(+lawsSeed.value >>> 0));
@@ -28,7 +34,6 @@
         app.setPressure(+pressure.value);
         pressureValue.textContent = (+pressure.value).toFixed(2);
     });
-    $('mutateBtn').addEventListener('click', () => app.mutate());
 
     $('exportBtn').addEventListener('click', () => {
         EM.ui.download(`emergence-laws-${app.settings.lawsSeed}.json`, app.exportGenome());
@@ -46,10 +51,9 @@
     const dimSelect = $('dimSelect');
     dimSelect.addEventListener('change', () => app.setDim(+dimSelect.value));
     const backendSelect = $('backendSelect');
-    if (!EM.gpu.supported) {
-        backendSelect.querySelector('[value="gpu"]').disabled = true;
-        backendSelect.title = 'WebGPU is not available in this browser';
-    }
+    // the GPU kernels do not know the Gravitation photon model (v0.9) yet
+    backendSelect.querySelector('[value="gpu"]').disabled = true;
+    backendSelect.title = 'GPU: not yet for the Gravitation photon model';
     backendSelect.addEventListener('change', () => app.setBackend(backendSelect.value));
     const count = $('countInput'), countValue = $('countValue');
     count.addEventListener('input', () => { countValue.textContent = fmt(+count.value); });
@@ -83,7 +87,7 @@
 
     // ---------- refresh ----------
     const hud = $('hudStats'), originEl = $('lawsOrigin');
-    const ORIGIN = { seed: 'from seed', mutation: 'mutated (export to keep)', lab: 'from Lab (export to keep)', file: 'from file', edited: 'edited (export to keep)' };
+    const ORIGIN = { seed: 'formulas are kept in this browser – Export to share them', mutation: 'mutated (export to keep)', lab: 'from Lab', file: 'from file', edited: 'edited' };
 
     function syncControls() {
         const s = app.settings;
@@ -91,11 +95,13 @@
         if (app.world) {
             pressure.value = app.world.laws.pressure;
             pressureValue.textContent = app.world.laws.pressure.toFixed(2);
+            temperature.value = app.world.laws.temperature;
+            temperatureValue.textContent = app.world.laws.temperature.toFixed(2);
         }
         const lim = app.countLimits();
         count.min = lim.min;
-        count.max = s.backend === 'gpu' ? lim.max : 20000;
-        count.step = s.backend === 'gpu' ? 2000 : 500;
+        count.max = lim.max;
+        count.step = 100;
         count.value = s.count;
         backendSelect.value = s.backend;
         countValue.textContent = fmt(s.count);
@@ -110,9 +116,14 @@
     app.onChange(syncControls);
     // the photon editor can change the pressure too
     app.lawListeners.add((key) => {
-        if (key !== 'pressure' || document.activeElement === pressure) return;
-        pressure.value = app.world.laws.pressure;
-        pressureValue.textContent = app.world.laws.pressure.toFixed(2);
+        if (key === 'pressure' && document.activeElement !== pressure) {
+            pressure.value = app.world.laws.pressure;
+            pressureValue.textContent = app.world.laws.pressure.toFixed(2);
+        }
+        if (key === 'temperature' && document.activeElement !== temperature) {
+            temperature.value = app.world.laws.temperature;
+            temperatureValue.textContent = app.world.laws.temperature.toFixed(2);
+        }
     });
 
     EM.ui.register(() => {

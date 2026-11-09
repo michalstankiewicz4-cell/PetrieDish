@@ -240,7 +240,7 @@
                 this.data = new Float32Array(n * 2);
             }
             const pos = this.pos, data = this.data;
-            const labels = this.view.labels && world.laws.valence[0] > 0;
+            const labels = this.view.labels && world.maxValence > 0;
             for (let i = 0; i < n; i++) {
                 pos[i * 3] = world.x[i];
                 pos[i * 3 + 1] = world.y[i];

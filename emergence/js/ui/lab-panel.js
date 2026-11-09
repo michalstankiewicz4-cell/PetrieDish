@@ -19,7 +19,14 @@
         lab.opts.workers = Math.max(1, Math.min(+workersIn.max, +workersIn.value || 1));
     };
 
+    if (!EM.config.LAB_ENABLED) {
+        startBtn.disabled = true;
+        startBtn.textContent = 'Lab off';
+        startBtn.title = 'The Lab is switched off for the Gravitation photon model – tune the formulas by hand (⚛ Photon)';
+    }
+
     startBtn.addEventListener('click', () => {
+        if (!EM.config.LAB_ENABLED) return;
         if (lab.running) {
             lab.stop();
         } else {
@@ -61,6 +68,10 @@
     function render() {
         const s = lab.search;
         const mode = lab.pool ? (lab.pool.mode === 'workers' ? `${lab.pool.size} worker(s)` : 'in page (open via http for workers)') : '';
+        if (!EM.config.LAB_ENABLED) {
+            status.textContent = 'Off for the Gravitation photon model (v0.9) – tune the formulas by hand in ⚛ Photon. Archived results are from older models.';
+            return;
+        }
         status.textContent = `${lab.dim}D · ` + (lab.running ? `searching · ${mode} · ` : 'stopped · ') +
             `${fmt(s.evaluated)} evaluated · archive ${s.archive.length}` +
             (lab.last ? ` · last ${lab.last.name} (${fmt(lab.last.interest, 2)})` : '') +

@@ -17,10 +17,7 @@
 
     function cellSize(world) {
         // about one bond length: a closed chain of bonds then reliably seals the inside
-        let sum = 0, cnt = 0;
-        const L = world.laws, T = L.T;
-        for (let p = 0; p < T * T; p++) if (L.bondAff[p] > 0) { sum += L.bondLen[p]; cnt++; }
-        return Math.max(4, cnt ? sum / cnt : L.coreR * 2);
+        return Math.max(4, world.laws.bondLen);
     }
 
     /** Dispatches on the number of dimensions. */

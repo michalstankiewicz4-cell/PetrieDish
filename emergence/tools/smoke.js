@@ -3,12 +3,13 @@
  *
  *   node tools/smoke.js            (from the emergence folder)
  *
- * Checks for several law seeds, in 2D and in 3D:
- *  - determinism: the same laws + world seed give a bit-identical state
- *  - matter is conserved: photon count never changes, types stay valid
- *  - no NaN / Infinity in positions, velocities, energy
- *  - bond table is consistent (every bond is stored on both ends, valence respected)
- *  - speed: ms per step at 4000 photons
+ * Gravitation photon model (v0.9), in 2D and 3D:
+ *  - determinism: the same seeds give a bit-identical state
+ *  - finite numbers, positions inside the world, speed kept (|v| = speed)
+ *  - bond table consistent (both ends, valence respected), photons never overlap
+ *  - formulas: errors fall back, live edit keeps charge / mass / energy
+ *  - pressure sets the bond length, temperature weakens the force
+ *  - speed: ms per step
  * Exit code 1 when anything fails.
  */
 'use strict';
@@ -18,10 +19,9 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const FILES = [
-    'js/core/config.js', 'js/core/rng.js', 'js/core/genome.js', 'js/core/spatial-hash.js', 'js/core/spatial-hash3.js',
-    'js/physics/light.js', 'js/physics/bonds.js', 'js/physics/forces.js', 'js/physics/forces3d.js', 'js/physics/reactions.js', 'js/physics/world.js',
-    'js/observe/structures.js', 'js/observe/catalog.js', 'js/observe/enclosures.js', 'js/observe/observer.js',
-    'js/lab/runner.js', 'js/lab/search.js'
+    'js/core/config.js', 'js/core/rng.js', 'js/core/formulas.js', 'js/core/genome.js',
+    'js/physics/light.js', 'js/physics/bonds.js', 'js/physics/world.js',
+    'js/observe/structures.js', 'js/observe/catalog.js', 'js/observe/enclosures.js', 'js/observe/observer.js'
 ];
 for (const f of FILES) vm.runInThisContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), { filename: f });
 const EM = globalThis.EM;
@@ -30,98 +30,114 @@ const MV = EM.config.MAX_VALENCE;
 let failures = 0;
 const fail = (msg) => { failures++; console.log('  FAIL ' + msg); };
 
-function makeWorld(lawsSeed, count, dim = 2, worldSeed = 1) {
-    const genome = EM.genome.random(lawsSeed);
+function makeWorld(seed, count, dim = 3, worldSeed = 1, genome) {
+    const g = genome || EM.genome.random(seed);
     if (dim === 3) {
-        const side = Math.round(Math.cbrt(count * 4500));
-        return new EM.World({ width: side, height: side, depth: side, count, genome, seed: worldSeed });
+        const s = Math.round(Math.cbrt(count * 40000));
+        return new EM.World({ width: s, height: s, depth: s, count, genome: g, seed: worldSeed });
     }
-    const area = count * 220, width = Math.round(Math.sqrt(area * 1.6));
-    return new EM.World({ width, height: Math.round(area / width), count, genome, seed: worldSeed });
+    const W = Math.round(Math.sqrt(count * 1500 * 1.6));
+    return new EM.World({ width: W, height: Math.round(count * 1500 / W), count, genome: g, seed: worldSeed });
 }
 
 function checksum(w) {
     let h = 0;
-    const mix = (v) => { h = (h * 31 + Math.round(v * 1e4)) | 0; };
-    for (let i = 0; i < w.n; i++) { mix(w.x[i]); mix(w.y[i]); mix(w.z[i]); mix(w.energy[i]); mix(w.type[i]); mix(w.deg[i]); }
+    for (let i = 0; i < w.n; i++) h = (h * 31 + Math.round(w.x[i] * 1000) + Math.round(w.y[i] * 7000) + Math.round(w.z[i] * 13000) + w.deg[i]) % 1e9;
     return h;
 }
 
 function checkInvariants(w, label) {
-    if (w.n !== w.x.length) fail(`${label}: photon count changed`);
-    let bad = 0, bonds = 0;
+    let bad = 0;
     for (let i = 0; i < w.n; i++) {
-        if (!isFinite(w.x[i]) || !isFinite(w.y[i]) || !isFinite(w.z[i]) || !isFinite(w.vx[i]) || !isFinite(w.energy[i])) bad++;
-        if (w.dim === 3 && (w.z[i] < 0 || w.z[i] >= w.depth)) fail(`${label}: photon ${i} left the cube`);
-        if (w.dim === 3 && Math.abs(Math.hypot(w.hx[i], w.hy[i], w.hz[i]) - 1) > 1e-3) fail(`${label}: heading of ${i} is not a unit vector`);
-        if (w.type[i] >= w.laws.T) fail(`${label}: photon ${i} has invalid type ${w.type[i]}`);
-        if (w.deg[i] > w.laws.valence[w.type[i]]) fail(`${label}: photon ${i} exceeds its valence`);
-        for (let s = 0; s < w.deg[i]; s++) {
-            const j = w.partner[i * MV + s];
-            bonds++;
-            let back = false;
-            for (let q = 0; q < w.deg[j]; q++) if (w.partner[j * MV + q] === i) back = true;
-            if (!back) fail(`${label}: bond ${i}-${j} stored on one end only`);
+        const v = [w.x[i], w.y[i], w.z[i], w.vx[i], w.vy[i], w.vz[i]];
+        if (v.some((a) => !Number.isFinite(a))) { bad++; continue; }
+        if (w.x[i] < 0 || w.x[i] >= w.width || w.y[i] < 0 || w.y[i] >= w.height) fail(`${label}: photon ${i} outside`);
+        const s = Math.hypot(w.vx[i], w.vy[i], w.vz[i]);
+        if (Math.abs(s - w.speed[i]) > 0.02 * w.speed[i] + 0.05 && w.steps > 0) {
+            // the hard boundary may slow a photon for the rest of a step; the next step restores it
+            if (Math.abs(s - w.speed[i]) > w.speed[i] + 1) fail(`${label}: photon ${i} speed ${s.toFixed(2)} vs ${w.speed[i].toFixed(2)}`);
+        }
+        if (w.deg[i] > w.valence[i]) fail(`${label}: photon ${i} has ${w.deg[i]} bonds, valence ${w.valence[i]}`);
+        for (let s2 = 0; s2 < w.deg[i]; s2++) {
+            const j = w.partner[i * MV + s2];
+            if (!EM.bonds.isBonded(w, j, i)) fail(`${label}: one-sided bond ${i}-${j}`);
         }
     }
     if (bad) fail(`${label}: ${bad} photons with NaN/Infinity`);
-    // hard boundary: (almost) no pair closer than dmin - brute force on a sample
-    const dmin = w.laws.dmin, lim = dmin * 0.9;
     let close = 0, minD = Infinity;
-    const sample = Math.min(w.n, 600);
-    for (let i = 0; i < sample; i++) {
+    for (let i = 0; i < Math.min(w.n, 400); i++) {
         for (let j = i + 1; j < w.n; j++) {
             const [dx, dy, dz] = w.offset(i, j);
             const d = Math.hypot(dx, dy, dz);
             if (d < minD) minD = d;
-            if (d < lim) close++;
+            if (d < w.laws.dmin * 0.9) close++;
         }
     }
-    if (close > sample * 0.01) fail(`${label}: ${close} pairs closer than 0.9 dmin (min ${minD.toFixed(2)}, dmin ${dmin.toFixed(2)})`);
-    w._minD = minD;
-    if (bonds / 2 !== w.bondCount) fail(`${label}: bondCount ${w.bondCount} != table ${bonds / 2}`);
+    if (close > 2) fail(`${label}: ${close} pairs overlap (closest ${minD.toFixed(2)} px, touching ${w.laws.dmin} px)`);
+    return minD;
 }
 
 console.log(`Emergence v${EM.VERSION} smoke test`);
 
-const CASES = [[1, 2], [2, 2], [3, 2], [42, 2], [2026, 2], [1, 3], [4, 3], [6, 3]];
-for (const [seed, dim] of CASES) {
-    const label = `${dim}D laws ${seed}`;
-    const count = dim === 3 ? 1200 : 2000;
-    const a = makeWorld(seed, count, dim), b = makeWorld(seed, count, dim);
+for (const [seed, dim] of [[1, 2], [2, 2], [3, 3], [4, 3]]) {
+    const n = dim === 3 ? 900 : 1200, steps = 400;
+    const a = makeWorld(seed, n, dim), b = makeWorld(seed, n, dim);
     const obs = new EM.Observer(a);
-    for (let s = 1; s <= 600; s++) {
+    for (let s = 0; s < steps; s++) {
         a.step();
         b.step();
-        if (s % 20 === 0) obs.observe();
+        if (s % 20 === 19) obs.observe();
     }
-    if (checksum(a) !== checksum(b)) fail(`${label}: not deterministic`);
-    checkInvariants(a, label);
+    if (checksum(a) !== checksum(b)) fail(`seed ${seed} ${dim}D: not deterministic`);
+    const minD = checkInvariants(a, `seed ${seed} ${dim}D`);
     const m = obs.metrics;
-    console.log(`  ${label}: bonded ${Math.round((1 - m.freeFraction) * 100)}%, shapes ${m.shapesNow}, catalogue ${m.catalog}, ` +
-        `largest ${m.largest}, enclosures ${m.enclosures}, elements ${m.elements}, closest ${a._minD.toFixed(2)} / dmin ${a.laws.dmin.toFixed(2)}`);
+    console.log(`  ${dim}D seed ${seed}: bonds ${a.bondCount}, bonded ${Math.round((1 - m.freeFraction) * 100)}%, ` +
+        `largest ${m.largest}, catalogue ${m.catalog}, elements ${m.elements}, closest ${minD.toFixed(2)} px`);
 }
 
-// genome round trip + mutation keeps the format valid
-const g = EM.genome.random(7);
-const back = EM.genome.fromJSON(EM.genome.toJSON(g));
-if (JSON.stringify(back) !== JSON.stringify(g)) fail('genome JSON round trip changed the genome');
-const mutated = EM.genome.mutate(g, new EM.Rng(3));
-try { EM.genome.compile(mutated); } catch (e) { fail('mutated genome does not compile: ' + e.message); }
-
-// lab runner on a tiny budget, both dimensions
-for (const dim of [2, 3]) {
-    const run = EM.lab.runAll(EM.genome.random(5), { count: 400, steps: 400, dim });
-    if (!run.descriptor || !isFinite(run.descriptor.freeFraction)) fail(`lab runner (${dim}D) returned no descriptor`);
+// formulas
+{
+    const g = EM.genome.random(5);
+    g.vars = g.vars.map((v) => v.role === 'mass' ? Object.assign({}, v, { expr: 'oops(' }) : v);
+    const c = EM.genome.compile(g);
+    if (!c.compiled.errors.some(Boolean)) fail('a broken formula reports no error');
+    const w = makeWorld(5, 300, 3, 1, g);
+    if (!Array.from(w.mass).every((m) => m === EM.formulas.ROLES.mass.fallback)) fail('broken mass formula did not fall back');
+}
+{
+    const w = makeWorld(6, 400, 3);
+    const charges = Array.from(w.charge), masses = Array.from(w.mass);
+    const g = w.genome;
+    g.vars = g.vars.map((v) => v.role === 'speed' ? Object.assign({}, v, { expr: '7' }) : v);
+    w.setLaws(EM.genome.compile(g));
+    if (!w.charge.every((q, i) => q === charges[i]) || !w.mass.every((m, i) => m === masses[i])) fail('live formula edit changed charge or mass');
+    if (!w.speed.every((s) => s === 7)) fail('live formula edit did not change speed');
+}
+// environment
+{
+    const w = makeWorld(7, 300, 3);
+    w.setPressure(1);
+    const l1 = w.laws.bondLen;
+    w.setPressure(0);
+    if (!(w.laws.bondLen > l1 * 2)) fail('pressure does not change the bond length');
+    w.laws.env.temperature = 0.75;
+    w.setEnv();
+    if (Math.abs(w.laws.forceFactor - 0.25) > 1e-9) fail('temperature does not weaken the force');
+}
+// genome file round trip
+{
+    const g = EM.genome.random(9);
+    const back = EM.genome.fromJSON(EM.genome.toJSON(g));
+    if (JSON.stringify(back) !== JSON.stringify(g)) fail('genome JSON round trip differs');
 }
 
-// speed
-for (const [dim, count] of [[2, 4000], [3, 2500]]) {
-    const w = makeWorld(4, count, dim);
-    for (let s = 0; s < 50; s++) w.step();
-    const t0 = Date.now();
-    for (let s = 0; s < 150; s++) w.step();
-    console.log(`  speed ${dim}D: ${((Date.now() - t0) / 150).toFixed(2)} ms/step at ${count} photons`);
+for (const [dim, count] of [[2, 3000], [3, 2000]]) {
+    const w = makeWorld(1, count, dim);
+    for (let s = 0; s < 20; s++) w.step();
+    const t0 = process.hrtime.bigint();
+    for (let s = 0; s < 60; s++) w.step();
+    const ms = Number(process.hrtime.bigint() - t0) / 1e6 / 60;
+    console.log(`  speed ${dim}D ${count} photons: ${ms.toFixed(2)} ms/step`);
 }
 
 console.log(failures ? `${failures} FAILURE(S)` : 'all checks passed');

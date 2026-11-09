@@ -252,3 +252,16 @@ table {
 .ed-law .value.off { color: var(--muted); }
 .ed-law.changed label { color: var(--accent); }
 .ed-foot { margin-top: 10px; }
+
+/* formula rows (photon editor, v0.9) */
+.fx-row { display: grid; grid-template-columns: 14px 92px 1fr 18px; gap: 4px; align-items: center; margin: 4px 0; }
+.fx-row .mv { display: flex; flex-direction: column; line-height: 0.8; }
+.fx-row .mv button { background: none; border: 0; padding: 0; min-width: 0; height: 9px; font-size: 9px; color: var(--muted); cursor: pointer; }
+.fx-row .mv button:hover { color: #fff; }
+.fx-row input { width: 100%; min-width: 0; font: 12px var(--mono); padding: 3px 5px; color: var(--text); }
+.fx-row input.name[readonly] { color: var(--accent); background: transparent; border-color: transparent; }
+.fx-row .del { background: none; border: 0; color: var(--muted); padding: 0; min-width: 0; cursor: pointer; }
+.fx-row .del:hover { color: var(--bad, #ff6b6b); }
+.fx-row.err input.expr { border-color: #ff6b6b; }
+.fx-msg { grid-column: 2 / 5; font: 10px var(--mono); color: #ff8a8a; margin-top: -2px; }
+.fx-hint { grid-column: 2 / 5; font-size: 10px; color: var(--muted); margin-top: -2px; }
