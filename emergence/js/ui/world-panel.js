@@ -51,9 +51,10 @@
     const dimSelect = $('dimSelect');
     dimSelect.addEventListener('change', () => app.setDim(+dimSelect.value));
     const backendSelect = $('backendSelect');
-    // the GPU kernels do not know the Gravitation photon model (v0.9) yet
-    backendSelect.querySelector('[value="gpu"]').disabled = true;
-    backendSelect.title = 'GPU: not yet for the Gravitation photon model';
+    if (!EM.gpu.supported) {
+        backendSelect.querySelector('[value="gpu"]').disabled = true;
+        backendSelect.title = 'WebGPU is not available in this browser';
+    }
     backendSelect.addEventListener('change', () => app.setBackend(backendSelect.value));
     const count = $('countInput'), countValue = $('countValue');
     count.addEventListener('input', () => { countValue.textContent = fmt(+count.value); });
@@ -101,7 +102,7 @@
         const lim = app.countLimits();
         count.min = lim.min;
         count.max = lim.max;
-        count.step = 100;
+        count.step = s.backend === 'gpu' ? 1000 : 100;
         count.value = s.count;
         backendSelect.value = s.backend;
         countValue.textContent = fmt(s.count);

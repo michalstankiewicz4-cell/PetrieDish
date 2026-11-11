@@ -74,8 +74,17 @@ Gravitation pominięty – w planie wymiana właściwości przez wiązanie).
 ## Co jest wyłączone w tym modelu
 
 - **Lab (uczenie maszynowe)** – prawa stroi się ręcznie w edytorze.
-- **GPU** – shadery znają jeszcze model v0.8; liczy CPU.
 - Światło i przepływ energii (energia to stała właściwość z formuły).
+
+## Backend GPU (od v0.11)
+
+Ten sam model w WebGPU (`js/gpu/kernels.js`, `js/gpu/gpu-world.js`), jeden wątek na foton.
+Formuły liczy CPU (świat-lustro) i wysyła wartości na kartę; karta tylko porusza fotony.
+Krok: siatka (zliczanie, suma prefiksowa, rozłożenie) → pary (siła, sprężyny, kąty, propozycja
+wiązania) → aktualizacja (pękanie, nowe wiązania przy wzajemnej propozycji, ruch ze stałą
+prędkością) → twarda granica (5 przejść równoległych). Losowość z funkcji skrótu (oba końce
+wiązania liczą to samo). Różnice: jedno nowe wiązanie na foton na krok, foton ponad `valence`
+traci wszystkie wiązania naraz, brak powtarzalności co do bitu. Kontrola: `tools/gpu-check.html`.
 
 ## Determinizm
 
@@ -87,4 +96,4 @@ Te same formuły + te same ziarna = ten sam przebieg (sprawdza `node tools/smoke
 - Moc wiązania zależna od właściwości fotonów (formuła).
 - Dozwolony kąt zależny od szybkości (można już wpisać np. `bondAngle = 40 + speed / 4`).
 - Wymiana właściwości przez wiązanie zamiast rozpadu i fuzji.
-- GPU i Lab dla tego modelu.
+- Lab dla tego modelu.

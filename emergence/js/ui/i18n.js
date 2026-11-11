@@ -33,7 +33,8 @@
         'Fast forward without drawing (T)': 'Przewijanie bez rysowania (T)', 'New laws (N)': 'Nowe ziarno (N)',
         'Space: 2D / 3D (3)': 'Przestrzeń: 2D / 3D (3)', 'Compute: CPU (exact) / GPU (WebGPU) (G)': 'Obliczenia: CPU (dokładne) / GPU (WebGPU) (G)',
         'Keys and links': 'Klawisze i linki', 'Language': 'Język',
-        'GPU: not yet for the Gravitation photon model': 'GPU: jeszcze nie dla modelu fotonów z Gravitation',
+        'WebGPU is not available in this browser': 'Ta przeglądarka nie ma WebGPU',
+        'GPU backend needs WebGPU: ': 'Obliczenia na GPU wymagają WebGPU: ',
         // ---------- world panel ----------
         'Laws': 'Prawa', 'Seed': 'Ziarno', 'Load': 'Wczytaj', 'Pressure': 'Ciśnienie', 'Temperature': 'Temperatura',
         '🎲 New seed': '🎲 Nowe ziarno', '⚛ Formulas': '⚛ Formuły', '⤓ Export': '⤓ Eksport', '⤒ Import': '⤒ Import',

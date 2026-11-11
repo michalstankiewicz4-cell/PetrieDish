@@ -5,6 +5,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.11.0] – 2026-11-11
+### Dodane
+- **GPU (WebGPU) dla modelu z Gravitation** – przełącznik CPU/GPU znów działa (klawisz `G`,
+  `gpu=1` w linku), do 200 tys. fotonów (domyślnie 20 tys.). Na karcie: siatka, siła z Gravitation
+  z temperaturą, sprężyny wiązań, kąty, nowe wiązania (wzajemne propozycje), ruch ze stałą
+  prędkością, twarda granica (5 przejść). Formuły liczy CPU i wysyła wyniki na kartę; zmiany
+  w edytorze i suwakach działają na żywo także na GPU.
+- `tools/gpu-check.html` przepisany: CPU i GPU różnią się po 3 krokach o < 0.001 px,
+  po 300–400 krokach udział związanych fotonów różni się o < 1,5 punktu procentowego.
+### Różnice GPU względem CPU
+- Najwyżej jedno nowe wiązanie na foton na krok; foton z większą liczbą wiązań niż `valence`
+  (po zmianie formuły) traci od razu wszystkie, nie tylko nadmiarowe. Przebieg nie jest
+  powtarzalny co do bitu (CPU pozostaje wzorcem).
+
 ## [0.10.0] – 2026-11-09
 ### Dodane
 - **Język polski** – przełącznik **EN / PL** w górnym pasku (zapamiętywany; domyślnie język

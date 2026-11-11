@@ -11,7 +11,7 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
 (function (EM) {
     'use strict';
 
-    EM.VERSION = '0.10.0';
+    EM.VERSION = '0.11.0';
 
     EM.debug = false;
     EM.log = (...args) => { if (EM.debug) console.log(...args); };
@@ -33,8 +33,8 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
         DEFAULT_TYPES: 5,
         COUNT_LIMITS: { min: 100, max: 10000 },
         /** GPU backend (WebGPU): many more photons. */
-        DEFAULT_COUNT_GPU: 40000,
-        COUNT_LIMITS_GPU: { min: 500, max: 200000 },
+        DEFAULT_COUNT_GPU: 20000,
+        COUNT_LIMITS_GPU: { min: 100, max: 200000 },
         /** GPU backend: observers are expensive with many photons - run them at most this often (ms). */
         OBSERVE_MS_GPU: 400,
 

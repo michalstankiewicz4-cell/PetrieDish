@@ -20,7 +20,7 @@ appears; it only picks laws, it never touches a running world.
   play, fast forward, new laws, 2D/3D, CPU/GPU, live stats, Help (keys and links).
 - **Photon formulas** (top bar → Photon, or E): Gravitation-style formula rows – edits act live –
   plus the environment (pressure, temperature, bonds), property statistics and a force curve.
-  The Lab and the GPU backend are off for this model.
+  The Lab is off for this model.
 - **World panel** (left): new / mutated laws, **Pressure** (live), Space 3D / 2D, photon count,
   restart, speed, view options (*Free bonds on photons*: a number on every ball, zoom in to see it).
 - **Observe panel** (right): metrics, history chart, the catalogue of stable structures

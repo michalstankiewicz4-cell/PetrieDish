@@ -183,13 +183,8 @@
          */
         async setBackend(backend) {
             if (backend === settings.backend) return true;
-            if (backend === 'gpu') {
-                alert(EM.t('The GPU backend does not support the Gravitation photon model (v0.9) yet – the physics runs on the CPU.'));
-                app.emit();
-                return false;
-            }
             if (backend === 'gpu' && !(await EM.gpu.init())) {
-                alert('GPU backend needs WebGPU: ' + EM.gpu.error);
+                alert(EM.t('GPU backend needs WebGPU: ') + EM.gpu.error);
                 app.emit();
                 return false;
             }
@@ -212,6 +207,7 @@
             app.genome.env[key] = value;
             app.world.laws.env = app.genome.env;
             app.world.setEnv();
+            if (app.gpu) app.gpu.updateLaws();
             app.saveLaws();
             app.lawListeners.forEach((fn) => fn(key, value, true));
         },
@@ -225,6 +221,7 @@
             app.genome.vars = EM.formulas.normalize(vars);
             const laws = EM.genome.compile(app.genome);
             if (app.world) app.world.setLaws(laws);
+            if (app.gpu) app.gpu.uploadProps();
             app.saveLaws();
             app.lawListeners.forEach((fn) => fn('formulas', null, true));
             // compile errors + errors while running (e.g. a name used before its row)
@@ -261,8 +258,9 @@
             const params = new URLSearchParams(location.hash.slice(1));
             const num = (k) => (params.has(k) && isFinite(+params.get(k)) ? +params.get(k) : null);
             if (num('seed') !== null) settings.lawsSeed = num('seed') >>> 0;
+            if (num('gpu') === 1) settings.backend = 'gpu';
             if (num('n') !== null) {
-                const L = EM.config.COUNT_LIMITS;
+                const L = EM.config.COUNT_LIMITS_GPU;
                 settings.count = Math.max(L.min, Math.min(L.max, num('n')));
             }
             if (num('world') !== null) settings.worldSeed = num('world') >>> 0;

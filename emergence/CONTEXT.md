@@ -18,7 +18,7 @@
 
 ## Stan
 
-- **Wersja:** 0.10.0 (2026-11-09; 0.10 = przełącznik języka EN/PL) – **model z Gravitation** (formuły fotonu) + ciśnienie, temperatura, wiązania z kątami; Lab i GPU wyłączone. Poprzednie: `v0.6/`, `v0.8/` (zamrożone kopie) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
+- **Wersja:** 0.11.0 (2026-11-11; 0.10 = język EN/PL, 0.11 = GPU dla modelu z Gravitation) – **model z Gravitation** (formuły fotonu) + ciśnienie, temperatura, wiązania z kątami; Lab wyłączony (GPU działa od 0.11). Poprzednie: `v0.6/`, `v0.8/` (zamrożone kopie) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search
@@ -111,6 +111,9 @@ Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
 
 ## Historia sesji
+
+- **2026-11-11 – v0.11.0:** GPU przepisane na model z Gravitation (właściwości per foton w buforze,
+  kąty, ciśnienie, temperatura), `tools/gpu-check.html` przechodzi. Lab nadal wyłączony.
 
 - **2026-11-09 – v0.10.0:** przełącznik języka EN/PL (tłumaczenie całego interfejsu w locie).
 
