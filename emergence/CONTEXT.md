@@ -107,8 +107,7 @@ wyników. Od 1.0: zmiana generatora praw = MAJOR.
 
 Wydanie: `CHANGELOG.md` (`[Unreleased]` → `[X.Y.Z] – data`), `EM.VERSION` w
 `js/core/config.js` (widać w tytule karty), sekcja **Stan** tutaj, commit
-`emergence: release vX.Y.Z – …`, tag `emergence-vX.Y.Z` (sesja w chmurze nie wypycha
-tagów – podać użytkownikowi polecenia do uruchomienia lokalnie).
+`emergence: release vX.Y.Z – …`. Tagów na razie nie robimy (decyzja użytkownika z 2026-11-11).
 
 ## Historia sesji
 
