@@ -245,9 +245,9 @@
                 pos[i * 3] = world.x[i];
                 pos[i * 3 + 1] = world.y[i];
                 pos[i * 3 + 2] = world.z[i];
-                // free strong bonds right now (shown on big balls)
-                const free = labels ? Math.max(0, Math.min(4, EM.bonds.allowed(world, i) - world.deg[i])) + 1 : 0;
-                data[i * 2] = world.type[i] + 8 * free;
+                // number on big balls (bonds / free / valence, 0..4), +1 so 0 = no label
+                const num = labels ? Math.min(4, EM.bonds.label(world, i, this.view.labelMode)) + 1 : 0;
+                data[i * 2] = world.type[i] + 8 * num;
                 data[i * 2 + 1] = world.energy[i];
             }
             if (this.paletteFor !== world.laws) {
@@ -325,7 +325,7 @@
         drawBonds(world) {
             const x = world.x, y = world.y, z = world.z, deg = world.deg, partner = world.partner;
             const hw = world.width / 2, hh = world.height / 2, hd = world.depth / 2;
-            const need = world.bondCount * 6;
+            const need = world.bondCount * 12; // a wrapped bond is drawn at both ends
             if (this.lineData.length < need) this.lineData = new Float32Array(need * 2);
             const a = this.lineData;
             let k = 0;
@@ -333,8 +333,18 @@
                 for (let s = 0; s < deg[i]; s++) {
                     const j = partner[i * MV + s];
                     if (j < i) continue;
-                    const dx = x[j] - x[i], dy = y[j] - y[i], dz = z[j] - z[i];
-                    if (dx > hw || dx < -hw || dy > hh || dy < -hh || dz > hd || dz < -hd) continue; // crosses the wrap
+                    let dx = x[j] - x[i], dy = y[j] - y[i], dz = z[j] - z[i];
+                    if (dx > hw || dx < -hw || dy > hh || dy < -hh || dz > hd || dz < -hd) {
+                        // crosses the wrap: draw it at both ends
+                        dx -= Math.round(dx / world.width) * world.width;
+                        dy -= Math.round(dy / world.height) * world.height;
+                        dz -= Math.round(dz / world.depth) * world.depth;
+                        a[k++] = x[i]; a[k++] = y[i]; a[k++] = z[i];
+                        a[k++] = x[i] + dx; a[k++] = y[i] + dy; a[k++] = z[i] + dz;
+                        a[k++] = x[j]; a[k++] = y[j]; a[k++] = z[j];
+                        a[k++] = x[j] - dx; a[k++] = y[j] - dy; a[k++] = z[j] - dz;
+                        continue;
+                    }
                     a[k++] = x[i]; a[k++] = y[i]; a[k++] = z[i];
                     a[k++] = x[j]; a[k++] = y[j]; a[k++] = z[j];
                 }

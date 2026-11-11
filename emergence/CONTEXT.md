@@ -18,7 +18,7 @@
 
 ## Stan
 
-- **Wersja:** 0.11.0 (2026-11-11; 0.10 = język EN/PL, 0.11 = GPU dla modelu z Gravitation) – **model z Gravitation** (formuły fotonu) + ciśnienie, temperatura, wiązania z kątami; Lab wyłączony (GPU działa od 0.11). Poprzednie: `v0.6/`, `v0.8/` (zamrożone kopie) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
+- **Wersja:** 0.11.1 (2026-11-11; 0.10 = język EN/PL, 0.11 = GPU dla modelu z Gravitation, 0.11.1 = wybór liczby na fotonie, wiązania przez brzeg) – **model z Gravitation** (formuły fotonu) + ciśnienie, temperatura, wiązania z kątami; Lab wyłączony (GPU działa od 0.11). Poprzednie: `v0.6/`, `v0.8/` (zamrożone kopie) – **nowy model fotonów** (poprzedni model: folder `v0.6/`, zamrożony) – etap **M0** gotowy w 2D i 3D (CPU i GPU), detektory **M1/M2** gotowe.
 - **Działa:** genom praw z ziarna, ~6 tys. fotonów w czasie rzeczywistym, siła z
   pierścieniami, orientacja, wiązania z energią aktywacji, światło, reakcje, napęd,
   katalog struktur (odcisk Weisfeiler-Lehman), detektor zamknięć, Lab (novelty search

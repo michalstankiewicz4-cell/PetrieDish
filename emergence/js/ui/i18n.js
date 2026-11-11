@@ -52,7 +52,7 @@
         '⏩ Fast forward': '⏩ Przewijanie', '■ Stop': '■ Stop', 'Steps / frame': 'Kroki / klatkę',
         'T – compute as fast as possible without drawing, until Stop': 'T – licz jak najszybciej bez rysowania, aż do Stop',
         'View': 'Widok', 'Bonds': 'Wiązania', 'Light': 'Światło', 'Auto-rotate': 'Obrót', 'Enclosures': 'Zamknięcia',
-        'Free bonds on photons': 'Wolne wiązania na fotonach',
+        'Number on photons': 'Liczba na fotonach', 'bonds now': 'wiązania teraz', 'free bonds': 'wolne wiązania', 'valence (max)': 'wartościowość (maks.)', 'What the number on each photon shows': 'Co pokazuje liczba na fotonie', 'Number on each photon (zoom in)': 'Liczba na każdym fotonie (przybliż)',
         'Number on each photon (zoom in): how many more strong bonds it may take now': 'Liczba na każdym fotonie (przybliż): ile jeszcze wiązań może przyjąć',
         'Colour': 'Kolor', 'by charge': 'wg ładunku', 'by energy': 'wg energii', 'Fit': 'Dopasuj',
         'Drag = rotate · right-drag = move · wheel = zoom · click = inspect · T = fast forward · 3 = 2D · G = GPU':

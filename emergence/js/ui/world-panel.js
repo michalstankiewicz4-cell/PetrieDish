@@ -81,6 +81,8 @@
         box.checked = view[key];
         box.addEventListener('change', () => { view[key] = box.checked; });
     });
+    $('viewLabelMode').value = view.labelMode;
+    $('viewLabelMode').addEventListener('change', (e) => { view.labelMode = e.target.value; });
     $('viewColor').addEventListener('change', (e) => { view.color = e.target.value; });
     $('fitBtn').addEventListener('click', () => EM.renderer.fit(app.world));
     const spin = $('viewSpin');

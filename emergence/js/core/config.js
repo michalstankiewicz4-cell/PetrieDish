@@ -11,7 +11,7 @@ var EM = (typeof window !== 'undefined' ? window : globalThis).EM =
 (function (EM) {
     'use strict';
 
-    EM.VERSION = '0.11.0';
+    EM.VERSION = '0.11.1';
 
     EM.debug = false;
     EM.log = (...args) => { if (EM.debug) console.log(...args); };

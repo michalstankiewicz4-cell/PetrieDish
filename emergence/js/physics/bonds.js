@@ -12,6 +12,13 @@
         return world.valence[i];
     }
 
+    /** The number drawn on photon i: 'bonds' (current), 'free' (valence - bonds) or 'valence'. */
+    function label(world, i, mode) {
+        if (mode === 'valence') return world.valence[i];
+        if (mode === 'free') return Math.max(0, world.valence[i] - world.deg[i]);
+        return world.deg[i];
+    }
+
     function isBonded(world, i, j) {
         const base = i * MV, partner = world.partner;
         for (let s = 0; s < world.deg[i]; s++) if (partner[base + s] === j) return true;
@@ -60,5 +67,5 @@
         world.bondCount = 0;
     }
 
-    EM.bonds = { allowed, isBonded, add, remove, forEach, clearAll };
+    EM.bonds = { label, allowed, isBonded, add, remove, forEach, clearAll };
 })(EM);

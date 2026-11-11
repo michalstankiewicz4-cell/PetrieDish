@@ -149,8 +149,17 @@
                 for (let s = 0; s < deg[i]; s++) {
                     const j = partner[i * MV + s];
                     if (j < i) continue;
-                    const dx = x[j] - x[i], dy = y[j] - y[i];
-                    if (dx > hw || dx < -hw || dy > hh || dy < -hh) continue; // bond across the torus edge
+                    let dx = x[j] - x[i], dy = y[j] - y[i];
+                    if (dx > hw || dx < -hw || dy > hh || dy < -hh) {
+                        // bond across the torus edge: draw it at both ends
+                        dx -= Math.round(dx / world.width) * world.width;
+                        dy -= Math.round(dy / world.height) * world.height;
+                        ctx.moveTo(x[i], y[i]);
+                        ctx.lineTo(x[i] + dx, y[i] + dy);
+                        ctx.moveTo(x[j], y[j]);
+                        ctx.lineTo(x[j] - dx, y[j] - dy);
+                        continue;
+                    }
                     ctx.moveTo(x[i], y[i]);
                     ctx.lineTo(x[j], y[j]);
                 }
@@ -184,9 +193,9 @@
             }
         }
 
-        /** Free strong bonds on each visible photon (only when zoomed in). */
+        /** Number on each visible photon (bonds / free / valence; only when zoomed in). */
         drawLabels(world) {
-            const ctx = this.ctx, cam = this.camera, x = world.x, y = world.y, deg = world.deg;
+            const ctx = this.ctx, cam = this.camera, x = world.x, y = world.y, mode = this.view.labelMode;
             const r = world.laws.radius;
             const x0 = cam.x - r, y0 = cam.y - r;
             const x1 = cam.x + cam.screenW / cam.zoom + r, y1 = cam.y + cam.screenH / cam.zoom + r;
@@ -196,7 +205,7 @@
             ctx.fillStyle = 'rgba(6, 8, 16, 0.85)';
             for (let i = 0; i < world.n; i++) {
                 if (x[i] < x0 || x[i] > x1 || y[i] < y0 || y[i] > y1) continue;
-                ctx.fillText(String(Math.max(0, EM.bonds.allowed(world, i) - deg[i])), x[i], y[i] + r * 0.06);
+                ctx.fillText(String(EM.bonds.label(world, i, mode)), x[i], y[i] + r * 0.06);
             }
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';

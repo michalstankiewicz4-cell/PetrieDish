@@ -193,7 +193,14 @@
             <label class="check"><input type="checkbox" id="viewLight"> Light</label>
             <label class="check" data-dim="3" hidden><input type="checkbox" id="viewSpin"> Auto-rotate</label>
             <label class="check"><input type="checkbox" id="viewEnclosures"> Enclosures</label>
-            <label class="check" title="Number on each photon (zoom in): how many more strong bonds it may take now"><input type="checkbox" id="viewLabels"> Free bonds on photons</label>
+            <div class="row">
+                <label class="check" title="Number on each photon (zoom in)"><input type="checkbox" id="viewLabels"> Number on photons</label>
+                <select id="viewLabelMode" title="What the number on each photon shows">
+                    <option value="bonds">bonds now</option>
+                    <option value="free">free bonds</option>
+                    <option value="valence">valence (max)</option>
+                </select>
+            </div>
             <div class="row">
                 <label for="viewColor">Colour</label>
                 <select id="viewColor">

@@ -5,6 +5,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/pl/1.1.0/), wersje SemVer
 
 ## [Unreleased]
 
+## [0.11.1] – 2026-11-11
+### Zmienione
+- **Liczba na fotonie** – do wyboru w panelu View: *wiązania teraz* (domyślnie, zgadza się
+  z liniami), *wolne wiązania* (wartościowość − wiązania; tak było dotąd) albo *wartościowość*.
+### Naprawione
+- Wiązania przechodzące przez brzeg świata (torus) nie były rysowane, więc foton przy krawędzi
+  miał mniej linii niż wiązań – teraz są rysowane przy obu końcach.
+
 ## [0.11.0] – 2026-11-11
 ### Dodane
 - **GPU (WebGPU) dla modelu z Gravitation** – przełącznik CPU/GPU znów działa (klawisz `G`,

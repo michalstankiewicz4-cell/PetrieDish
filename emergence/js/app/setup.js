@@ -14,7 +14,8 @@
         bonds: true,
         light: true,
         headings: false, // photons have no orientation in the current model
-        labels: true,    // free strong bonds as a number on each photon (when zoomed in)
+        labels: true,    // a number on each photon (when zoomed in)
+        labelMode: 'bonds', // 'bonds' (current) | 'free' (valence - bonds) | 'valence'
         enclosures: true,
         color: 'type' // 'type' | 'energy'
     };
